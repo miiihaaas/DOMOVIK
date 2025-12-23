@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="60" viewBox="0 0 150 60">
+  <!-- PLACEHOLDER - Replace with real donor logo -->
+  <rect width="150" height="60" fill="#F5F5F0" stroke="#2C3E50" stroke-width="2" rx="4"/>
+  <text x="75" y="35" font-family="Arial, sans-serif" font-size="16" font-weight="500" fill="#2C3E50" text-anchor="middle">Donor Logo 2</text>
+  <text x="75" y="50" font-family="Arial, sans-serif" font-size="10" fill="#7F8C8D" text-anchor="middle">Partner Organization</text>
+</svg>

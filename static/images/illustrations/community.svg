@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <!-- PLACEHOLDER - Replace with real civic tech illustration -->
+  <!-- Simple community/group illustration -->
+  <circle cx="100" cy="100" r="90" fill="#FFF8F0" opacity="0.8"/>
+
+  <!-- Multiple people in a circle -->
+  <circle cx="100" cy="60" r="15" fill="#0EA5E9"/>
+  <circle cx="140" cy="85" r="15" fill="#FF7A59"/>
+  <circle cx="140" cy="125" r="15" fill="#0EA5E9"/>
+  <circle cx="100" cy="150" r="15" fill="#FF7A59"/>
+  <circle cx="60" cy="125" r="15" fill="#0EA5E9"/>
+  <circle cx="60" cy="85" r="15" fill="#FF7A59"/>
+
+  <!-- Center connection point -->
+  <circle cx="100" cy="100" r="8" fill="#2C3E50"/>
+
+  <!-- Text -->
+  <text x="100" y="190" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50" text-anchor="middle">Community</text>
+</svg>

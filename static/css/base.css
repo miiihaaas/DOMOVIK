@@ -6,9 +6,9 @@
 
 /* ===== CSS VARIABLES (Civic Tech Color Palette) ===== */
 :root {
-  /* Primary Colors - from DOMOVIK Brand Guidelines */
-  --primary-blue: #006AAF;        /* Plava (Pantone 2935 C) */
-  --accent-orange: #C6451F;       /* Narand~asta (Pantone Orange 021 C) */
+  /* Primary Colors - Civic Tech Identity per AC5 */
+  --primary-teal: #0EA5E9;        /* Primarna tirkizna (ne hladna plava) */
+  --accent-coral: #FF7A59;        /* Koraljna/narandžasta za CTAs */
 
   /* Neutral Colors */
   --neutral-warm-gray: #F5F5F0;   /* Topliji gray */
@@ -76,17 +76,17 @@ p {
 }
 
 a {
-  color: var(--primary-blue);
+  color: var(--primary-teal);
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 a:hover {
-  color: #004D7A;  /* Darker blue on hover */
+  color: #0284C7;  /* Darker teal on hover */
 }
 
 a:focus {
-  outline: 2px solid var(--primary-blue);
+  outline: 2px solid var(--primary-teal);
   outline-offset: 2px;
 }
 
@@ -105,21 +105,21 @@ a:focus {
 }
 
 .btn--primary {
-  background-color: var(--primary-blue);
+  background-color: var(--primary-teal);
   color: white;
 }
 
 .btn--primary:hover {
-  background-color: #004D7A;
+  background-color: #0284C7;
 }
 
 .btn--accent {
-  background-color: var(--accent-orange);
+  background-color: var(--accent-coral);
   color: white;
 }
 
 .btn--accent:hover {
-  background-color: #A53818;
+  background-color: #EF5533;
 }
 
 /* ===== LAYOUT UTILITIES ===== */
@@ -161,7 +161,7 @@ button:focus,
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid var(--primary-blue);
+  outline: 2px solid var(--primary-teal);
   outline-offset: 2px;
 }
 
@@ -170,7 +170,7 @@ textarea:focus {
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--primary-blue);
+  background: var(--primary-teal);
   color: white;
   padding: 8px;
   text-decoration: none;

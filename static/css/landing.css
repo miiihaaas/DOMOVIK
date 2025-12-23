@@ -46,7 +46,7 @@
 
 /* ===== HERO SECTION ===== */
 .landing__hero {
-  background: linear-gradient(135deg, var(--primary-blue) 0%, #004D7A 100%);
+  background: linear-gradient(135deg, var(--primary-teal) 0%, #0284C7 100%);
   color: white;
   padding: var(--spacing-xl) var(--spacing-md);
   text-align: center;
@@ -72,7 +72,7 @@
 }
 
 .landing__info-section h2 {
-  color: var(--primary-blue);
+  color: var(--primary-teal);
   margin-bottom: var(--spacing-md);
 }
 
@@ -86,13 +86,13 @@
   padding: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
   background-color: var(--neutral-warm-gray);
-  border-left: 4px solid var(--primary-blue);
+  border-left: 4px solid var(--primary-teal);
   border-radius: var(--radius-sm);
 }
 
 .landing__info-list li::before {
   content: " ";
-  color: var(--primary-blue);
+  color: var(--primary-teal);
   font-weight: bold;
   margin-right: var(--spacing-xs);
 }
@@ -101,7 +101,7 @@
   background-color: var(--neutral-beige);
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
-  border: 2px dashed var(--accent-orange);
+  border: 2px dashed var(--accent-coral);
   font-style: italic;
   color: var(--text-secondary);
   margin-top: var(--spacing-md);
@@ -115,7 +115,7 @@
 }
 
 .landing__downloads h2 {
-  color: var(--primary-blue);
+  color: var(--primary-teal);
   text-align: center;
   margin-bottom: var(--spacing-lg);
 }
@@ -143,7 +143,7 @@
 .landing__download-link {
   display: inline-block;
   padding: 0.75rem 2rem;
-  background-color: var(--accent-orange);
+  background-color: var(--accent-coral);
   color: white;
   border-radius: var(--radius-md);
   font-weight: 600;
@@ -153,7 +153,7 @@
 }
 
 .landing__download-link:hover {
-  background-color: #E56547;
+  background-color: #EF5533;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255, 122, 89, 0.3);
   color: white;
@@ -187,11 +187,11 @@
 }
 
 .landing__banner--coa {
-  border-top: 5px solid var(--primary-blue);
+  border-top: 5px solid var(--primary-teal);
 }
 
 .landing__banner--cob {
-  border-top: 5px solid var(--accent-orange);
+  border-top: 5px solid var(--accent-coral);
 }
 
 .landing__banner h2 {
@@ -200,11 +200,11 @@
 }
 
 .landing__banner--coa h2 {
-  color: var(--primary-blue);
+  color: var(--primary-teal);
 }
 
 .landing__banner--cob h2 {
-  color: var(--accent-orange);
+  color: var(--accent-coral);
 }
 
 .landing__banner p {
@@ -225,20 +225,20 @@
 }
 
 .landing__banner--coa .landing__banner-link {
-  background-color: var(--primary-blue);
+  background-color: var(--primary-teal);
 }
 
 .landing__banner--coa .landing__banner-link:hover {
-  background-color: #004D7A;
+  background-color: #0284C7;
   color: white;
 }
 
 .landing__banner--cob .landing__banner-link {
-  background-color: var(--accent-orange);
+  background-color: var(--accent-coral);
 }
 
 .landing__banner--cob .landing__banner-link:hover {
-  background-color: #E56547;
+  background-color: #EF5533;
   color: white;
 }
 

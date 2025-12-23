@@ -1,0 +1,13 @@
+# Django Framework (LTS version per Architecture requirement)
+Django==4.2 
+
+# Environment variable management
+python-decouple==3.8
+
+# MySQL database driver (for production - MySQL 8.0+)
+# Uncomment when switching from SQLite to MySQL before Epic 2
+# mysqlclient==2.2.0
+
+# Future dependencies (will be added in later stories)
+# Celery==5.3.0  # Epic 2 - Email notifications, background tasks
+# Pillow==10.0.0  # Epic 2 - Image upload handling

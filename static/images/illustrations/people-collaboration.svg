@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <!-- PLACEHOLDER - Replace with real civic tech illustration -->
+  <!-- Simple illustration of people collaborating -->
+  <circle cx="100" cy="100" r="90" fill="#E0F2FE" opacity="0.5"/>
+
+  <!-- Person 1 -->
+  <circle cx="70" cy="90" r="20" fill="#0EA5E9"/>
+  <rect x="55" y="110" width="30" height="40" fill="#0EA5E9" rx="5"/>
+
+  <!-- Person 2 -->
+  <circle cx="130" cy="90" r="20" fill="#FF7A59"/>
+  <rect x="115" y="110" width="30" height="40" fill="#FF7A59" rx="5"/>
+
+  <!-- Connection line -->
+  <line x1="90" y1="100" x2="110" y2="100" stroke="#2C3E50" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Text -->
+  <text x="100" y="180" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50" text-anchor="middle">Collaboration</text>
+</svg>

@@ -9,10 +9,10 @@
 <div class="landing__header">
     <!-- AC1: Domovik i donor logotipi - implementirano u Task 2 -->
     <div class="landing__logos">
-        <img src="{% static 'images/logos/domovik-logo.png' %}" alt="Domovik" class="landing__logo--primary">
+        <img src="{% static 'images/logos/domovik-logo.svg' %}" alt="Domovik" class="landing__logo--primary">
         <div class="landing__donor-logos">
-            <img src="{% static 'images/logos/donor-1.png' %}" alt="Donor 1" class="landing__logo--donor">
-            <img src="{% static 'images/logos/donor-2.png' %}" alt="Donor 2" class="landing__logo--donor">
+            <img src="{% static 'images/logos/donor-1.svg' %}" alt="Donor 1" class="landing__logo--donor">
+            <img src="{% static 'images/logos/donor-2.svg' %}" alt="Donor 2" class="landing__logo--donor">
         </div>
     </div>
 </div>
@@ -27,14 +27,14 @@
 <!-- AC2: Šta treba da pripremim sekcija - implementirano u Task 3 -->
 <section class="landing__info-section">
     <h2>Šta treba da pripremim?</h2>
-    <p>Pre nego ato ponete, pripremite:</p>
+    <p>Pre nego što počnete, pripremite:</p>
     <ul class="landing__info-list">
         <li>Osnovne podatke o vašoj organizaciji ili grupi (adresa, kontakt)</li>
         <li>Excel šablon za budžet projekta (preuzmite ispod - samo za projekte)</li>
-        <li>Biografije lanova tima (PDF ili DOC format)</li>
+        <li>Biografije članova tima (PDF ili DOC format)</li>
         <li>Pisma podrške lokalnih organizacija (PDF ili DOC format)</li>
     </ul>
-    <p class="reassurance">Ne brinite - sve vaae podatke automatski uvamo dok radite. Mo~ete prekinuti i vratiti se kasnije.</p>
+    <p class="reassurance">Ne brinite - sve vaše podatke automatski čuvamo dok radite. Možete prekinuti i vratiti se kasnije.</p>
 </section>
 
 <!-- AC3: Excel template downloads - implementirano u Task 4 -->
@@ -54,13 +54,13 @@
     <div class="landing__banner landing__banner--coa">
         <h2>Prijava za Projekat (COA)</h2>
         <p>Detaljni projekat sa budžetom i finansijskim planom - za organizovane aktivnosti sa jasnim ciljevima.</p>
-        <a href="/projekat/" class="landing__banner-link">Zaponi prijavu projekta</a>
+        <a href="/projekat/" class="landing__banner-link">Započni prijavu projekta</a>
     </div>
 
     <div class="landing__banner landing__banner--cob">
         <h2>Prijava za Inicijativu (COB)</h2>
         <p>Brza inicijativa za zajednicu - bez komplikovane dokumentacije, fokus na ideju i korake.</p>
-        <a href="/inicijativa/" class="landing__banner-link">Zaponi prijavu inicijative</a>
+        <a href="/inicijativa/" class="landing__banner-link">Započni prijavu inicijative</a>
     </div>
 </section>
 {% endblock %}
