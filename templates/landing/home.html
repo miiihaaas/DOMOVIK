@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{% block header %}
+<div class="landing__header">
+    <!-- AC1: Domovik i donor logotipi - implementirano u Task 2 -->
+    <div class="landing__logos">
+        <img src="{% static 'images/logos/domovik-logo.png' %}" alt="Domovik" class="landing__logo--primary">
+        <div class="landing__donor-logos">
+            <img src="{% static 'images/logos/donor-1.png' %}" alt="Donor 1" class="landing__logo--donor">
+            <img src="{% static 'images/logos/donor-2.png' %}" alt="Donor 2" class="landing__logo--donor">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- AC2: Informativni tekst i guidance - implementirano u Task 3 -->
+<section class="landing__hero" aria-labelledby="hero-heading">
+    <h1 id="hero-heading" class="landing__hero-title">Podnesite prijavu za projekat ili inicijativu - brzo, jednostavno, bezbedno.</h1>
+</section>
+
+<!-- AC2: Šta treba da pripremim sekcija - implementirano u Task 3 -->
+<section class="landing__info-section">
+    <h2>Šta treba da pripremim?</h2>
+    <p>Pre nego ato ponete, pripremite:</p>
+    <ul class="landing__info-list">
+        <li>Osnovne podatke o vašoj organizaciji ili grupi (adresa, kontakt)</li>
+        <li>Excel šablon za budžet projekta (preuzmite ispod - samo za projekte)</li>
+        <li>Biografije lanova tima (PDF ili DOC format)</li>
+        <li>Pisma podrške lokalnih organizacija (PDF ili DOC format)</li>
+    </ul>
+    <p class="reassurance">Ne brinite - sve vaae podatke automatski uvamo dok radite. Mo~ete prekinuti i vratiti se kasnije.</p>
+</section>
+
+<!-- AC3: Excel template downloads - implementirano u Task 4 -->
+<section class="landing__downloads">
+    <h2>Preuzmite šablone</h2>
+    <div class="landing__download-card">
+        <h3>Budžet Projekta</h3>
+        <p class="landing__download-guidance">1. Preuzmi → 2. Popuni → 3. Upload</p>
+        <a href="{% static 'downloads/budzet-projekta-sablon.xlsx' %}" class="landing__download-link" download>
+            Preuzmi Excel šablon
+        </a>
+    </div>
+</section>
+
+<!-- AC4: Baneri za odabir tipa prijave - implementirano u Task 5 -->
+<section class="landing__banners">
+    <div class="landing__banner landing__banner--coa">
+        <h2>Prijava za Projekat (COA)</h2>
+        <p>Detaljni projekat sa budžetom i finansijskim planom - za organizovane aktivnosti sa jasnim ciljevima.</p>
+        <a href="/projekat/" class="landing__banner-link">Zaponi prijavu projekta</a>
+    </div>
+
+    <div class="landing__banner landing__banner--cob">
+        <h2>Prijava za Inicijativu (COB)</h2>
+        <p>Brza inicijativa za zajednicu - bez komplikovane dokumentacije, fokus na ideju i korake.</p>
+        <a href="/inicijativa/" class="landing__banner-link">Zaponi prijavu inicijative</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block footer %}
+<div class="landing__footer">
+    <p>&copy; 2025 DOMOVIK. Sva prava zadržana.</p>
+</div>
+{% endblock %}

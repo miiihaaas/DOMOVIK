@@ -1,0 +1,303 @@
+/*
+ * DOMOVIK - Landing Page Styles
+ * BEM Naming Convention
+ * AC1-5, AC8: Responsive design with Civic Tech identity
+ */
+
+/* ===== LANDING HEADER & LOGOS ===== */
+.landing__header {
+  background-color: white;
+  padding: var(--spacing-md) 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.landing__logos {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.landing__logo--primary {
+  max-width: 200px;
+  height: auto;
+}
+
+.landing__donor-logos {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.landing__logo--donor {
+  max-width: 150px;
+  height: auto;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.landing__logo--donor:hover {
+  opacity: 1;
+}
+
+/* ===== HERO SECTION ===== */
+.landing__hero {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, #004D7A 100%);
+  color: white;
+  padding: var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+}
+
+.landing__hero-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  max-width: 900px;
+  margin: 0 auto;
+  color: white;
+}
+
+/* ===== INFO SECTION ===== */
+.landing__info-section {
+  max-width: 900px;
+  margin: var(--spacing-xl) auto;
+  padding: 0 var(--spacing-md);
+  background-color: white;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.landing__info-section h2 {
+  color: var(--primary-blue);
+  margin-bottom: var(--spacing-md);
+}
+
+.landing__info-list {
+  list-style-type: none;
+  padding: 0;
+  margin: var(--spacing-md) 0;
+}
+
+.landing__info-list li {
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  background-color: var(--neutral-warm-gray);
+  border-left: 4px solid var(--primary-blue);
+  border-radius: var(--radius-sm);
+}
+
+.landing__info-list li::before {
+  content: " ";
+  color: var(--primary-blue);
+  font-weight: bold;
+  margin-right: var(--spacing-xs);
+}
+
+.reassurance {
+  background-color: var(--neutral-beige);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--accent-orange);
+  font-style: italic;
+  color: var(--text-secondary);
+  margin-top: var(--spacing-md);
+}
+
+/* ===== DOWNLOADS SECTION ===== */
+.landing__downloads {
+  max-width: 900px;
+  margin: var(--spacing-xl) auto;
+  padding: 0 var(--spacing-md);
+}
+
+.landing__downloads h2 {
+  color: var(--primary-blue);
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.landing__download-card {
+  background-color: white;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.landing__download-card h3 {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.landing__download-guidance {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-md);
+  font-weight: 500;
+}
+
+.landing__download-link {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background-color: var(--accent-orange);
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-height: 44px;  /* AC8: Touch target */
+  min-width: 44px;
+}
+
+.landing__download-link:hover {
+  background-color: #E56547;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.3);
+  color: white;
+}
+
+/* ===== APPLICATION TYPE BANNERS ===== */
+.landing__banners {
+  max-width: 1200px;
+  margin: var(--spacing-xl) auto;
+  padding: 0 var(--spacing-md);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.landing__banner {
+  background-color: white;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.landing__banner:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.landing__banner--coa {
+  border-top: 5px solid var(--primary-blue);
+}
+
+.landing__banner--cob {
+  border-top: 5px solid var(--accent-orange);
+}
+
+.landing__banner h2 {
+  font-size: 1.75rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.landing__banner--coa h2 {
+  color: var(--primary-blue);
+}
+
+.landing__banner--cob h2 {
+  color: var(--accent-orange);
+}
+
+.landing__banner p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+  flex-grow: 1;
+}
+
+.landing__banner-link {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+  min-height: 44px;  /* AC8: Touch target */
+  color: white;
+}
+
+.landing__banner--coa .landing__banner-link {
+  background-color: var(--primary-blue);
+}
+
+.landing__banner--coa .landing__banner-link:hover {
+  background-color: #004D7A;
+  color: white;
+}
+
+.landing__banner--cob .landing__banner-link {
+  background-color: var(--accent-orange);
+}
+
+.landing__banner--cob .landing__banner-link:hover {
+  background-color: #E56547;
+  color: white;
+}
+
+/* ===== FOOTER ===== */
+.landing__footer {
+  background-color: var(--text-primary);
+  color: white;
+  text-align: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.landing__footer p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+/* Tablet (768px) */
+@media (max-width: 768px) {
+  .landing__banners {
+    grid-template-columns: 1fr;
+  }
+
+  .landing__banner {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .landing__logos {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .landing__donor-logos {
+    flex-direction: column;
+  }
+
+  .landing__hero-title {
+    font-size: 2rem;
+  }
+}
+
+/* Mobile (320px) */
+@media (max-width: 320px) {
+  .landing__hero {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .landing__hero-title {
+    font-size: 1.75rem;
+  }
+
+  .landing__banner {
+    padding: var(--spacing-md);
+    min-height: 200px;
+  }
+
+  .landing__download-link,
+  .landing__banner-link {
+    padding: 0.6rem 1.2rem;
+  }
+}

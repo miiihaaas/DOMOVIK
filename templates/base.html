@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DOMOVIK - Prijava za Finansiranje{% endblock %}</title>
+
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+
+    <!-- Page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header role="banner">
+        {% block header %}
+        <!-- Header content will be filled by child templates -->
+        {% endblock %}
+    </header>
+
+    <main role="main">
+        {% block content %}
+        <!-- Main content will be filled by child templates -->
+        {% endblock %}
+    </main>
+
+    <footer role="contentinfo">
+        {% block footer %}
+        <!-- Footer content will be filled by child templates -->
+        {% endblock %}
+    </footer>
+
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
