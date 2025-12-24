@@ -209,3 +209,212 @@ class LandingPageAccessibilityTests(TestCase):
         # Check that generic link text is NOT used
         self.assertNotIn('click here', content)
         self.assertNotIn('klikni ovde', content)
+
+
+class ExcelTemplateDownloadTests(TestCase):
+    """
+    Unit tests for Excel Template Downloads (Story 1.2)
+    Tests AC1-AC5: Download functionality, template structure, visual guidance
+    """
+
+    def setUp(self):
+        """Set up test client for each test"""
+        self.client = Client()
+        self.url = reverse('landing_home')
+
+    def test_landing_page_contains_excel_download_link(self):
+        """Test AC1: Landing page has Excel template download link"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Preuzmi Excel šablon')
+        self.assertContains(response, 'downloads/budzet-projekta-sablon.xlsx')
+
+    def test_excel_download_link_points_to_static_file(self):
+        """Test AC1: Download link points to correct static file path"""
+        response = self.client.get(self.url)
+        content = response.content.decode('utf-8')
+
+        # Verify the download link uses static template tag
+        self.assertIn('downloads/budzet-projekta-sablon.xlsx', content)
+
+        # Verify link has download attribute (forces download vs open)
+        import re
+        download_link = re.search(
+            r'<a[^>]*href="[^"]*budzet-projekta-sablon\.xlsx"[^>]*>',
+            content
+        )
+        self.assertIsNotNone(download_link, "Download link not found in HTML")
+        self.assertIn('download', download_link.group(), "Download attribute missing from link")
+
+    def test_excel_template_file_exists(self):
+        """Test AC1,5: Excel template file exists in static folder"""
+        from django.conf import settings
+        from pathlib import Path
+
+        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
+
+        self.assertTrue(
+            file_path.exists(),
+            f"Excel template not found at {file_path}"
+        )
+
+        # Verify file is not empty
+        file_size = file_path.stat().st_size
+        self.assertGreater(
+            file_size,
+            0,
+            "Excel template file is empty"
+        )
+
+    def test_excel_template_is_xlsx_format(self):
+        """Test AC5: Excel template is .xlsx format (Excel 2007+)"""
+        from django.conf import settings
+        from pathlib import Path
+
+        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
+
+        # Verify file extension
+        self.assertTrue(
+            str(file_path).endswith('.xlsx'),
+            "Excel template must be .xlsx format (Excel 2007+)"
+        )
+
+        # Verify file can be opened with openpyxl (validates .xlsx format)
+        try:
+            from openpyxl import load_workbook
+            wb = load_workbook(str(file_path))
+            self.assertIsNotNone(wb, "Failed to load Excel workbook")
+        except Exception as e:
+            self.fail(f"Excel template is not a valid .xlsx file: {e}")
+
+    def test_excel_template_structure(self):
+        """Test AC2,4: Excel template has correct structure with required sheets"""
+        from django.conf import settings
+        from openpyxl import load_workbook
+
+        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
+
+        wb = load_workbook(str(file_path))
+
+        # Test AC2: Verify main budget sheet exists
+        self.assertIn(
+            'Budžet Projekta',
+            wb.sheetnames,
+            "Main budget sheet 'Budžet Projekta' not found"
+        )
+
+        # Test AC4: Verify instructions sheet exists
+        instructions_sheet_exists = (
+            'Uputstva' in wb.sheetnames or
+            'Uputstvo' in wb.sheetnames
+        )
+        self.assertTrue(
+            instructions_sheet_exists,
+            "Instructions sheet ('Uputstva' or 'Uputstvo') not found"
+        )
+
+        # Verify budget sheet has expected columns
+        ws_budget = wb['Budžet Projekta']
+        expected_headers = [
+            'Kategorija Troškova',
+            'Opis',
+            'Jedinična Cena (RSD)',
+            'Količina',
+            'Ukupno (RSD)'
+        ]
+
+        actual_headers = [
+            ws_budget.cell(1, col).value
+            for col in range(1, 6)
+        ]
+
+        self.assertEqual(
+            actual_headers,
+            expected_headers,
+            f"Column headers don't match. Expected: {expected_headers}, Got: {actual_headers}"
+        )
+
+    def test_excel_template_has_sum_formula(self):
+        """Test AC2: Excel template has SUM formula in UKUPNO row"""
+        from django.conf import settings
+        from openpyxl import load_workbook
+
+        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
+
+        wb = load_workbook(str(file_path))
+        ws_budget = wb['Budžet Projekta']
+
+        # Find UKUPNO row (should be row 9 based on template specs)
+        ukupno_row = None
+        for row_idx in range(1, 15):  # Check first 15 rows
+            cell_value = ws_budget.cell(row_idx, 1).value
+            if cell_value and 'UKUPNO' in str(cell_value).upper():
+                ukupno_row = row_idx
+                break
+
+        self.assertIsNotNone(ukupno_row, "UKUPNO row not found in Excel template")
+        self.assertEqual(ukupno_row, 9, "UKUPNO should be in row 9")
+
+        # Verify SUM formula exists in Ukupno column (column E)
+        sum_cell = ws_budget.cell(ukupno_row, 5)
+        sum_value = sum_cell.value
+
+        self.assertIsNotNone(sum_value, "UKUPNO cell is empty (no SUM formula)")
+        self.assertTrue(
+            str(sum_value).startswith('=SUM'),
+            f"UKUPNO cell should contain SUM formula, got: {sum_value}"
+        )
+
+        # Verify the formula sums E2:E8 (not E2:E10)
+        self.assertEqual(
+            sum_value,
+            '=SUM(E2:E8)',
+            f"SUM formula should be =SUM(E2:E8), got: {sum_value}"
+        )
+
+    def test_visual_guidance_text_present(self):
+        """Test AC3: Visual guidance '1. Preuzmi → 2. Popuni → 3. Upload' is displayed"""
+        response = self.client.get(self.url)
+        self.assertContains(response, '1. Preuzmi')
+        self.assertContains(response, '2. Popuni')
+        self.assertContains(response, '3. Upload')
+
+        # Verify the complete guidance text
+        self.assertContains(response, '1. Preuzmi → 2. Popuni → 3. Upload')
+
+    def test_visual_guidance_has_correct_css_class(self):
+        """Test AC3: Visual guidance uses landing__download-guidance class"""
+        response = self.client.get(self.url)
+        content = response.content.decode('utf-8')
+
+        # Check for the specific CSS class
+        import re
+        guidance_element = re.search(
+            r'<p[^>]*class="[^"]*landing__download-guidance[^"]*"[^>]*>',
+            content
+        )
+
+        self.assertIsNotNone(
+            guidance_element,
+            "Visual guidance element with class 'landing__download-guidance' not found"
+        )
+
+    def test_visual_guidance_in_same_section_as_download_link(self):
+        """Test AC3: Visual guidance is in the same card/section as download link"""
+        response = self.client.get(self.url)
+        content = response.content.decode('utf-8')
+
+        # Find the download card section
+        import re
+        download_card = re.search(
+            r'<div class="landing__download-card">.*?</div>',
+            content,
+            re.DOTALL
+        )
+
+        self.assertIsNotNone(download_card, "Download card section not found")
+
+        # Verify both visual guidance AND download link are in the same section
+        card_content = download_card.group()
+        self.assertIn('1. Preuzmi', card_content, "Visual guidance not in download card")
+        self.assertIn('budzet-projekta-sablon.xlsx', card_content, "Download link not in same card")

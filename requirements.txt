@@ -1,5 +1,5 @@
 # Django Framework (LTS version per Architecture requirement)
-Django==4.2 
+Django==5.2 
 
 # Environment variable management
 python-decouple==3.8

@@ -1,0 +1,10 @@
+# Development Dependencies
+# These are only needed for development/testing, not production deployment
+
+# Excel file manipulation (for verify_excel_template.py utility script)
+openpyxl==3.1.2
+
+# Future dev dependencies
+# pytest==7.4.0  # For advanced testing (when we move beyond Django's built-in TestCase)
+# black==23.7.0  # Code formatting
+# flake8==6.1.0  # Code linting
