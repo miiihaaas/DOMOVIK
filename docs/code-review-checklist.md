@@ -276,11 +276,11 @@ git ls-files static/
 - [ ] **All versions exist**
   - Check each dependency version on PyPI
   - Example: `Django==5.2` ❌ (doesn't exist)
-  - Example: `Django==4.2` ✅ (LTS version)
+  - Example: `Django==5.2` ✅ (LTS version)
 
 - [ ] **Versions explicitly pinned**
   - No bare package names (e.g., `Django` ❌)
-  - All have `==X.Y` or `~=X.Y.Z` (e.g., `Django==4.2` ✅)
+  - All have `==X.Y` or `~=X.Y.Z` (e.g., `Django==5.2` ✅)
 
 ### 8.2 Dependency Classification Correct
 

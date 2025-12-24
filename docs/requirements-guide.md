@@ -32,7 +32,7 @@ This guide establishes clear criteria for classifying Python dependencies in DOM
 **Examples:**
 ```txt
 # requirements.txt
-Django==4.2              # Core framework
+Django==5.2              # Core framework
 python-decouple==3.8     # Environment variable management
 mysqlclient==2.2.0       # MySQL database driver (production DB)
 Pillow==10.0.0           # Image processing for file uploads
@@ -219,7 +219,7 @@ Django  # ❌ No version specified
 
 **Right:**
 ```txt
-Django==4.2  # ✅ Explicit version
+Django==5.2  # ✅ Explicit version
 ```
 
 **Impact:** Unpredictable installs, potential breakage from version changes.
@@ -257,7 +257,7 @@ python manage.py check
 ### Exact Versions (Recommended for Stability)
 
 ```txt
-Django==4.2              # Exact version - most stable
+Django==5.2              # Exact version - most stable
 python-decouple==3.8     # No surprises
 ```
 

@@ -8,7 +8,7 @@
 
 **APSOLUTNO KRITIČNO:**
 ```
-Django==4.2         ← Django 4.2 LTS (Long-Term Support) - VERIFIED CORRECT VERSION
+Django==5.2
 Python>=3.11        ← Recommended (minimum 3.9)
 MySQL==8.0+
 Celery==5.3.0
@@ -16,12 +16,9 @@ Redis==latest
 ```
 
 **NAPOMENA:**
-- ✅ Django 4.2 je **LTS (Long-Term Support)** verzija - potrebna za Celery integraciju
-- ⚠️ Django 5.2 **NE POSTOJI** (typo iz ranog Dev Notes - ispravljeno u Epic 1)
 - ✅ Verify all dependency versions exist on PyPI before adding to requirements.txt
 
 **ZABRANA:**
-- ❌ NE koristiti nepostojeće verzije (npr. Django==5.2)
 - ❌ NE koristiti PostgreSQL (projekat koristi MySQL)
 - ❌ NE koristiti Cookiecutter Django (previše bloat-a)
 
@@ -32,7 +29,7 @@ Redis==latest
 ```
 domovik/
 ├── manage.py
-├── requirements.txt                # Django==4.2 LTS + production deps (see docs/requirements-guide.md)
+├── requirements.txt                # Django==5.2 LTS + production deps (see docs/requirements-guide.md)
 ├── requirements-dev.txt            # Development dependencies (testing, linting, etc.)
 ├── config/                         # Django project settings
 │   ├── settings.py
