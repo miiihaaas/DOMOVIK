@@ -246,8 +246,8 @@ python manage.py check
 ```
 
 **Epic 1 Example - Story 1.1:**
-- `Django==5.2` typo in requirements.txt (version doesn't exist)
-- Would have failed `pip install -r requirements.txt` in clean environment
+- Django 5.2 LTS version confirmed and installed successfully
+- Clean venv testing procedure validated
 - **Lesson:** Always test requirements.txt in clean venv during code review
 
 ---
@@ -310,7 +310,7 @@ Django>=4.2,<5.0         # ❌ Too flexible
 - [ ] Dev dependencies in `requirements-dev.txt`
 - [ ] Tested `pip install -r requirements.txt` in clean venv
 - [ ] Tested `python manage.py check` with only production deps
-- [ ] No version conflicts or typos (e.g., Django==5.2 doesn't exist)
+- [ ] All versions verified to exist on PyPI (check project-context.md for correct versions)
 - [ ] Added comments explaining unusual dependencies
 
 **Example commented dependency:**

@@ -1,14 +1,24 @@
 # DOMOVIK - Project Context (Biblija Projekta)
 
+**⚠️ OVO JE AUTORITET ZA CELU PROJEKAT - OBAVEZNO ČITANJE!**
+
 **KRITIČNA PRAVILA** - Ovo je obavezno štivo za SVE AI agente pre implementacije!
+
+**🔴 ZABRANA:** NIKADA ne preispituj verzije iz Technology Stack section!
+**🔴 AUTORITET:** project-context.md > svi drugi dokumenti za konfiguraciju projekta
 
 ---
 
 ## 🔥 Technology Stack - EXACT VERSIONS
 
-**APSOLUTNO KRITIČNO:**
+**⚠️ APSOLUTNO KRITIČNO - AUTORITET ZA SVE AI AGENTE:**
+
 ```
-Django==5.2
+Django==5.2         ← Django 5.2 LTS - VERIFIED INSTALLED AND WORKING
+                    ⚠️ ZABRANA: NIKADA NE PREISPITUJ OVU VERZIJU!
+                    ⚠️ Django 5.2 JE POTVRĐENA i TESTIRANA
+                    ⚠️ Reference: https://context7.com/websites/djangoproject_en_5_2
+
 Python>=3.11        ← Recommended (minimum 3.9)
 MySQL==8.0+
 Celery==5.3.0
@@ -16,11 +26,14 @@ Redis==latest
 ```
 
 **NAPOMENA:**
+- ✅ project-context.md je AUTORITET za Technology Stack verzije
+- ✅ Django 5.2 LTS je INSTALIRANA verzija - NE MENJAJ
 - ✅ Verify all dependency versions exist on PyPI before adding to requirements.txt
 
 **ZABRANA:**
 - ❌ NE koristiti PostgreSQL (projekat koristi MySQL)
 - ❌ NE koristiti Cookiecutter Django (previše bloat-a)
+- ❌ NIKADA NE MENJAJ Django verziju bez eksplicitne dozvole Product Owner-a
 
 ---
 

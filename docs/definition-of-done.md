@@ -253,7 +253,7 @@ file -i apps/**/*.py
     pip install -r requirements.txt
     python manage.py check  # Should succeed
     ```
-  - No version typos (e.g., Django==5.2 doesn't exist)
+  - All versions verified (check project-context.md for correct Technology Stack versions)
 
 ### 6.2 File Organization
 

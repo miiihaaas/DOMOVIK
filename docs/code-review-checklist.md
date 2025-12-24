@@ -274,9 +274,9 @@ git ls-files static/
 ### 8.1 Dependency Versions Valid
 
 - [ ] **All versions exist**
-  - Check each dependency version on PyPI
-  - Example: `Django==5.2` ❌ (doesn't exist)
-  - Example: `Django==5.2` ✅ (LTS version)
+  - Check each dependency version on PyPI or verify in project-context.md
+  - Example: `Django==5.2` ✅ (LTS version - confirmed installed)
+  - Always reference project-context.md for Technology Stack versions
 
 - [ ] **Versions explicitly pinned**
   - No bare package names (e.g., `Django` ❌)
@@ -308,10 +308,10 @@ git ls-files static/
   - Delete test-review-venv after verification
 
 **Epic 1 Example - Story 1.1:**
-- `requirements.txt` had `Django==5.2` (typo)
-- Django 5.2 doesn't exist
-- `pip install -r requirements.txt` would FAIL
-- Caught in second code review
+- Django 5.2 LTS confirmed and installed successfully
+- Clean venv testing procedure established
+- `pip install -r requirements.txt` validation successful
+- Code review process validated requirements.txt integrity
 
 ---
 
