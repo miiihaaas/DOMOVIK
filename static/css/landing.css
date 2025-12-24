@@ -1,7 +1,8 @@
 /*
  * DOMOVIK - Landing Page Styles
  * BEM Naming Convention
- * AC1-5, AC8: Responsive design with Civic Tech identity
+ * Story 1.1-1.3: Landing page, downloads, application type selection
+ * Responsive design with Civic Tech identity
  */
 
 /* ===== LANDING HEADER & LOGOS ===== */
@@ -107,7 +108,7 @@
   margin-top: var(--spacing-md);
 }
 
-/* ===== DOWNLOADS SECTION ===== */
+/* ===== DOWNLOADS SECTION (Story 1.2) ===== */
 .landing__downloads {
   max-width: 900px;
   margin: var(--spacing-xl) auto;
@@ -159,7 +160,8 @@
   color: white;
 }
 
-/* ===== APPLICATION TYPE BANNERS ===== */
+/* ===== APPLICATION TYPE BANNERS (Story 1.3) ===== */
+/* AC4: Responsive layout with guaranteed touch targets (min 44x44px) */
 .landing__banners {
   max-width: 1200px;
   margin: var(--spacing-xl) auto;
@@ -175,71 +177,106 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  min-height: 250px;
+  min-height: 300px;
+  min-width: 280px;  /* Guarantee minimum width for touch targets */
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+  border: 2px solid transparent;
 }
 
 .landing__banner:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-.landing__banner--coa {
-  border-top: 5px solid var(--primary-teal);
+.landing__banner:active {
+  opacity: 0.9;
+  transform: scale(1);
 }
 
-.landing__banner--cob {
-  border-top: 5px solid var(--accent-coral);
+.landing__banner:focus {
+  outline: 3px solid var(--primary-teal);
+  outline-offset: 3px;
 }
 
-.landing__banner h2 {
-  font-size: 1.75rem;
-  margin-bottom: var(--spacing-sm);
+.landing__banner--cob:focus {
+  outline-color: var(--accent-coral);
 }
 
-.landing__banner--coa h2 {
-  color: var(--primary-teal);
+/* Banner Icon Styling */
+.landing__banner-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--spacing-md);
 }
 
-.landing__banner--cob h2 {
-  color: var(--accent-coral);
+.landing__banner-icon .icon {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.5;
 }
 
-.landing__banner p {
-  color: var(--text-secondary);
+/* Banner Title, Description, CTA */
+.landing__banner-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.landing__banner-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #4a5568;
   margin-bottom: var(--spacing-md);
   flex-grow: 1;
 }
 
-.landing__banner-link {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
+.landing__banner-cta {
   font-weight: 600;
-  text-align: center;
-  transition: all 0.3s ease;
-  min-height: 44px;  /* AC8: Touch target */
-  color: white;
+  font-size: 1rem;
+  margin-top: auto;
 }
 
-.landing__banner--coa .landing__banner-link {
-  background-color: var(--primary-teal);
+/* COA Banner - Tirkizna Primarna */
+.landing__banner--coa {
+  border: 2px solid var(--primary-teal);
 }
 
-.landing__banner--coa .landing__banner-link:hover {
-  background-color: #0284C7;
-  color: white;
+.landing__banner--coa:hover {
+  background: rgba(14, 165, 233, 0.05);
+  border-color: var(--primary-teal);
+  box-shadow: 0 8px 16px rgba(14, 165, 233, 0.2);
 }
 
-.landing__banner--cob .landing__banner-link {
-  background-color: var(--accent-coral);
+.landing__banner--coa .landing__banner-icon {
+  color: var(--primary-teal);
 }
 
-.landing__banner--cob .landing__banner-link:hover {
-  background-color: #EF5533;
-  color: white;
+.landing__banner--coa .landing__banner-cta {
+  color: var(--primary-teal);
+}
+
+/* COB Banner - Koraljna Accent */
+.landing__banner--cob {
+  border: 2px solid var(--accent-coral);
+}
+
+.landing__banner--cob:hover {
+  background: rgba(255, 122, 89, 0.05);
+  border-color: var(--accent-coral);
+  box-shadow: 0 8px 16px rgba(255, 122, 89, 0.2);
+}
+
+.landing__banner--cob .landing__banner-icon {
+  color: var(--accent-coral);
+}
+
+.landing__banner--cob .landing__banner-cta {
+  color: var(--accent-coral);
 }
 
 /* ===== FOOTER ===== */
@@ -256,7 +293,7 @@
   font-size: 0.9rem;
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* ===== RESPONSIVE DESIGN (AC4) ===== */
 /* Tablet (768px) */
 @media (max-width: 768px) {
   .landing__banners {
@@ -282,6 +319,7 @@
 }
 
 /* Mobile (320px) */
+/* AC4: Minimum 44x44px touch targets for all interactive elements */
 @media (max-width: 320px) {
   .landing__hero {
     padding: var(--spacing-lg) var(--spacing-sm);
@@ -294,10 +332,13 @@
   .landing__banner {
     padding: var(--spacing-md);
     min-height: 200px;
+    min-width: 280px;  /* Maintain minimum width for tap targets */
   }
 
   .landing__download-link,
   .landing__banner-link {
     padding: 0.6rem 1.2rem;
+    min-height: 44px;  /* AC4: Guarantee touch target size */
+    min-width: 44px;
   }
 }

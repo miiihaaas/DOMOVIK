@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prijava za Inicijativu (COB) - DOMOVIK{% endblock %}
+
+{% block meta_description %}Podnesi brzu prijavu za inicijativu kroz DOMOVIK platformu. Bez potrebe za detaljnim budžetom ili velikim timom.{% endblock %}
+
+{% block content %}
+<main class="cob-form">
+    <section class="cob-form__hero">
+        <h1>Prijava za Inicijativu (COB)</h1>
+        <p class="cob-form__subtitle">Brza prijava u tri koraka bez komplikovane dokumentacije.</p>
+    </section>
+
+    <section class="cob-form__placeholder">
+        <div class="placeholder-message">
+            <h2>⚠️ Forma u razvoju</h2>
+            <p>COB forma će biti implementirana u Epic 3 (Stories 3.1-3.6).</p>
+            <p>Za sada, možete se vratiti na početnu stranu.</p>
+            <a href="{% url 'landing_home' %}" class="btn btn--primary">Nazad na početnu</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

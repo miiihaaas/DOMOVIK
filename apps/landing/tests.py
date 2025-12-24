@@ -68,16 +68,16 @@ class LandingPageViewTests(TestCase):
         """Test AC4: COA (Projekat) banner exists with correct link"""
         response = self.client.get(self.url)
         self.assertContains(response, 'Prijava za Projekat (COA)')
-        self.assertContains(response, 'Detaljni projekat sa budžetom i finansijskim planom')
-        self.assertContains(response, 'Započni prijavu projekta')
+        self.assertContains(response, 'Detaljni projekat sa budžetom, timom, i kompletnom dokumentacijom')
+        self.assertContains(response, 'Započni prijavu')
         self.assertContains(response, 'href="/projekat/"')
 
     def test_landing_page_contains_cob_banner(self):
         """Test AC4: COB (Inicijativa) banner exists with correct link"""
         response = self.client.get(self.url)
         self.assertContains(response, 'Prijava za Inicijativu (COB)')
-        self.assertContains(response, 'Brza inicijativa za zajednicu')
-        self.assertContains(response, 'Započni prijavu inicijative')
+        self.assertContains(response, 'Brza prijava za inicijativu')
+        self.assertContains(response, 'Započni prijavu')
         self.assertContains(response, 'href="/inicijativa/"')
 
     def test_landing_page_contains_domovik_logo(self):
@@ -418,3 +418,186 @@ class ExcelTemplateDownloadTests(TestCase):
         card_content = download_card.group()
         self.assertIn('1. Preuzmi', card_content, "Visual guidance not in download card")
         self.assertIn('budzet-projekta-sablon.xlsx', card_content, "Download link not in same card")
+
+
+class ApplicationTypeSelectionTests(TestCase):
+    """
+    Unit tests for Application Type Selection (Story 1.3)
+    Tests AC1-5: URL routing, banner descriptions, civic tech design, responsive layout, accessibility
+    """
+
+    def setUp(self):
+        """Set up test client for each test"""
+        self.client = Client()
+
+    def test_coa_route_exists(self):
+        """Test AC1: /projekat/ route returns HTTP 200"""
+        response = self.client.get('/projekat/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_cob_route_exists(self):
+        """Test AC1: /inicijativa/ route returns HTTP 200"""
+        response = self.client.get('/inicijativa/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_coa_uses_correct_template(self):
+        """Test AC1: COA form uses coa_form.html template"""
+        response = self.client.get('/projekat/')
+        self.assertTemplateUsed(response, 'submissions/coa_form.html')
+
+    def test_cob_uses_correct_template(self):
+        """Test AC1: COB form uses cob_form.html template"""
+        response = self.client.get('/inicijativa/')
+        self.assertTemplateUsed(response, 'submissions/cob_form.html')
+
+    def test_landing_page_contains_coa_banner(self):
+        """Test AC2: Landing page contains COA banner with description"""
+        response = self.client.get(reverse('landing_home'))
+        self.assertContains(response, 'Prijava za Projekat (COA)')
+        self.assertContains(response, 'href="/projekat/"')
+
+    def test_landing_page_contains_cob_banner(self):
+        """Test AC2: Landing page contains COB banner with description"""
+        response = self.client.get(reverse('landing_home'))
+        self.assertContains(response, 'Prijava za Inicijativu (COB)')
+        self.assertContains(response, 'href="/inicijativa/"')
+
+    def test_banners_use_correct_css_classes(self):
+        """Test AC3: Banners use BEM naming convention"""
+        response = self.client.get(reverse('landing_home'))
+        self.assertContains(response, 'landing__banner--coa')
+        self.assertContains(response, 'landing__banner--cob')
+
+    def test_coa_banner_has_enhanced_description(self):
+        """Test AC2: COA banner has detailed description"""
+        response = self.client.get(reverse('landing_home'))
+        self.assertContains(response, 'budžet')
+        self.assertContains(response, 'tim')
+        self.assertContains(response, 'dokumentacijom')
+
+    def test_cob_banner_has_enhanced_description(self):
+        """Test AC2: COB banner has detailed description"""
+        response = self.client.get(reverse('landing_home'))
+        self.assertContains(response, 'Brza prijava')
+        self.assertContains(response, 'inicijativ')
+
+    def test_banners_have_heroicons(self):
+        """Test AC2: Banners include Heroicon SVG icons"""
+        response = self.client.get(reverse('landing_home'))
+        content = response.content.decode('utf-8')
+        # Check for SVG icons
+        self.assertIn('<svg', content)
+        self.assertIn('icon--document', content)
+        self.assertIn('icon--lightbulb', content)
+
+    def test_banners_have_cta_elements(self):
+        """Test AC2: Banners have clear CTA (Call-to-Action) elements"""
+        response = self.client.get(reverse('landing_home'))
+        self.assertContains(response, 'Započni prijavu')
+        self.assertContains(response, 'landing__banner-cta')
+
+    def test_coa_placeholder_page_has_back_button(self):
+        """Test: COA placeholder page has working back to home link"""
+        response = self.client.get('/projekat/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Nazad na početnu')
+        # Verify the link uses named URL
+        self.assertContains(response, 'href="/"')
+
+    def test_cob_placeholder_page_has_back_button(self):
+        """Test: COB placeholder page has working back to home link"""
+        response = self.client.get('/inicijativa/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Nazad na početnu')
+        # Verify the link uses named URL
+        self.assertContains(response, 'href="/"')
+
+
+class ResponsiveDesignTests(TestCase):
+    """
+    Tests for responsive design implementation (AC4)
+    Verifies media queries and mobile optimizations
+    """
+
+    def test_landing_css_has_tablet_breakpoint(self):
+        """Test AC4: Tablet breakpoint (768px) exists in CSS"""
+        import os
+        css_path = os.path.join('static', 'css', 'landing.css')
+
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+
+        self.assertIn('@media (max-width: 768px)', css_content)
+        self.assertIn('grid-template-columns: 1fr', css_content)
+
+    def test_landing_css_has_mobile_breakpoint(self):
+        """Test AC4: Mobile breakpoint (320px) exists in CSS"""
+        import os
+        css_path = os.path.join('static', 'css', 'landing.css')
+
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+
+        self.assertIn('@media (max-width: 320px)', css_content)
+
+    def test_landing_css_has_minimum_touch_targets(self):
+        """Test AC4: CSS defines minimum 44x44px touch targets"""
+        import os
+        css_path = os.path.join('static', 'css', 'landing.css')
+
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+
+        # Check for min-height: 44px
+        self.assertIn('min-height: 44px', css_content)
+        # Check for min-width: 44px
+        self.assertIn('min-width: 44px', css_content)
+
+
+class SubmissionsAppConfigTests(TestCase):
+    """
+    Tests for apps.submissions app registration and configuration
+    Verifies critical setup from Task 1.0
+    """
+
+    def test_submissions_app_in_installed_apps(self):
+        """Test Task 1.0: apps.submissions is registered in INSTALLED_APPS"""
+        from django.conf import settings
+
+        self.assertIn('apps.submissions', settings.INSTALLED_APPS)
+
+    def test_submissions_app_config_exists(self):
+        """Test: SubmissionsConfig is properly defined"""
+        from apps.submissions.apps import SubmissionsConfig
+
+        self.assertEqual(SubmissionsConfig.name, 'apps.submissions')
+        self.assertEqual(SubmissionsConfig.default_auto_field, 'django.db.models.BigAutoField')
+
+    def test_submissions_views_importable(self):
+        """Test: Submissions views can be imported (routing dependency)"""
+        try:
+            from apps.submissions.views import ProjectApplicationView, InitiativeApplicationView
+            self.assertTrue(True)
+        except ImportError:
+            self.fail("Could not import submissions views")
+
+
+class ErrorHandlingTests(TestCase):
+    """
+    Tests for error handling and edge cases
+    """
+
+    def test_invalid_route_returns_404(self):
+        """Test: Invalid routes return 404"""
+        response = self.client.get('/invalid-route-does-not-exist/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_projekat_with_trailing_invalid_path_returns_404(self):
+        """Test: /projekat/invalid/ returns 404"""
+        response = self.client.get('/projekat/invalid/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_inicijativa_with_trailing_invalid_path_returns_404(self):
+        """Test: /inicijativa/invalid/ returns 404"""
+        response = self.client.get('/inicijativa/invalid/')
+        self.assertEqual(response.status_code, 404)

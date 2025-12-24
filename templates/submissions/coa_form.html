@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prijava za Projekat (COA) - DOMOVIK{% endblock %}
+
+{% block meta_description %}Podnesi prijavu za projekat kroz DOMOVIK platformu. Detaljni projekat sa budžetom, timom i kompletnom dokumentacijom.{% endblock %}
+
+{% block content %}
+<main class="coa-form">
+    <section class="coa-form__hero">
+        <h1>Prijava za Projekat (COA)</h1>
+        <p class="coa-form__subtitle">Popunite formu u tri koraka za podnošenje prijave.</p>
+    </section>
+
+    <section class="coa-form__placeholder">
+        <div class="placeholder-message">
+            <h2>⚠️ Forma u razvoju</h2>
+            <p>COA forma će biti implementirana u Epic 2 (Stories 2.1-2.15).</p>
+            <p>Za sada, možete se vratiti na početnu stranu.</p>
+            <a href="{% url 'landing_home' %}" class="btn btn--primary">Nazad na početnu</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

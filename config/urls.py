@@ -16,8 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from apps.submissions import views as submission_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.landing.urls')),  # Root → landing page
+    path('projekat/', submission_views.ProjectApplicationView.as_view(), name='coa_form'),
+    path('inicijativa/', submission_views.InitiativeApplicationView.as_view(), name='cob_form'),
 ]
