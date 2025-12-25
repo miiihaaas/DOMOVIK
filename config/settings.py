@@ -77,34 +77,46 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 # Architecture requires MySQL 8.0+ for production
-# SQLite OK for Story 1.1 (landing page only, no models)
-# Switch to MySQL before Epic 2 (COA/COB forms)
+# SQLite for automated testing (simpler, no permission issues)
 
-db_engine = config('DB_ENGINE', default='django.db.backends.sqlite3')
+import sys
 
-if db_engine == 'django.db.backends.mysql':
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': config('DB_NAME'),
-            'USER': config('DB_USER'),
-            'PASSWORD': config('DB_PASSWORD'),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-        }
-    }
-else:
-    # SQLite for development (Story 1.1 only)
+# Use SQLite for tests, MySQL for development/production
+if 'test' in sys.argv:
+    # SQLite for unit tests (no MySQL test db permission needed)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / config('DB_NAME', default='db.sqlite3'),
+            'NAME': ':memory:',  # In-memory database for fast tests
         }
     }
+else:
+    # MySQL for development and production
+    db_engine = config('DB_ENGINE', default='django.db.backends.sqlite3')
+
+    if db_engine == 'django.db.backends.mysql':
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': config('DB_NAME'),
+                'USER': config('DB_USER'),
+                'PASSWORD': config('DB_PASSWORD'),
+                'HOST': config('DB_HOST', default='localhost'),
+                'PORT': config('DB_PORT', default='3306'),
+                'OPTIONS': {
+                    'charset': 'utf8mb4',
+                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                },
+            }
+        }
+    else:
+        # SQLite for development (Story 1.1 only)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / config('DB_NAME', default='db.sqlite3'),
+            }
+        }
 
 
 # Password validation
@@ -125,6 +137,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+# Security Settings
+# HTTPS enforcement for production (NFR8 - TLS 1.2+ required)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
+    SESSION_COOKIE_SECURE = True  # HTTPS-only session cookies
+    CSRF_COOKIE_SECURE = True  # HTTPS-only CSRF cookies
+else:
+    # Development: Allow HTTP for local testing
+    SECURE_SSL_REDIRECT = False
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
