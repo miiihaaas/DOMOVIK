@@ -30,6 +30,11 @@ document.addEventListener('DOMContentLoaded', function() {
         saveDraft();
       }
 
+      // Clear ALL validation errors BEFORE entity type switch (Story 2.3)
+      if (window.RealTimeValidator && typeof window.RealTimeValidator.clearAllValidationErrors === 'function') {
+        window.RealTimeValidator.clearAllValidationErrors();
+      }
+
       // Update active button state
       switcherButtons.forEach(btn => btn.classList.remove('active'));
       this.classList.add('active');
@@ -57,6 +62,11 @@ document.addEventListener('DOMContentLoaded', function() {
       // Restore previously saved data for the newly active entity type (Story 2.4 integration)
       if (typeof loadDraft === 'function') {
         loadDraft();
+      }
+
+      // Re-validate visible fields AFTER entity switch completes (Story 2.3)
+      if (window.RealTimeValidator && typeof window.RealTimeValidator.revalidateVisibleFields === 'function') {
+        window.RealTimeValidator.revalidateVisibleFields();
       }
     });
   });

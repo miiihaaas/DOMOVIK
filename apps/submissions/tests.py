@@ -640,3 +640,169 @@ class COAFormTemplateTests(TestCase):
         # Telefon field should have aria-describedby
         self.assertIn('aria-describedby="id_telefon_help"', content)
         self.assertIn('id="id_telefon_help"', content)
+
+
+# ============================================================================
+# Story 2.3 Tests - Real-Time Validation for Section I
+# ============================================================================
+
+
+class RealTimeValidationTemplateTests(TestCase):
+    """Tests for real-time validation template integration (Story 2.3)"""
+
+    def setUp(self):
+        """Set up test client."""
+        self.client = Client()
+
+    def test_real_time_validator_js_loaded(self):
+        """Test that real-time-validator.js is loaded in template"""
+        response = self.client.get('/projekat/')
+        self.assertContains(response, 'real-time-validator.js')
+
+    def test_validation_error_containers_exist(self):
+        """Test that validation error containers exist for all validated fields"""
+        response = self.client.get('/projekat/')
+        content = response.content.decode('utf-8')
+
+        # Check email validation error container
+        self.assertIn('id="id_email_error"', content)
+        self.assertIn('class="validation-error"', content)
+
+        # Check telefon validation error container
+        self.assertIn('id="id_telefon_error"', content)
+
+        # Check JMBG validation error container
+        self.assertIn('id="id_jmbg_error"', content)
+
+        # Check matični broj validation error container
+        self.assertIn('id="id_maticni_broj_error"', content)
+
+    def test_aria_invalid_attribute_set(self):
+        """Test that aria-invalid attributes are set to false by default (WCAG 2.1)"""
+        response = self.client.get('/projekat/')
+        content = response.content.decode('utf-8')
+
+        # All validated fields should have aria-invalid="false" by default
+        # Check each field has both id and aria-invalid (attribute order may vary)
+        import re
+
+        # Email field
+        self.assertIsNotNone(re.search(r'<input[^>]*id="id_email"[^>]*aria-invalid="false"[^>]*>', content))
+
+        # Telefon field
+        self.assertIsNotNone(re.search(r'<input[^>]*id="id_telefon"[^>]*aria-invalid="false"[^>]*>', content))
+
+        # JMBG field
+        self.assertIsNotNone(re.search(r'<input[^>]*id="id_jmbg"[^>]*aria-invalid="false"[^>]*>', content))
+
+        # Matični broj field
+        self.assertIsNotNone(re.search(r'<input[^>]*id="id_maticni_broj"[^>]*aria-invalid="false"[^>]*>', content))
+
+    def test_aria_live_polite_on_error_containers(self):
+        """Test that validation error containers have aria-live='polite' for screen readers"""
+        response = self.client.get('/projekat/')
+        content = response.content.decode('utf-8')
+
+        # Check aria-live="polite" on validation error containers
+        import re
+        aria_live_pattern = r'<div[^>]*id="id_\w+_error"[^>]*aria-live="polite"[^>]*>'
+        matches = re.findall(aria_live_pattern, content)
+        self.assertGreaterEqual(len(matches), 4, "Expected at least 4 validation error containers with aria-live='polite'")
+
+
+class RealTimeValidationFormTests(TestCase):
+    """
+    Server-side validation tests for progressive enhancement (Story 2.3)
+    Ensures form validation still works when JavaScript is disabled
+    """
+
+    def test_server_validates_invalid_email(self):
+        """Test that server-side validation catches invalid email format"""
+        form_data = {
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'jmbg': '1234567890123',
+            'adresa': 'Beograd, Kneza Miloša 10',
+            'email': 'invalid-email',  # Invalid format
+            'telefon': '0611234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('email', form.errors)
+
+    def test_server_validates_empty_email(self):
+        """Test that server-side validation catches empty email"""
+        form_data = {
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'jmbg': '1234567890123',
+            'adresa': 'Beograd, Kneza Miloša 10',
+            'email': '',  # Empty
+            'telefon': '0611234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('email', form.errors)
+
+    def test_server_validates_empty_telefon(self):
+        """Test that server-side validation catches empty telefon"""
+        form_data = {
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'jmbg': '1234567890123',
+            'adresa': 'Beograd, Kneza Miloša 10',
+            'email': 'marko@example.com',
+            'telefon': '',  # Empty
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('telefon', form.errors)
+
+    def test_valid_serbian_phone_formats(self):
+        """Test that valid Serbian phone numbers pass validation"""
+        valid_phones = [
+            '0611234567',
+            '0641234567',
+            '0691234567',
+            '064-123-4567',  # With separators (normalized by validator)
+            '064 123 4567',  # With spaces
+        ]
+
+        for phone in valid_phones:
+            form_data = {
+                'entity_type': 'fizicko',
+                'ime': 'Marko',
+                'prezime': 'Petrović',
+                'jmbg': '1234567890123',
+                'adresa': 'Beograd',
+                'email': 'marko@example.com',
+                'telefon': phone,
+            }
+            form = COAFormSectionI(data=form_data)
+            # Note: Server-side doesn't enforce phone format (CharField only)
+            # Client-side validation handles phone format
+            self.assertTrue(form.is_valid(), msg=f"Phone {phone} should be valid. Errors: {form.errors}")
+
+    def test_valid_email_formats(self):
+        """Test that valid email formats pass validation"""
+        valid_emails = [
+            'marko@example.com',
+            'test+tag@domain.co.rs',
+            'user.name@sub.domain.com',
+        ]
+
+        for email in valid_emails:
+            form_data = {
+                'entity_type': 'fizicko',
+                'ime': 'Marko',
+                'prezime': 'Petrović',
+                'jmbg': '1234567890123',
+                'adresa': 'Beograd',
+                'email': email,
+                'telefon': '0611234567',
+            }
+            form = COAFormSectionI(data=form_data)
+            self.assertTrue(form.is_valid(), msg=f"Email {email} should be valid. Errors: {form.errors}")

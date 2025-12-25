@@ -54,10 +54,11 @@
 
       <div class="form-group">
         <label for="{{ form.jmbg.id_for_label }}">{{ form.jmbg.label }} *</label>
-        <input type="text" name="jmbg" id="id_jmbg" maxlength="13" {% if form.jmbg.errors %}aria-describedby="id_jmbg_error id_jmbg_help"{% else %}aria-describedby="id_jmbg_help"{% endif %} value="{{ form.jmbg.value|default:'' }}">
+        <input type="text" name="jmbg" id="id_jmbg" maxlength="13" aria-invalid="false" aria-describedby="id_jmbg_error id_jmbg_help" value="{{ form.jmbg.value|default:'' }}">
         <small id="id_jmbg_help" class="help-text">{{ form.jmbg.help_text }}</small>
+        <div id="id_jmbg_error" class="validation-error" aria-live="polite" style="display: none;"></div>
         {% if form.jmbg.errors %}
-          <div id="id_jmbg_error" class="error-message" aria-live="polite">{{ form.jmbg.errors.0 }}</div>
+          <div class="error-message" aria-live="polite">{{ form.jmbg.errors.0 }}</div>
         {% endif %}
       </div>
     </div>
@@ -76,9 +77,10 @@
 
       <div class="form-group">
         <label for="{{ form.maticni_broj.id_for_label }}">{{ form.maticni_broj.label }} *</label>
-        <input type="text" name="maticni_broj" id="id_maticni_broj" maxlength="20" {% if form.maticni_broj.errors %}aria-describedby="id_maticni_broj_error"{% endif %} value="{{ form.maticni_broj.value|default:'' }}">
+        <input type="text" name="maticni_broj" id="id_maticni_broj" maxlength="20" aria-invalid="false" aria-describedby="id_maticni_broj_error" value="{{ form.maticni_broj.value|default:'' }}">
+        <div id="id_maticni_broj_error" class="validation-error" aria-live="polite" style="display: none;"></div>
         {% if form.maticni_broj.errors %}
-          <div id="id_maticni_broj_error" class="error-message" aria-live="polite">{{ form.maticni_broj.errors.0 }}</div>
+          <div class="error-message" aria-live="polite">{{ form.maticni_broj.errors.0 }}</div>
         {% endif %}
       </div>
     </div>
@@ -97,19 +99,21 @@
 
       <div class="form-group">
         <label for="{{ form.email.id_for_label }}">{{ form.email.label }} *</label>
-        <input type="email" name="email" id="id_email" {% if form.email.errors %}aria-describedby="id_email_error id_email_help"{% else %}aria-describedby="id_email_help"{% endif %} value="{{ form.email.value|default:'' }}">
+        <input type="email" name="email" id="id_email" aria-invalid="false" aria-describedby="id_email_error id_email_help" value="{{ form.email.value|default:'' }}">
         <small id="id_email_help" class="help-text">{{ form.email.help_text }}</small>
+        <div id="id_email_error" class="validation-error" aria-live="polite" style="display: none;"></div>
         {% if form.email.errors %}
-          <div id="id_email_error" class="error-message" aria-live="polite">{{ form.email.errors.0 }}</div>
+          <div class="error-message" aria-live="polite">{{ form.email.errors.0 }}</div>
         {% endif %}
       </div>
 
       <div class="form-group">
         <label for="{{ form.telefon.id_for_label }}">{{ form.telefon.label }} *</label>
-        <input type="tel" name="telefon" id="id_telefon" {% if form.telefon.errors %}aria-describedby="id_telefon_error id_telefon_help"{% else %}aria-describedby="id_telefon_help"{% endif %} value="{{ form.telefon.value|default:'' }}">
+        <input type="tel" name="telefon" id="id_telefon" aria-invalid="false" aria-describedby="id_telefon_error id_telefon_help" value="{{ form.telefon.value|default:'' }}">
         <small id="id_telefon_help" class="help-text">{{ form.telefon.help_text }}</small>
+        <div id="id_telefon_error" class="validation-error" aria-live="polite" style="display: none;"></div>
         {% if form.telefon.errors %}
-          <div id="id_telefon_error" class="error-message" aria-live="polite">{{ form.telefon.errors.0 }}</div>
+          <div class="error-message" aria-live="polite">{{ form.telefon.errors.0 }}</div>
         {% endif %}
       </div>
     </div>
@@ -125,5 +129,6 @@
 
 {% block extra_js %}
 <script src="{% static 'js/draft-manager.js' %}"></script>
+<script src="{% static 'js/real-time-validator.js' %}"></script>
 <script src="{% static 'js/entity-type-switcher.js' %}"></script>
 {% endblock %}

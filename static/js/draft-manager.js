@@ -50,7 +50,8 @@ function saveDraft() {
 
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
-    console.log('Draft saved to localStorage');
+    // Development logging (comment out for production)
+    // console.log('Draft saved to localStorage');
     // Story 2.4 will add visual "Sačuvano" notification here
   } catch (error) {
     console.error('Failed to save draft:', error);
@@ -65,7 +66,8 @@ function loadDraft() {
   try {
     const draftJson = localStorage.getItem(DRAFT_KEY);
     if (!draftJson) {
-      console.log('No draft found in localStorage');
+      // Development logging (comment out for production)
+      // console.log('No draft found in localStorage');
       return;
     }
 
@@ -77,7 +79,8 @@ function loadDraft() {
       const MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
       if (draftAge > MAX_AGE) {
-        console.log('Draft too old (>7 days), removing from localStorage');
+        // Development logging (comment out for production)
+        // console.log('Draft too old (>7 days), removing from localStorage');
         localStorage.removeItem(DRAFT_KEY);
         return;
       }
@@ -109,10 +112,32 @@ function loadDraft() {
       restoreFieldValue('id_telefon', draftData.common.telefon);
     }
 
-    console.log('Draft loaded from localStorage');
+    // Development logging (comment out for production)
+    // console.log('Draft loaded from localStorage');
+
+    // Trigger validation for all restored fields (Story 2.3)
+    triggerValidationAfterDraftLoad();
   } catch (error) {
     console.error('Failed to load draft:', error);
   }
+}
+
+/**
+ * Trigger validation for all restored fields after draft load
+ * Story 2.3: Real-time validation integration
+ * IMPORTANT: Only validates VISIBLE fields (Task 2.6: Don't validate hidden fields)
+ */
+function triggerValidationAfterDraftLoad() {
+  const fieldsToValidate = ['id_email', 'id_telefon', 'id_jmbg', 'id_maticni_broj'];
+
+  fieldsToValidate.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    // Check if field exists, has value, AND is visible (offsetParent !== null means visible)
+    if (field && field.value && field.offsetParent !== null) {
+      // Dispatch blur event to trigger immediate validation
+      field.dispatchEvent(new Event('blur'));
+    }
+  });
 }
 
 /**

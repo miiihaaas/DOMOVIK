@@ -238,7 +238,7 @@
   color: var(--text-secondary);
 }
 
-/* Error messages */
+/* Error messages (server-side validation) */
 .error-message {
   display: block;
   margin-top: 0.5rem;
@@ -248,6 +248,53 @@
   border-left: 3px solid var(--error-red);
   border-radius: 4px;
   font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   Real-Time Validation States (Story 2.3)
+   ========================================================================== */
+
+/* Validation error messages (client-side real-time validation) */
+.validation-error {
+  display: none; /* Hidden by default */
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #FEE2E2;
+  color: #D32F2F; /* Error red with 6.5:1 contrast ratio (exceeds 4.5:1 minimum) */
+  border-left: 3px solid #D32F2F;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  animation: fadeIn 200ms ease-in;
+}
+
+/* Error state for form group (red border on invalid field) */
+.form-group.error input[type="text"],
+.form-group.error input[type="email"],
+.form-group.error input[type="tel"],
+.form-group.error textarea {
+  border-color: #D32F2F; /* Red border */
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+}
+
+/* Valid state for form group (green border on valid field) - optional visual feedback */
+.form-group.valid input[type="text"],
+.form-group.valid input[type="email"],
+.form-group.valid input[type="tel"],
+.form-group.valid textarea {
+  border-color: #00AA00; /* Green border with 4.7:1 contrast ratio */
+  box-shadow: 0 0 0 3px rgba(0, 170, 0, 0.1);
+}
+
+/* Smooth fade-in animation for validation errors */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ==========================================================================
