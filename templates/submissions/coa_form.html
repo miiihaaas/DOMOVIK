@@ -13,6 +13,19 @@
 <main class="container">
   <h1 class="form-title">Prijava za Projekat (COA)</h1>
 
+  <!-- Auto-Save Indicator (Story 2.4 - Task 2.1) -->
+  <div id="autosave-indicator" class="autosave-indicator" aria-live="polite" aria-atomic="true">
+    <span class="autosave-indicator__icon"></span>
+    <span class="autosave-indicator__text"></span>
+  </div>
+
+  <!-- NoScript Fallback (Story 2.4 - Task 5.8) -->
+  <noscript>
+    <div class="noscript-warning">
+      <strong>JavaScript je onemogućen.</strong> Osnovna funkcionalnost forme će raditi, ali bez auto-save i real-time validacije.
+    </div>
+  </noscript>
+
   {% include "submissions/_progress_stepper.html" %}
 
   <form method="post" action="{% url 'coa_form' %}" class="coa-form" id="coa-form-section-i">

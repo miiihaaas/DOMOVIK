@@ -298,6 +298,114 @@
 }
 
 /* ==========================================================================
+   Auto-Save Indicator (Story 2.4 - Task 2.4)
+   ========================================================================== */
+
+/* Base auto-save indicator (hidden by default) */
+.autosave-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease, visibility 200ms ease;
+  z-index: 1000;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Visible state */
+.autosave-indicator--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Saving state (spinner + "Čuva se...") */
+.autosave-indicator--saving {
+  border-left: 4px solid var(--primary-teal);
+}
+
+.autosave-indicator--saving .autosave-indicator__icon::before {
+  content: "⏳"; /* Hourglass emoji for "saving" */
+  font-size: 1.25rem;
+}
+
+/* Saved state (checkmark + "Sačuvano") */
+.autosave-indicator--saved {
+  border-left: 4px solid var(--success-green);
+}
+
+.autosave-indicator--saved .autosave-indicator__icon::before {
+  content: "✓"; /* Checkmark */
+  font-size: 1.25rem;
+  color: var(--success-green);
+}
+
+/* Warning state (persistent warning for errors) */
+.autosave-indicator--warning {
+  border-left: 4px solid var(--error-red);
+  background: #FEE2E2;
+}
+
+.autosave-indicator--warning .autosave-indicator__icon::before {
+  content: "⚠"; /* Warning sign */
+  font-size: 1.25rem;
+  color: var(--error-red);
+}
+
+/* Icon element */
+.autosave-indicator__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Text element */
+.autosave-indicator__text {
+  display: block;
+  white-space: nowrap;
+}
+
+/* NoScript Warning (Story 2.4 - Task 5.8) */
+.noscript-warning {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #FFF3CD;
+  border-left: 4px solid #FFC107;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 0.875rem;
+}
+
+.noscript-warning strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .autosave-indicator {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .autosave-indicator__icon::before {
+    font-size: 1rem;
+  }
+}
+
+/* ==========================================================================
    Navigation Buttons
    ========================================================================== */
 .form-navigation {

@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', function() {
       const entityType = this.dataset.entity;
 
+      // Race condition prevention (Story 2.4 - Task 4.4)
+      // Clear pending auto-save timeout before manual save during entity switch
+      if (window.autoSaveTimeout) {
+        clearTimeout(window.autoSaveTimeout);
+      }
+
       // Save current form data to draft BEFORE switching (Story 2.4 integration point)
       if (typeof saveDraft === 'function') {
         saveDraft();
