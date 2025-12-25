@@ -1,0 +1,364 @@
+/**
+ * Forms CSS - Civic Tech Design System
+ * Story 2.2: COA Form Section I styling
+ *
+ * Design Principles:
+ * - Civic Tech color palette (tirkizna primarna #0EA5E9, koraljna accent #FF7A59)
+ * - Accessible (4.5:1 color contrast, visible focus states)
+ * - Responsive (mobile-first, breakpoints 320px, 768px, 1024px+)
+ * - Touch-friendly (44x44px minimum tap targets)
+ */
+
+/* ==========================================================================
+   Civic Tech Color Palette
+   ========================================================================== */
+:root {
+  /* Civic Tech Palette */
+  --primary-teal: #0EA5E9;
+  --accent-coral: #FF7A59;
+  --neutral-warm-gray: #F5F5F0;
+  --text-primary: #2C3E50;
+  --text-secondary: #6B7280;
+  --error-red: #EF4444;
+  --success-green: #10B981;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================================================
+   Container & Layout
+   ========================================================================== */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.form-title {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.section-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--primary-teal);
+  padding-bottom: 0.5rem;
+}
+
+/* ==========================================================================
+   Progress Stepper
+   ========================================================================== */
+.progress-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: var(--neutral-warm-gray);
+  border-radius: 12px;
+}
+
+.stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.step-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #E5E7EB; /* Gray for inactive */
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.stepper-step.active .step-circle {
+  background: var(--primary-teal);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.step-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: center;
+}
+
+.stepper-step.active .step-label {
+  color: var(--primary-teal);
+  font-weight: 700;
+}
+
+.stepper-line {
+  width: 80px;
+  height: 2px;
+  background: #E5E7EB;
+  margin: 0 1rem;
+}
+
+.stepper-text {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 1.125rem;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Entity Type Switcher
+   ========================================================================== */
+.entity-type-switcher {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--neutral-warm-gray);
+  border-radius: 8px;
+}
+
+.switcher-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+}
+
+.switcher-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.switcher-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--primary-teal);
+  background: #fff;
+  color: var(--primary-teal);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
+  min-height: 44px; /* Touch-friendly (NFR mobile) */
+  font-size: 1rem;
+}
+
+.switcher-btn:hover {
+  background: #E0F7FF; /* Light tirkizna hover */
+}
+
+.switcher-btn.active {
+  background: var(--primary-teal);
+  color: #fff;
+}
+
+.switcher-btn:focus {
+  outline: 2px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Entity Fields Show/Hide Animation
+   ========================================================================== */
+.entity-fields {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.entity-fields.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Form Groups & Fields
+   ========================================================================== */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="tel"],
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  background: #fff;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Hidden input (entity_type) */
+.form-group input[type="hidden"] {
+  display: none;
+}
+
+/* Help text */
+.help-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Error messages */
+.error-message {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #FEE2E2;
+  color: var(--error-red);
+  border-left: 3px solid var(--error-red);
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   Navigation Buttons
+   ========================================================================== */
+.form-navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #E5E7EB;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px; /* Touch-friendly */
+}
+
+.btn-primary {
+  background: var(--primary-teal);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0284C7; /* Darker teal */
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: #E5E7EB;
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #D1D5DB;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus {
+  outline: 2px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Responsive Design - Mobile
+   ========================================================================== */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem 0.75rem;
+  }
+
+  .form-title {
+    font-size: 1.5rem;
+  }
+
+  /* Progress Stepper - Vertical on mobile */
+  .progress-stepper {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .stepper-line {
+    width: 2px;
+    height: 40px;
+    margin: 0;
+  }
+
+  .step-label {
+    font-size: 0.75rem;
+  }
+
+  /* Switcher buttons stack on mobile */
+  .switcher-buttons {
+    flex-direction: column;
+  }
+
+  .switcher-btn {
+    width: 100%;
+  }
+
+  /* Form navigation */
+  .form-navigation {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 320px) {
+  /* Extra small devices */
+  .step-circle {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    font-size: 0.875rem;
+  }
+}

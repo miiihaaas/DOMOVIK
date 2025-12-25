@@ -450,3 +450,193 @@ class Epic1RegressionTests(TestCase):
         response = self.client.get('/projekat/')
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'submissions/coa_form.html')
+
+
+# ============================================================================
+# Story 2.2 Tests - COA Form Section I
+# ============================================================================
+
+from apps.submissions.forms import COAFormSectionI
+
+
+class COAFormSectionITests(TestCase):
+    """Tests for COA Form Section I - Entity Type Switch Form"""
+
+    def test_form_fizicko_lice_valid_data(self):
+        """Test form with valid fizičko lice data"""
+        form_data = {
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'jmbg': '1234567890123',
+            'adresa': 'Beograd, Kneza Miloša 10',
+            'email': 'marko@example.com',
+            'telefon': '0611234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
+
+    def test_form_pravno_lice_valid_data(self):
+        """Test form with valid pravno lice data"""
+        form_data = {
+            'entity_type': 'pravno',
+            'naziv_organizacije': 'Udruženje Građana Domovik',
+            'maticni_broj': '12345678',
+            'adresa': 'Beograd, Kneza Miloša 10',
+            'email': 'info@domovik.rs',
+            'telefon': '0111234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
+
+    def test_form_fizicko_missing_ime(self):
+        """Test form validation fails if fizičko lice missing ime"""
+        form_data = {
+            'entity_type': 'fizicko',
+            # 'ime': 'Marko',  # Missing
+            'prezime': 'Petrović',
+            'jmbg': '1234567890123',
+            'adresa': 'Beograd',
+            'email': 'marko@example.com',
+            'telefon': '0611234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_form_fizicko_missing_jmbg(self):
+        """Test form validation fails if fizičko lice missing JMBG (COA requirement)"""
+        form_data = {
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            # 'jmbg': '1234567890123',  # Missing
+            'adresa': 'Beograd',
+            'email': 'marko@example.com',
+            'telefon': '0611234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_form_jmbg_invalid_length(self):
+        """Test form validation fails if JMBG is not 13 digits"""
+        form_data = {
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'jmbg': '12345',  # Too short
+            'adresa': 'Beograd',
+            'email': 'marko@example.com',
+            'telefon': '0611234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_form_pravno_missing_naziv(self):
+        """Test form validation fails if pravno lice missing naziv_organizacije"""
+        form_data = {
+            'entity_type': 'pravno',
+            # 'naziv_organizacije': 'Udruženje Domovik',  # Missing
+            'maticni_broj': '12345678',
+            'adresa': 'Beograd',
+            'email': 'info@domovik.rs',
+            'telefon': '0111234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_form_pravno_missing_maticni(self):
+        """Test form validation fails if pravno lice missing matični broj (COA requirement)"""
+        form_data = {
+            'entity_type': 'pravno',
+            'naziv_organizacije': 'Udruženje Domovik',
+            # 'maticni_broj': '12345678',  # Missing
+            'adresa': 'Beograd',
+            'email': 'info@domovik.rs',
+            'telefon': '0111234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_form_common_fields_required(self):
+        """Test form validation fails if common fields (adresa, email, telefon) are missing"""
+        form_data = {
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'jmbg': '1234567890123',
+            # Missing: adresa, email, telefon
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('adresa', form.errors)
+        self.assertIn('email', form.errors)
+        self.assertIn('telefon', form.errors)
+
+
+class COAFormTemplateTests(TestCase):
+    """Tests for COA form template rendering"""
+
+    def setUp(self):
+        """Set up test client."""
+        self.client = Client()
+
+    def test_coa_form_page_loads(self):
+        """Test /projekat/ page loads successfully"""
+        response = self.client.get('/projekat/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'submissions/coa_form.html')
+
+    def test_progress_stepper_rendered(self):
+        """Test progress stepper is rendered with correct text"""
+        response = self.client.get('/projekat/')
+        self.assertContains(response, 'Sekcija 1 od 3')
+        self.assertContains(response, 'progress-stepper')
+
+    def test_entity_type_switcher_rendered(self):
+        """Test entity type switcher toggle is rendered"""
+        response = self.client.get('/projekat/')
+        self.assertContains(response, 'Fizičko lice')
+        self.assertContains(response, 'Pravno lice')
+        self.assertContains(response, 'entity-type-switcher')
+
+    def test_form_fields_rendered(self):
+        """Test all form fields (fizičko, pravno, common) are present in HTML"""
+        response = self.client.get('/projekat/')
+        # Fizičko fields
+        self.assertContains(response, 'id_ime')
+        self.assertContains(response, 'id_prezime')
+        self.assertContains(response, 'id_jmbg')
+        # Pravno fields
+        self.assertContains(response, 'id_naziv_organizacije')
+        self.assertContains(response, 'id_maticni_broj')
+        # Common fields
+        self.assertContains(response, 'id_adresa')
+        self.assertContains(response, 'id_email')
+        self.assertContains(response, 'id_telefon')
+
+    def test_navigation_buttons_disabled(self):
+        """Test that navigation buttons are rendered but disabled (Story 2.7 placeholder)"""
+        response = self.client.get('/projekat/')
+        self.assertEqual(response.status_code, 200)
+        # Check buttons are present
+        self.assertContains(response, 'PRETHODNA SEKCIJA')
+        self.assertContains(response, 'SLEDEĆA SEKCIJA')
+        # Check both buttons have disabled attribute
+        content = response.content.decode('utf-8')
+        import re
+        disabled_buttons = re.findall(r'<button[^>]*disabled[^>]*>', content)
+        self.assertGreaterEqual(len(disabled_buttons), 2, "Expected at least 2 disabled buttons (navigation)")
+
+    def test_aria_describedby_linkage(self):
+        """Test that form fields with help text have aria-describedby attributes (NFR49)"""
+        response = self.client.get('/projekat/')
+        content = response.content.decode('utf-8')
+        # JMBG field should have aria-describedby pointing to help text
+        self.assertIn('aria-describedby="id_jmbg_help"', content)
+        self.assertIn('id="id_jmbg_help"', content)
+        # Email field should have aria-describedby
+        self.assertIn('aria-describedby="id_email_help"', content)
+        self.assertIn('id="id_email_help"', content)
+        # Telefon field should have aria-describedby
+        self.assertIn('aria-describedby="id_telefon_help"', content)
+        self.assertIn('id="id_telefon_help"', content)

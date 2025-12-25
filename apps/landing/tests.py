@@ -496,13 +496,14 @@ class ApplicationTypeSelectionTests(TestCase):
         self.assertContains(response, 'Započni prijavu')
         self.assertContains(response, 'landing__banner-cta')
 
-    def test_coa_placeholder_page_has_back_button(self):
-        """Test: COA placeholder page has working back to home link"""
+    def test_coa_form_page_renders_after_story_22(self):
+        """Test: COA form page renders after Story 2.2 (no longer placeholder)"""
         response = self.client.get('/projekat/')
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Nazad na početnu')
-        # Verify the link uses named URL
-        self.assertContains(response, 'href="/"')
+        # Story 2.2: Form has progress stepper and entity switcher
+        self.assertContains(response, 'Sekcija 1 od 3')
+        self.assertContains(response, 'Fizičko lice')
+        self.assertContains(response, 'Pravno lice')
 
     def test_cob_placeholder_page_has_back_button(self):
         """Test: COB placeholder page has working back to home link"""
