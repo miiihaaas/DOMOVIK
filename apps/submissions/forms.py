@@ -97,3 +97,121 @@ class COAFormSectionI(forms.ModelForm):
                     self.add_error(None, error)
 
         return cleaned_data
+
+
+class COAFormSectionII(forms.ModelForm):
+    """
+    COA Form Section II - Project Data Entry with Character Management
+    Story 2.6: Section II fields with character limits and budget validation
+
+    Handles project data including naslov, opis, problem, cilj, etc.
+    Client-side character counting managed by character-counter.js.
+    Server-side validation ensures data integrity.
+    """
+
+    class Meta:
+        model = Application
+        fields = [
+            'naslov', 'opis', 'problem', 'cilj',
+            'specifični_ciljevi', 'ciljne_grupe',
+            'aktivnosti', 'rezultati', 'budžet'
+        ]
+
+        widgets = {
+            'naslov': forms.Textarea(attrs={'rows': 3}),
+            'opis': forms.Textarea(attrs={'rows': 5}),
+            'problem': forms.Textarea(attrs={'rows': 10}),
+            'cilj': forms.Textarea(attrs={'rows': 8}),
+            'specifični_ciljevi': forms.Textarea(attrs={'rows': 8}),
+            'ciljne_grupe': forms.Textarea(attrs={'rows': 10}),
+            'aktivnosti': forms.Textarea(attrs={'rows': 10}),
+            'rezultati': forms.Textarea(attrs={'rows': 10}),
+            'budžet': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
+        }
+
+        labels = {
+            'naslov': 'Naslov projekta',
+            'opis': 'Kratak opis',
+            'problem': 'Problem koji se rešava',
+            'cilj': 'Glavni cilj',
+            'specifični_ciljevi': 'Specifični ciljevi',
+            'ciljne_grupe': 'Ciljne grupe',
+            'aktivnosti': 'Aktivnosti',
+            'rezultati': 'Rezultati',
+            'budžet': 'Totalni budžet (RSD)',
+        }
+
+        help_texts = {
+            'naslov': 'Maksimalno 150 karaktera',
+            'opis': 'Maksimalno 500 karaktera',
+            'problem': 'Maksimalno 2000 karaktera',
+            'cilj': 'Maksimalno 1000 karaktera',
+            'specifični_ciljevi': 'Maksimalno 1000 karaktera',
+            'ciljne_grupe': 'Maksimalno 1500 karaktera',
+            'aktivnosti': 'Maksimalno 1500 karaktera',
+            'rezultati': 'Maksimalno 1500 karaktera',
+            'budžet': 'Unesite iznos u dinarima (npr. 1000000)',
+        }
+
+    def clean_naslov(self):
+        """Validate naslov field - max 150 characters."""
+        naslov = self.cleaned_data.get('naslov', '')
+        if len(naslov) > 150:
+            raise ValidationError('Naslov ne može biti duži od 150 karaktera.')
+        return naslov
+
+    def clean_opis(self):
+        """Validate opis field - max 500 characters."""
+        opis = self.cleaned_data.get('opis', '')
+        if len(opis) > 500:
+            raise ValidationError('Opis ne može biti duži od 500 karaktera.')
+        return opis
+
+    def clean_problem(self):
+        """Validate problem field - max 2000 characters."""
+        problem = self.cleaned_data.get('problem', '')
+        if len(problem) > 2000:
+            raise ValidationError('Problem ne može biti duži od 2000 karaktera.')
+        return problem
+
+    def clean_cilj(self):
+        """Validate cilj field - max 1000 characters."""
+        cilj = self.cleaned_data.get('cilj', '')
+        if len(cilj) > 1000:
+            raise ValidationError('Glavni cilj ne može biti duži od 1000 karaktera.')
+        return cilj
+
+    def clean_specifični_ciljevi(self):
+        """Validate specifični_ciljevi field - max 1000 characters."""
+        specifični_ciljevi = self.cleaned_data.get('specifični_ciljevi', '')
+        if len(specifični_ciljevi) > 1000:
+            raise ValidationError('Specifični ciljevi ne mogu biti duži od 1000 karaktera.')
+        return specifični_ciljevi
+
+    def clean_ciljne_grupe(self):
+        """Validate ciljne_grupe field - max 1500 characters."""
+        ciljne_grupe = self.cleaned_data.get('ciljne_grupe', '')
+        if len(ciljne_grupe) > 1500:
+            raise ValidationError('Ciljne grupe ne mogu biti duže od 1500 karaktera.')
+        return ciljne_grupe
+
+    def clean_aktivnosti(self):
+        """Validate aktivnosti field - max 1500 characters."""
+        aktivnosti = self.cleaned_data.get('aktivnosti', '')
+        if len(aktivnosti) > 1500:
+            raise ValidationError('Aktivnosti ne mogu biti duže od 1500 karaktera.')
+        return aktivnosti
+
+    def clean_rezultati(self):
+        """Validate rezultati field - max 1500 characters."""
+        rezultati = self.cleaned_data.get('rezultati', '')
+        if len(rezultati) > 1500:
+            raise ValidationError('Rezultati ne mogu biti duži od 1500 karaktera.')
+        return rezultati
+
+    def clean_budžet(self):
+        """Validate budžet field - positive number only."""
+        budžet = self.cleaned_data.get('budžet')
+        if budžet is not None and budžet < 0:
+            raise ValidationError('Budžet mora biti pozitivan broj.')
+        return budžet

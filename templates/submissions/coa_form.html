@@ -131,6 +131,103 @@
       </div>
     </div>
 
+    <!-- Section II: Project Data (Story 2.6) -->
+    <div id="section-ii" class="section-ii" style="display: none;">
+      <h2 class="section-title">Podaci o projektu</h2>
+
+      <fieldset class="section-ii__fieldset">
+        <legend class="sr-only">Informacije o projektu</legend>
+
+        <!-- Naslov projekta -->
+        <div class="form-group section-ii__field">
+          <label for="id_naslov">Naslov projekta *</label>
+          <textarea name="naslov" id="id_naslov" rows="3" aria-required="true" aria-describedby="id_naslov_counter id_naslov_help"></textarea>
+          <small id="id_naslov_help" class="help-text">Maksimalno 150 karaktera</small>
+          <div id="id_naslov_counter" class="character-counter" data-field="naslov" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="naslov"></div>
+          <div class="character-error-message" data-field="naslov" style="display: none;"></div>
+        </div>
+
+        <!-- Kratak opis -->
+        <div class="form-group section-ii__field">
+          <label for="id_opis">Kratak opis *</label>
+          <textarea name="opis" id="id_opis" rows="5" aria-required="true" aria-describedby="id_opis_counter id_opis_help"></textarea>
+          <small id="id_opis_help" class="help-text">Maksimalno 500 karaktera</small>
+          <div id="id_opis_counter" class="character-counter" data-field="opis" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="opis"></div>
+          <div class="character-error-message" data-field="opis" style="display: none;"></div>
+        </div>
+
+        <!-- Problem koji se rešava -->
+        <div class="form-group section-ii__field">
+          <label for="id_problem">Problem koji se rešava *</label>
+          <textarea name="problem" id="id_problem" rows="10" aria-required="true" aria-describedby="id_problem_counter id_problem_help"></textarea>
+          <small id="id_problem_help" class="help-text">Maksimalno 2000 karaktera</small>
+          <div id="id_problem_counter" class="character-counter" data-field="problem" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="problem"></div>
+          <div class="character-error-message" data-field="problem" style="display: none;"></div>
+        </div>
+
+        <!-- Glavni cilj -->
+        <div class="form-group section-ii__field">
+          <label for="id_cilj">Glavni cilj *</label>
+          <textarea name="cilj" id="id_cilj" rows="8" aria-required="true" aria-describedby="id_cilj_counter id_cilj_help"></textarea>
+          <small id="id_cilj_help" class="help-text">Maksimalno 1000 karaktera</small>
+          <div id="id_cilj_counter" class="character-counter" data-field="cilj" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="cilj"></div>
+          <div class="character-error-message" data-field="cilj" style="display: none;"></div>
+        </div>
+
+        <!-- Specifični ciljevi -->
+        <div class="form-group section-ii__field">
+          <label for="id_specifični_ciljevi">Specifični ciljevi *</label>
+          <textarea name="specifični_ciljevi" id="id_specifični_ciljevi" rows="8" aria-required="true" aria-describedby="id_specifični_ciljevi_counter id_specifični_ciljevi_help"></textarea>
+          <small id="id_specifični_ciljevi_help" class="help-text">Maksimalno 1000 karaktera</small>
+          <div id="id_specifični_ciljevi_counter" class="character-counter" data-field="specifični_ciljevi" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="specifični_ciljevi"></div>
+          <div class="character-error-message" data-field="specifični_ciljevi" style="display: none;"></div>
+        </div>
+
+        <!-- Ciljne grupe -->
+        <div class="form-group section-ii__field">
+          <label for="id_ciljne_grupe">Ciljne grupe *</label>
+          <textarea name="ciljne_grupe" id="id_ciljne_grupe" rows="10" aria-required="true" aria-describedby="id_ciljne_grupe_counter id_ciljne_grupe_help"></textarea>
+          <small id="id_ciljne_grupe_help" class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_ciljne_grupe_counter" class="character-counter" data-field="ciljne_grupe" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="ciljne_grupe"></div>
+          <div class="character-error-message" data-field="ciljne_grupe" style="display: none;"></div>
+        </div>
+
+        <!-- Aktivnosti -->
+        <div class="form-group section-ii__field">
+          <label for="id_aktivnosti">Aktivnosti *</label>
+          <textarea name="aktivnosti" id="id_aktivnosti" rows="10" aria-required="true" aria-describedby="id_aktivnosti_counter id_aktivnosti_help"></textarea>
+          <small id="id_aktivnosti_help" class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_aktivnosti_counter" class="character-counter" data-field="aktivnosti" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="aktivnosti"></div>
+          <div class="character-error-message" data-field="aktivnosti" style="display: none;"></div>
+        </div>
+
+        <!-- Rezultati -->
+        <div class="form-group section-ii__field">
+          <label for="id_rezultati">Rezultati *</label>
+          <textarea name="rezultati" id="id_rezultati" rows="10" aria-required="true" aria-describedby="id_rezultati_counter id_rezultati_help"></textarea>
+          <small id="id_rezultati_help" class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_rezultati_counter" class="character-counter" data-field="rezultati" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="rezultati"></div>
+          <div class="character-error-message" data-field="rezultati" style="display: none;"></div>
+        </div>
+
+        <!-- Totalni budžet -->
+        <div class="form-group section-ii__field">
+          <label for="id_budžet">Totalni budžet (RSD) *</label>
+          <input type="text" name="budžet" id="id_budžet" placeholder="0.00" aria-required="true" aria-describedby="id_budžet_error id_budžet_help" inputmode="decimal">
+          <small id="id_budžet_help" class="help-text">Unesite iznos u dinarima (npr. 1000000)</small>
+          <div id="id_budžet_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+        </div>
+      </fieldset>
+    </div>
+
     <!-- Navigation Buttons (Story 2.7 will implement full navigation) -->
     <div class="form-navigation">
       <button type="button" class="btn btn-secondary" disabled>PRETHODNA SEKCIJA</button>
@@ -144,4 +241,6 @@
 <script src="{% static 'js/draft-manager.js' %}"></script>
 <script src="{% static 'js/real-time-validator.js' %}"></script>
 <script src="{% static 'js/entity-type-switcher.js' %}"></script>
+<script src="{% static 'js/character-counter.js' %}"></script>
+<script src="{% static 'js/section-navigation.js' %}"></script>
 {% endblock %}

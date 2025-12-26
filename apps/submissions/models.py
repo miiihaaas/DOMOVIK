@@ -77,6 +77,65 @@ class Application(models.Model):
         verbose_name='Ažurirano'
     )
 
+    # Section II: Project Data (Story 2.6)
+    naslov = models.CharField(
+        max_length=150,
+        blank=True,
+        verbose_name='Naslov projekta',
+        help_text='Maksimalno 150 karaktera'
+    )
+
+    opis = models.TextField(
+        blank=True,
+        verbose_name='Kratak opis',
+        help_text='Maksimalno 500 karaktera'
+    )
+
+    problem = models.TextField(
+        blank=True,
+        verbose_name='Problem koji se rešava',
+        help_text='Maksimalno 2000 karaktera'
+    )
+
+    cilj = models.TextField(
+        blank=True,
+        verbose_name='Glavni cilj',
+        help_text='Maksimalno 1000 karaktera'
+    )
+
+    specifični_ciljevi = models.TextField(
+        blank=True,
+        verbose_name='Specifični ciljevi',
+        help_text='Maksimalno 1000 karaktera'
+    )
+
+    ciljne_grupe = models.TextField(
+        blank=True,
+        verbose_name='Ciljne grupe',
+        help_text='Maksimalno 1500 karaktera'
+    )
+
+    aktivnosti = models.TextField(
+        blank=True,
+        verbose_name='Aktivnosti',
+        help_text='Maksimalno 1500 karaktera'
+    )
+
+    rezultati = models.TextField(
+        blank=True,
+        verbose_name='Rezultati',
+        help_text='Maksimalno 1500 karaktera'
+    )
+
+    budžet = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Totalni budžet (RSD)',
+        help_text='Iznos u dinarima'
+    )
+
     class Meta:
         ordering = ['-submitted_at', '-created_at']
         verbose_name = 'Prijava'

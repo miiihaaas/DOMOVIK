@@ -48,6 +48,18 @@ function collectFormData() {
       email: document.getElementById('id_email')?.value || '',
       telefon: document.getElementById('id_telefon')?.value || ''
     },
+    // Section II: Project Data (Story 2.6 - Task 6.2)
+    sectionII: {
+      naslov: document.getElementById('id_naslov')?.value || '',
+      opis: document.getElementById('id_opis')?.value || '',
+      problem: document.getElementById('id_problem')?.value || '',
+      cilj: document.getElementById('id_cilj')?.value || '',
+      specifični_ciljevi: document.getElementById('id_specifični_ciljevi')?.value || '',
+      ciljne_grupe: document.getElementById('id_ciljne_grupe')?.value || '',
+      aktivnosti: document.getElementById('id_aktivnosti')?.value || '',
+      rezultati: document.getElementById('id_rezultati')?.value || '',
+      budžet: document.getElementById('id_budžet')?.value || ''
+    },
     consent: {},  // Structure for future checkboxes (Story X.X)
     files_metadata: []  // Placeholder for FR24 (file uploads in later stories)
   };
@@ -207,6 +219,22 @@ function loadDraft() {
       restoreFieldValue('id_telefon', draftData.common.telefon);
     }
 
+    // Restore Section II fields (Story 2.6 - Task 6.3)
+    if (draftData.sectionII) {
+      restoreFieldValue('id_naslov', draftData.sectionII.naslov);
+      restoreFieldValue('id_opis', draftData.sectionII.opis);
+      restoreFieldValue('id_problem', draftData.sectionII.problem);
+      restoreFieldValue('id_cilj', draftData.sectionII.cilj);
+      restoreFieldValue('id_specifični_ciljevi', draftData.sectionII.specifični_ciljevi);
+      restoreFieldValue('id_ciljne_grupe', draftData.sectionII.ciljne_grupe);
+      restoreFieldValue('id_aktivnosti', draftData.sectionII.aktivnosti);
+      restoreFieldValue('id_rezultati', draftData.sectionII.rezultati);
+      restoreFieldValue('id_budžet', draftData.sectionII.budžet);
+
+      // Trigger character counter updates for Section II (Task 6.4)
+      triggerCharacterCountersAfterDraftLoad();
+    }
+
     // Development logging (comment out for production)
     // console.log('Draft loaded from localStorage');
 
@@ -215,6 +243,23 @@ function loadDraft() {
   } catch (error) {
     console.error('Failed to load draft:', error);
   }
+}
+
+/**
+ * Trigger character counters for Section II after draft load (Story 2.6 - Task 6.4)
+ * IMPORTANT: Only triggers for Section II textareas if they have content
+ */
+function triggerCharacterCountersAfterDraftLoad() {
+  // Character limits from character-counter.js
+  const SECTION_II_FIELDS = ['naslov', 'opis', 'problem', 'cilj', 'specifični_ciljevi', 'ciljne_grupe', 'aktivnosti', 'rezultati'];
+
+  SECTION_II_FIELDS.forEach(fieldId => {
+    const field = document.getElementById(`id_${fieldId}`);
+    if (field && field.value) {
+      // Dispatch input event to trigger character counter update
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
 }
 
 /**
