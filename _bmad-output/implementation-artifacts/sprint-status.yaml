@@ -1,0 +1,83 @@
+# generated: 2025-12-24
+# project: DOMOVIK
+# project_key: domovik
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2025-12-24
+project: DOMOVIK
+project_key: domovik
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: done
+  1-1-landing-page-with-information-guidance: done
+  1-2-excel-template-downloads: done
+  1-3-application-type-selection: done
+  epic-1-retrospective: done
+
+  epic-2: in-progress
+  2-1-django-project-setup-coa-routing: done
+  2-2-coa-form-section-i-general-data-entry-with-entity-type-switch: done
+  2-3-real-time-validation-for-section-i: done
+  2-4-localstorage-draft-system-auto-save: done
+  2-5-draft-recovery-modal: done  # Code review complete, DoD passed (98%), manual testing verified
+  2-6-coa-form-section-ii-project-data-with-character-management: done  # Code review complete: All issues fixed (10 total), all AC implemented, DoD passed
+  2-7-progress-stepper-section-navigation: done  # Code review: 11 issues fixed, 3 critical bugs fixed (HTTP 405, entity race condition, budget ID), all 12 manual test scenarios PASSED, commits: 10fe99a + 94ffc57
+  2-8-file-upload-infrastructure: backlog
+  2-9-file-upload-ui-multiple-files-with-preview: backlog
+  2-10-coa-form-section-iii-documentation-consent: backlog
+  2-11-submission-processing-reference-number-database-storage: backlog
+  2-12-submission-ui-double-click-protection: backlog
+  2-13-success-screen-with-reference-number: backlog
+  2-14-email-confirmation-with-celery: backlog
+  2-15-draft-auto-deletion-background-task: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-cob-routing-form-initialization: backlog
+  3-2-cob-section-i-simplified-general-data-no-jmbg-maticni: backlog
+  3-3-cob-section-ii-initiative-data-no-budget: backlog
+  3-4-cob-section-iii-simplified-documentation-2-files-only: backlog
+  3-5-cob-submission-processing-cob-reference-number: backlog
+  3-6-cob-success-screen-email-notification: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-admin-authentication-authorization: backlog
+  4-2-applications-list-view-table-with-all-submissions: backlog
+  4-3-application-detail-view: backlog
+  4-4-document-download-functionality: backlog
+  4-5-restful-api-for-admin-operations: backlog
+  4-6-admin-activity-logging: backlog
+  epic-4-retrospective: optional
