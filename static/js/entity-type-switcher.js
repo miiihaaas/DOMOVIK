@@ -25,6 +25,10 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', function() {
       const entityType = this.dataset.entity;
 
+      // DEBUG: Log entity type switch
+      console.log('[EntitySwitcher] Button clicked:', entityType);
+      console.log('[EntitySwitcher] Old entity_type value:', entityTypeInput.value);
+
       // Race condition prevention (Story 2.4 - Task 4.4)
       // Clear pending auto-save timeout before manual save during entity switch
       if (window.autoSaveTimeout) {
@@ -48,6 +52,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update hidden input value
       entityTypeInput.value = entityType;
 
+      // DEBUG: Confirm entity type changed
+      console.log('[EntitySwitcher] New entity_type value:', entityTypeInput.value);
+
       // Show/hide appropriate field groups
       if (entityType === 'fizicko') {
         fizickoFields.classList.add('active');
@@ -65,10 +72,15 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleRequiredFields(fizickoFields, false);
       }
 
-      // Restore previously saved data for the newly active entity type (Story 2.4 integration)
-      if (typeof loadDraft === 'function') {
-        loadDraft();
-      }
+      // CODE REVIEW FIX: REMOVED loadDraft() call - causes race condition
+      // loadDraft() restore-uje entity_type nazad na staru vrednost iz draft-a
+      // Entity switcher već čisti/pokazuje prava polja, ne treba loadDraft()
+      // Draft će biti restore-ovan samo na cold start (Draft Recovery Modal)
+
+      // REMOVED: Restore previously saved data for the newly active entity type
+      // if (typeof loadDraft === 'function') {
+      //   loadDraft();
+      // }
 
       // Re-validate visible fields AFTER entity switch completes (Story 2.3)
       if (window.RealTimeValidator && typeof window.RealTimeValidator.revalidateVisibleFields === 'function') {

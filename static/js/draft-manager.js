@@ -26,13 +26,20 @@ let indicatorTimeout;
 let autoSaveInitialized = false;
 
 /**
- * Collect all form data for saving (Story 2.4 - Task 3)
+ * Collect all form data for saving (Story 2.4 - Task 3, Story 2.7 - Task 11)
  * @returns {Object} Draft data object with application_type, timestamp, and all fields
  */
 function collectFormData() {
+  // Get current section from section-navigation.js if available
+  let currentSectionNumber = 1;
+  if (typeof currentSection !== 'undefined') {
+    currentSectionNumber = currentSection;
+  }
+
   return {
     application_type: 'COA',  // Distinguishes COA vs COB drafts (multi-form system - Epic 3+)
     timestamp: new Date().toISOString(),
+    currentSection: currentSectionNumber,  // Story 2.7: Track current section for restoration
     entity_type: document.getElementById('id_entity_type')?.value || 'fizicko',
     fizicko: {
       ime: document.getElementById('id_ime')?.value || '',
@@ -194,9 +201,52 @@ function loadDraft() {
     const draftData = draftCheck.data;
 
     // Restore entity type
+    // CODE REVIEW FIX: Restore entity_type for Draft Recovery (cold start)
+    // This is safe because entity-type-switcher.js NO LONGER calls loadDraft()
     const entityTypeInput = document.getElementById('id_entity_type');
     if (entityTypeInput && draftData.entity_type) {
       entityTypeInput.value = draftData.entity_type;
+
+      // Manually update UI without triggering click event (avoids saveDraft() loop)
+      const fizickoFields = document.getElementById('fizicko-fields');
+      const pravnoFields = document.getElementById('pravno-fields');
+
+      if (draftData.entity_type === 'fizicko') {
+        if (fizickoFields) {
+          fizickoFields.classList.add('active');
+          // Enable required attributes for fizicko fields
+          fizickoFields.querySelectorAll('input, textarea').forEach(input => {
+            input.setAttribute('required', 'required');
+          });
+        }
+        if (pravnoFields) {
+          pravnoFields.classList.remove('active');
+          // Disable required attributes for pravno fields
+          pravnoFields.querySelectorAll('input, textarea').forEach(input => {
+            input.removeAttribute('required');
+          });
+        }
+      } else if (draftData.entity_type === 'pravno') {
+        if (pravnoFields) {
+          pravnoFields.classList.add('active');
+          // Enable required attributes for pravno fields
+          pravnoFields.querySelectorAll('input, textarea').forEach(input => {
+            input.setAttribute('required', 'required');
+          });
+        }
+        if (fizickoFields) {
+          fizickoFields.classList.remove('active');
+          // Disable required attributes for fizicko fields
+          fizickoFields.querySelectorAll('input, textarea').forEach(input => {
+            input.removeAttribute('required');
+          });
+        }
+      }
+
+      // Update button states
+      document.querySelectorAll('.switcher-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.entity === draftData.entity_type);
+      });
     }
 
     // Restore fizičko lice fields
@@ -233,6 +283,12 @@ function loadDraft() {
 
       // Trigger character counter updates for Section II (Task 6.4)
       triggerCharacterCountersAfterDraftLoad();
+    }
+
+    // Restore current section (Story 2.7 - Task 11.4-11.5)
+    if (draftData.currentSection && typeof showSection === 'function') {
+      // Show the section user was on when they left
+      showSection(draftData.currentSection);
     }
 
     // Development logging (comment out for production)

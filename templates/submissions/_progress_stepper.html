@@ -1,25 +1,41 @@
 {% comment %}
 Progress Stepper Component - COA/COB Multi-Section Forms
 Story 2.2: Section I indicator (Sekcija 1 od 3)
+Story 2.7: Enhanced visual design with ARIA support, BEM methodology
+CODE REVIEW FIX (MEDIUM #5): Use BEM classes only, removed legacy classes
 {% endcomment %}
 
-<div class="progress-stepper">
-  <div class="stepper-step active" data-step="1">
-    <div class="step-circle">1</div>
-    <div class="step-label">Opšti podaci</div>
+<nav class="progress-stepper" role="navigation" aria-label="Progress stepper" aria-live="polite">
+  <div class="progress-stepper__step progress-stepper__step--active" data-step="1" aria-current="step" aria-label="Sekcija 1: Opšti podaci">
+    <div class="progress-stepper__circle">
+      <span class="step-number">1</span>
+      <span class="step-checkmark" aria-label="Completed">✓</span>
+    </div>
+    <div class="progress-stepper__label">Opšti podaci</div>
   </div>
-  <div class="stepper-line"></div>
-  <div class="stepper-step" data-step="2">
-    <div class="step-circle">2</div>
-    <div class="step-label">Podaci o projektu</div>
+
+  <div class="progress-stepper__connector"></div>
+
+  <div class="progress-stepper__step" data-step="2" aria-disabled="true" aria-label="Sekcija 2: Podaci o projektu">
+    <div class="progress-stepper__circle">
+      <span class="step-number">2</span>
+      <span class="step-checkmark" aria-label="Completed">✓</span>
+    </div>
+    <div class="progress-stepper__label">Podaci o projektu</div>
   </div>
-  <div class="stepper-line"></div>
-  <div class="stepper-step" data-step="3">
-    <div class="step-circle">3</div>
-    <div class="step-label">Dokumentacija</div>
+
+  <div class="progress-stepper__connector"></div>
+
+  <div class="progress-stepper__step" data-step="3" aria-disabled="true" aria-label="Sekcija 3: Dokumentacija i saglasnost">
+    <div class="progress-stepper__circle">
+      <span class="step-number">3</span>
+      <span class="step-checkmark" aria-label="Completed">✓</span>
+    </div>
+    <div class="progress-stepper__label">Dokumentacija i saglasnost</div>
   </div>
-</div>
+</nav>
 
 <div class="stepper-text">
   <strong>Sekcija 1 od 3</strong>
+  <span class="sr-only">Nalazite se u sekciji 1 od 3</span>
 </div>

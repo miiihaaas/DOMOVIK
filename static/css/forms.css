@@ -54,7 +54,7 @@
 }
 
 /* ==========================================================================
-   Progress Stepper
+   Progress Stepper (Story 2.7 - Enhanced Civic Tech Design)
    ========================================================================== */
 .progress-stepper {
   display: flex;
@@ -66,50 +66,174 @@
   border-radius: 12px;
 }
 
+/* BEM: Progress Stepper Step */
+.progress-stepper__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  cursor: not-allowed; /* MVP: Not clickable (Task 10 optional) */
+}
+
+/* Legacy class support */
 .stepper-step {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  position: relative;
 }
 
-.step-circle {
-  width: 48px;
-  height: 48px;
+/* BEM: Step Circle */
+.progress-stepper__circle {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: #E5E7EB; /* Gray for inactive */
-  color: #6B7280;
+  background: #fff;
+  border: 2px solid #D6D3D1; /* Gray for inactive */
+  color: #78716C; /* Gray text */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 1.25rem;
+  font-weight: 600;
+  font-size: 16px;
   transition: all 0.3s ease;
+  position: relative;
 }
 
-.stepper-step.active .step-circle {
-  background: var(--primary-teal);
+/* Legacy class support */
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #D6D3D1;
+  color: #78716C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Step Number - visible by default */
+.step-number {
+  display: inline-block;
+}
+
+/* Step Checkmark - hidden by default */
+.step-checkmark {
+  display: none;
+  color: #10B981; /* Green checkmark */
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ACTIVE STATE (Current Section) - Tirkizna */
+.progress-stepper__step--active .progress-stepper__circle,
+.stepper-step--active .step-circle {
+  background: var(--primary-teal); /* Tirkizna #0EA5E9 */
+  border-color: var(--primary-teal);
   color: #fff;
   box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
-.step-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  text-align: center;
+.stepper-step.active .step-circle {
+  background: var(--primary-teal);
+  border-color: var(--primary-teal);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
+/* COMPLETED STATE - Tirkizna border, checkmark */
+.progress-stepper__step--completed .progress-stepper__circle,
+.stepper-step--completed .step-circle {
+  background: #F5F5F0; /* Light gray background */
+  border-color: var(--primary-teal); /* Tirkizna border */
+  color: #10B981; /* Green checkmark */
+}
+
+.stepper-step.completed .step-circle {
+  background: #F5F5F0;
+  border-color: var(--primary-teal);
+  color: #10B981;
+}
+
+/* Show checkmark, hide number for completed steps */
+.progress-stepper__step--completed .step-number,
+.stepper-step--completed .step-number,
+.stepper-step.completed .step-number {
+  display: none;
+}
+
+.progress-stepper__step--completed .step-checkmark,
+.stepper-step--completed .step-checkmark,
+.stepper-step.completed .step-checkmark {
+  display: inline-block;
+}
+
+/* BEM: Step Label */
+.progress-stepper__label {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #78716C; /* Gray */
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* Legacy class support */
+.step-label {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #78716C;
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* Active step label - Tirkizna, bold */
+.progress-stepper__step--active .progress-stepper__label,
+.stepper-step--active .step-label,
 .stepper-step.active .step-label {
   color: var(--primary-teal);
   font-weight: 700;
 }
 
-.stepper-line {
-  width: 80px;
+/* Completed step label - Gray (not as prominent) */
+.progress-stepper__step--completed .progress-stepper__label,
+.stepper-step--completed .step-label,
+.stepper-step.completed .step-label {
+  color: #78716C;
+  font-weight: 500;
+}
+
+/* BEM: Connector Line */
+.progress-stepper__connector {
+  flex: 1;
+  max-width: 80px;
   height: 2px;
-  background: #E5E7EB;
+  background: #D6D3D1; /* Gray default */
   margin: 0 1rem;
+  transition: background-color 0.3s ease;
+}
+
+/* Legacy class support */
+.stepper-line {
+  flex: 1;
+  max-width: 80px;
+  height: 2px;
+  background: #D6D3D1;
+  margin: 0 1rem;
+  transition: background-color 0.3s ease;
+}
+
+/* Connector line completed state - Tirkizna */
+.progress-stepper__connector--completed {
+  background: var(--primary-teal);
 }
 
 .stepper-text {
@@ -618,7 +742,7 @@
 }
 
 /* ==========================================================================
-   Navigation Buttons
+   Navigation Buttons (Story 2.7 - Enhanced)
    ========================================================================== */
 .form-navigation {
   display: flex;
@@ -630,38 +754,61 @@
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.875rem 1.75rem;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   min-height: 44px; /* Touch-friendly */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .btn-primary {
-  background: var(--primary-teal);
+  background: var(--primary-teal); /* Tirkizna */
   color: #fff;
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0284C7; /* Darker teal */
-  box-shadow: var(--shadow-md);
+  background: #0284C7; /* Darker tirkizna */
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
 }
 
 .btn-secondary {
-  background: #E5E7EB;
-  color: var(--text-primary);
+  background: #fff;
+  color: #78716C; /* Gray */
+  border: 2px solid #D6D3D1; /* Gray border */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #D1D5DB;
+  border-color: #78716C;
+  color: #2C3E50;
+  background: #F5F5F0; /* Light gray */
+}
+
+.btn-secondary:active:not(:disabled) {
+  background: #E5E7EB;
 }
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background: #F3F4F6; /* Light gray */
+  color: #9CA3AF; /* Gray text */
+  box-shadow: none;
+  transform: none !important;
 }
 
 .btn:focus {
@@ -670,7 +817,7 @@
 }
 
 /* ==========================================================================
-   Responsive Design - Mobile
+   Responsive Design - Mobile (Story 2.7 - Enhanced)
    ========================================================================== */
 @media (max-width: 768px) {
   .container {
@@ -681,20 +828,31 @@
     font-size: 1.5rem;
   }
 
-  /* Progress Stepper - Vertical on mobile */
+  /* Progress Stepper - Smaller circles, shorter labels on mobile */
   .progress-stepper {
-    flex-direction: column;
-    gap: 1rem;
+    padding: 1rem;
   }
 
-  .stepper-line {
-    width: 2px;
-    height: 40px;
-    margin: 0;
+  .progress-stepper__circle,
+  .step-circle {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
   }
 
+  .step-checkmark {
+    font-size: 16px;
+  }
+
+  .progress-stepper__label,
   .step-label {
-    font-size: 0.75rem;
+    font-size: 12px;
+    max-width: 80px;
+  }
+
+  .progress-stepper__connector,
+  .stepper-line {
+    max-width: 60px;
   }
 
   /* Switcher buttons stack on mobile */
@@ -706,22 +864,34 @@
     width: 100%;
   }
 
-  /* Form navigation */
+  /* Form navigation - Stack buttons, SLEDEĆA above PRETHODNA */
   .form-navigation {
-    flex-direction: column;
+    flex-direction: column-reverse;
   }
 
   .btn {
     width: 100%;
+    min-height: 44px; /* Touch target compliance */
   }
 }
 
 @media (max-width: 320px) {
   /* Extra small devices */
+  .progress-stepper__circle,
   .step-circle {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .step-checkmark {
+    font-size: 14px;
+  }
+
+  .progress-stepper__label,
+  .step-label {
+    font-size: 10px;
+    max-width: 70px;
   }
 
   .form-group input,
@@ -859,4 +1029,93 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ==========================================================================
+   Validation Summary Banner (Story 2.7 - Task 12)
+   ========================================================================== */
+.validation-summary {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: #FEE2E2; /* Light red background */
+  border-left: 4px solid var(--error-red);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+}
+
+.validation-summary__header {
+  margin-bottom: 1rem;
+}
+
+.validation-summary__header strong {
+  display: block;
+  font-size: 1.125rem;
+  color: #991B1B; /* Dark red */
+  margin-bottom: 0.5rem;
+}
+
+.validation-summary__header p {
+  font-size: 0.9375rem;
+  color: #7F1D1D; /* Darker red */
+  margin: 0;
+}
+
+.validation-summary__errors ul {
+  margin: 0.75rem 0 0 1.25rem;
+  padding: 0;
+  list-style-type: disc;
+}
+
+.validation-summary__errors li {
+  color: #7F1D1D; /* Dark red */
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.validation-summary__toggle {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 2px solid #DC2626; /* Red border */
+  border-radius: 6px;
+  color: #DC2626;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.validation-summary__toggle:hover {
+  background: #FEF2F2;
+  border-color: #991B1B;
+  color: #991B1B;
+}
+
+.validation-summary__toggle:focus {
+  outline: 2px solid var(--error-red);
+  outline-offset: 2px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .validation-summary {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+
+  .validation-summary__header strong {
+    font-size: 1rem;
+  }
+
+  .validation-summary__header p,
+  .validation-summary__errors li {
+    font-size: 0.875rem;
+  }
+
+  .validation-summary__toggle {
+    width: 100%;
+    text-align: center;
+  }
 }
