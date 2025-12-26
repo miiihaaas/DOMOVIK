@@ -22,6 +22,9 @@ window.autoSaveTimeout = null;
 // Global indicator timeout for visual feedback queueing (Story 2.4 - Task 2.7)
 let indicatorTimeout;
 
+// Guard flag to prevent duplicate event listener registration (Code Review Fix MEDIUM #6)
+let autoSaveInitialized = false;
+
 /**
  * Collect all form data for saving (Story 2.4 - Task 3)
  * @returns {Object} Draft data object with application_type, timestamp, and all fields
@@ -113,32 +116,70 @@ function saveDraft() {
 }
 
 /**
- * Load form field values from localStorage
- * Called after showing fields during entity type switch
+ * Check if draft exists and is valid (Story 2.5 - Task 1.1)
+ * REFACTORED from loadDraft() to support modal display on page load
+ * @returns {Object} {exists: boolean, expired: boolean, data: object|null}
  */
-function loadDraft() {
+function checkDraftExists() {
   try {
     const draftJson = localStorage.getItem(DRAFT_KEY);
     if (!draftJson) {
-      // Development logging (comment out for production)
-      // console.log('No draft found in localStorage');
-      return;
+      return { exists: false, expired: false, data: null };
     }
 
     const draftData = JSON.parse(draftJson);
 
-    // Check if draft is fresh (< 7 days old)
-    if (draftData.timestamp) {
-      const draftAge = Date.now() - new Date(draftData.timestamp).getTime();
-      const MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-
-      if (draftAge > MAX_AGE) {
-        // Development logging (comment out for production)
-        // console.log('Draft too old (>7 days), removing from localStorage');
-        localStorage.removeItem(DRAFT_KEY);
-        return;
-      }
+    // Check if draft is expired (>7 days old) using extracted helper
+    if (isExpiredDraft(draftData)) {
+      // Auto-delete expired draft (GDPR - NFR18)
+      localStorage.removeItem(DRAFT_KEY);
+      console.log('Draft expired (>7 days), auto-deleted');
+      return { exists: false, expired: true, data: null };
     }
+
+    // Valid draft exists
+    return { exists: true, expired: false, data: draftData };
+  } catch (error) {
+    // Corrupt JSON handling - cleanup and return false
+    console.error('Corrupt draft data detected, cleaning up:', error);
+    localStorage.removeItem(DRAFT_KEY);
+    return { exists: false, expired: false, data: null };
+  }
+}
+
+/**
+ * Check if draft data is expired (>7 days old) (Story 2.5 - Task 1.2)
+ * EXTRACTED from loadDraft() 7-day retention logic (lines 131-140)
+ * @param {Object} draftData - Draft data object with timestamp
+ * @returns {boolean} True if draft is >7 days old, false otherwise
+ */
+function isExpiredDraft(draftData) {
+  if (!draftData || !draftData.timestamp) {
+    return false; // No timestamp = not expired (will be handled as invalid)
+  }
+
+  const draftAge = Date.now() - new Date(draftData.timestamp).getTime();
+  const MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
+  return draftAge > MAX_AGE;
+}
+
+/**
+ * Load form field values from localStorage (Story 2.5 - Task 1.3)
+ * REFACTORED to use checkDraftExists() instead of inline checking
+ * Called after showing fields during entity type switch
+ */
+function loadDraft() {
+  try {
+    // Use extracted checkDraftExists() function (Task 1.3)
+    const draftCheck = checkDraftExists();
+
+    if (!draftCheck.exists) {
+      // No valid draft found
+      return;
+    }
+
+    const draftData = draftCheck.data;
 
     // Restore entity type
     const entityTypeInput = document.getElementById('id_entity_type');
@@ -343,26 +384,308 @@ function handleBeforeUnload(e) {
 }
 
 /**
- * Initialize draft system on page load
- * Story 2.4: Auto-save timer, beforeunload handler, localStorage availability check
+ * Create modal HTML markup (Story 2.5 - Task 2.1-2.6)
+ * Returns modal HTML string with proper ARIA attributes and accessibility
+ * @returns {string} Modal HTML markup
  */
-document.addEventListener('DOMContentLoaded', function() {
-  // Check if localStorage is available (Task 5.1)
-  if (!isLocalStorageAvailable()) {
-    showPersistentWarning('Auto-save nije dostupan. Molimo ne zatvarajte browser.');
-    console.warn('localStorage nije dostupan - auto-save je onemogućen');
-    return; // Stop initialization
+function createModalHTML() {
+  return `
+    <div class="draft-recovery-modal" role="dialog" aria-modal="true"
+         aria-labelledby="modal-heading" aria-describedby="modal-message" tabindex="-1">
+      <div class="draft-recovery-modal__backdrop" data-modal-backdrop></div>
+      <div class="draft-recovery-modal__content">
+        <button class="draft-recovery-modal__close" aria-label="Zatvori modal" data-modal-close>
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h2 id="modal-heading" class="draft-recovery-modal__heading">
+          Pronađeni prethodno sačuvani podaci
+        </h2>
+        <p id="modal-message" class="draft-recovery-modal__message">
+          Želite li da nastavite sa popunjavanjem ili da počnete ispočetka?
+        </p>
+        <div class="draft-recovery-modal__actions">
+          <button class="draft-recovery-modal__btn draft-recovery-modal__btn--primary" data-action="continue">
+            Nastavi
+          </button>
+          <button class="draft-recovery-modal__btn draft-recovery-modal__btn--secondary" data-action="start-fresh">
+            Počni ispočetka
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Show modal with focus trap and accessibility (Story 2.5 - Task 3.1-3.7)
+ * Displays the draft recovery modal and manages focus
+ */
+function showModal() {
+  // Create and inject modal HTML
+  const modalHTML = createModalHTML();
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  const modal = document.querySelector('.draft-recovery-modal');
+  const continueBtn = modal.querySelector('[data-action="continue"]');
+  const startFreshBtn = modal.querySelector('[data-action="start-fresh"]');
+  const closeBtn = modal.querySelector('[data-modal-close]');
+  const backdrop = modal.querySelector('[data-modal-backdrop]');
+
+  // Save previous focus for restoration (Task 3.4)
+  const previousFocus = document.activeElement;
+
+  // Disable form interaction while modal is open (Task 10.5)
+  const form = document.getElementById('coa-form-section-i');
+  if (form) {
+    form.style.pointerEvents = 'none';
+    form.style.opacity = '0.5';
+    form.style.cursor = 'not-allowed';
   }
 
-  // Load existing draft (Story 2.2)
+  // Prevent body scroll (Task 3.7)
+  document.body.style.overflow = 'hidden';
+
+  // Show modal with fade-in animation (Task 3.2)
+  requestAnimationFrame(() => {
+    modal.classList.add('draft-recovery-modal--visible');
+  });
+
+  // Focus on "Nastavi" button after animation (Task 3.5)
+  setTimeout(() => {
+    continueBtn.focus();
+  }, 250);
+
+  // Focus trap implementation (Task 3.3)
+  const focusableElements = modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  function handleKeyDown(e) {
+    // Escape key closes modal without clearing draft (Task 3.6, 3.9)
+    if (e.key === 'Escape') {
+      closeModal(modal, previousFocus, false);
+      return;
+    }
+
+    // Tab key focus trap (Task 3.3, 3.8)
+    if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    }
+  }
+
+  modal.addEventListener('keydown', handleKeyDown);
+
+  // Event listeners for actions (Task 4, 5, 6)
+  continueBtn.addEventListener('click', () => handleContinue(modal, previousFocus));
+  startFreshBtn.addEventListener('click', () => handleStartFresh(modal, previousFocus));
+  closeBtn.addEventListener('click', () => closeModal(modal, previousFocus, false));
+  backdrop.addEventListener('click', () => closeModal(modal, previousFocus, false));
+}
+
+/**
+ * Handle "Nastavi" button click (Story 2.5 - Task 4.1-4.6)
+ * Loads draft and triggers validation
+ */
+function handleContinue(modal, previousFocus) {
+  // Call existing loadDraft() from Story 2.2 (Task 4.2)
   loadDraft();
 
-  // Attach auto-save timer to form inputs (Task 1.3)
+  // Call triggerValidationAfterDraftLoad() from Story 2.3 (Task 4.3)
+  triggerValidationAfterDraftLoad();
+
+  // Close modal (Task 4.4)
+  closeModal(modal, previousFocus, false);
+
+  // Initialize auto-save system after modal closes (Task 8.5)
+  initializeAutoSave();
+
+  // Focus first form field after modal closes (Task 4.6)
+  setTimeout(() => {
+    const firstInput = document.querySelector('#coa-form-section-i input[type="text"]');
+    if (firstInput) {
+      firstInput.focus();
+    }
+  }, 300);
+}
+
+/**
+ * Handle "Počni ispočetka" button click (Story 2.5 - Task 5.1-5.7)
+ * Clears draft and resets form
+ */
+function handleStartFresh(modal, previousFocus) {
+  // Delete draft from localStorage (Task 5.2)
+  localStorage.removeItem(DRAFT_KEY);
+
+  // Reset form (Task 5.3)
+  const form = document.getElementById('coa-form-section-i');
+  if (form) {
+    form.reset();
+  }
+
+  // Reset entity_type to default fizicko (Task 5.4)
+  const fizickoRadio = document.querySelector('input[name="entity_type"][value="fizicko"]');
+  if (fizickoRadio) {
+    fizickoRadio.checked = true;
+  }
+
+  // Clear all validation errors manually (Task 5.5)
+  // CRITICAL: clearAllValidations() DOES NOT EXIST - manually clear each field
+  ['id_email', 'id_telefon', 'id_jmbg', 'id_maticni_broj'].forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field && typeof clearValidationError === 'function') {
+      clearValidationError(field);
+    }
+  });
+
+  // Close modal (Task 5.6)
+  closeModal(modal, previousFocus, true);
+
+  // Initialize auto-save system for fresh start (Task 8.6)
+  initializeAutoSave();
+
+  // Focus first form field (Task 5.7)
+  setTimeout(() => {
+    const firstInput = document.querySelector('#coa-form-section-i input[type="text"]');
+    if (firstInput) {
+      firstInput.focus();
+    }
+  }, 300);
+}
+
+/**
+ * Close modal with animation (Story 2.5 - Task 6, integrated with Task 4-5)
+ * @param {HTMLElement} modal - Modal element
+ * @param {HTMLElement} previousFocus - Previously focused element
+ * @param {boolean} clearDraft - Whether draft was cleared (not used, but kept for signature consistency)
+ */
+function closeModal(modal, previousFocus, clearDraft) {
+  // Remove visible class for fade-out animation
+  modal.classList.remove('draft-recovery-modal--visible');
+
+  // Wait for animation to complete (200ms)
+  setTimeout(() => {
+    // Remove modal from DOM
+    modal.remove();
+
+    // Restore body scroll
+    document.body.style.overflow = '';
+
+    // Re-enable form interaction (Task 10.6)
+    const form = document.getElementById('coa-form-section-i');
+    if (form) {
+      form.style.pointerEvents = '';
+      form.style.opacity = '';
+      form.style.cursor = '';
+    }
+
+    // Restore focus (Task 3.10)
+    // CODE REVIEW FIX (LOW #8): Added fallback if element was removed from DOM
+    if (previousFocus && document.body.contains(previousFocus)) {
+      try {
+        previousFocus.focus();
+      } catch (e) {
+        // Fallback: focus first form input if restoration fails
+        const fallbackInput = document.querySelector('#coa-form-section-i input[type="text"]');
+        if (fallbackInput) {
+          fallbackInput.focus();
+        }
+      }
+    } else if (previousFocus) {
+      // Element was removed from DOM, use fallback
+      const fallbackInput = document.querySelector('#coa-form-section-i input[type="text"]');
+      if (fallbackInput) {
+        fallbackInput.focus();
+      }
+    }
+  }, 200);
+}
+
+/**
+ * Show localStorage unavailable warning (Story 2.5 - Task 9.2-9.4)
+ * Displays persistent warning at top of form when localStorage is unavailable
+ */
+function showLocalStorageWarning() {
+  const form = document.getElementById('coa-form-section-i');
+  if (!form) return;
+
+  const warningHTML = `
+    <div class="localstorage-warning" role="alert">
+      <span class="localstorage-warning__icon" aria-hidden="true">⚠️</span>
+      <span class="localstorage-warning__text">
+        Auto-save nije dostupan. Molimo ne zatvarajte browser dok ne završite.
+      </span>
+    </div>
+  `;
+
+  // Insert warning at the top of the form
+  form.insertAdjacentHTML('afterbegin', warningHTML);
+}
+
+/**
+ * Initialize auto-save system (Story 2.5 - Task 8.5, 8.6)
+ * Helper function to avoid code duplication in modal handlers and DOMContentLoaded
+ * CODE REVIEW FIX (MEDIUM #6): Added guard flag to prevent duplicate event listeners
+ */
+function initializeAutoSave() {
+  // Prevent duplicate initialization
+  if (autoSaveInitialized) {
+    return;
+  }
+
+  // Attach auto-save timer to form inputs
   const formInputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
   formInputs.forEach(input => {
     input.addEventListener('input', resetAutoSaveTimer);
   });
 
-  // Add beforeunload handler to save on browser close/navigate (Task 1.4)
+  // Add beforeunload handler to save on browser close/navigate
   window.addEventListener('beforeunload', handleBeforeUnload);
+
+  // Mark as initialized
+  autoSaveInitialized = true;
+}
+
+/**
+ * Initialize draft system on page load (Story 2.5 - Task 10)
+ * Story 2.4: Auto-save timer, beforeunload handler, localStorage availability check
+ * Story 2.5: Draft recovery modal integration
+ */
+document.addEventListener('DOMContentLoaded', function() {
+  // STEP 1: Check if localStorage is available FIRST (Task 10.2)
+  if (!isLocalStorageAvailable()) {
+    showLocalStorageWarning(); // Show warning banner (Task 9.2)
+    console.warn('localStorage nije dostupan - draft recovery modal onemogućen');
+    return; // Stop initialization - form still works but no draft functionality
+  }
+
+  // STEP 2: Check if draft exists (Task 10.3)
+  const draftCheck = checkDraftExists();
+
+  // STEP 3: If draft exists AND valid, show modal (Task 10.4)
+  if (draftCheck.exists) {
+    showModal(); // Modal will handle draft loading or clearing
+    // Note: Auto-save timer will be initialized after modal is closed
+  } else {
+    // STEP 4: No draft - proceed with normal flow (Task 10.7)
+    // Load draft anyway (will do nothing if no draft exists)
+    loadDraft();
+
+    // Initialize auto-save system
+    initializeAutoSave();
+  }
+
+  // Note: If modal is shown, auto-save will be initialized after modal action
+  // This is handled in handleContinue() and handleStartFresh()
 });
