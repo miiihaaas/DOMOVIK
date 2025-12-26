@@ -297,9 +297,6 @@ function validateSectionI() {
   // Get entity type
   const entityType = document.getElementById('id_entity_type')?.value || '';
 
-  // DEBUG: Log entity type for troubleshooting
-  console.log('[validateSectionI] Entity type:', entityType);
-
   if (!entityType) {
     isValid = false;
     errors.push({ field: 'entity_type', message: 'Molimo izaberite tip podnosioca (fizičko ili pravno lice)' });
@@ -341,15 +338,8 @@ function validateSectionI() {
       { id: 'id_maticni_broj', label: 'Matični broj' }
     ];
 
-    // DEBUG: Log pravno validation
-    console.log('[validateSectionI] Validating PRAVNO lice fields...');
-
     requiredFields.forEach(fieldDef => {
       const field = document.getElementById(fieldDef.id);
-      const fieldValue = field ? field.value.trim() : null;
-
-      // DEBUG: Log each field check
-      console.log(`[validateSectionI] Field ${fieldDef.id}: exists=${!!field}, value="${fieldValue}"`);
 
       if (!field || field.value.trim() === '') {
         showValidationError(field, `${fieldDef.label} je obavezno polje`);
@@ -363,9 +353,6 @@ function validateSectionI() {
         clearValidationError(field);
       }
     });
-
-    // DEBUG: Log validation result
-    console.log('[validateSectionI] PRAVNO validation result:', { isValid, errorCount: errors.length });
   }
 
   return { isValid, errors, firstErrorField: firstInvalidField };

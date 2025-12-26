@@ -25,10 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', function() {
       const entityType = this.dataset.entity;
 
-      // DEBUG: Log entity type switch
-      console.log('[EntitySwitcher] Button clicked:', entityType);
-      console.log('[EntitySwitcher] Old entity_type value:', entityTypeInput.value);
-
       // Race condition prevention (Story 2.4 - Task 4.4)
       // Clear pending auto-save timeout before manual save during entity switch
       if (window.autoSaveTimeout) {
@@ -51,9 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Update hidden input value
       entityTypeInput.value = entityType;
-
-      // DEBUG: Confirm entity type changed
-      console.log('[EntitySwitcher] New entity_type value:', entityTypeInput.value);
 
       // Show/hide appropriate field groups
       if (entityType === 'fizicko') {
