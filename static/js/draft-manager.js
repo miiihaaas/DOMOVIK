@@ -317,7 +317,10 @@ function loadDraft() {
 
     // Story 2.8 Task 12.5-12.6: Display file metadata reminder
     if (draftData.uploadedFiles && draftData.uploadedFiles.length > 0) {
+      console.log('Draft contains', draftData.uploadedFiles.length, 'uploaded file(s), displaying reminder...');
       displayFileMetadataReminder(draftData.uploadedFiles);
+    } else {
+      console.log('No uploaded files in draft, skipping reminder');
     }
 
     // Development logging (comment out for production)
@@ -338,32 +341,47 @@ function loadDraft() {
  * @param {Array} filesMetadata - Array of file metadata objects
  */
 function displayFileMetadataReminder(filesMetadata) {
-  // Find file upload section (Story 2.9 will create this element)
-  const fileUploadSection = document.getElementById('file-upload-section');
+  console.log('[DEBUG] displayFileMetadataReminder called with', filesMetadata.length, 'files');
 
-  if (!fileUploadSection) {
-    // Section III not visible yet - skip reminder
+  // Find the pre-existing draft reminder element in HTML
+  const reminderElement = document.getElementById('file-draft-reminder');
+
+  if (!reminderElement) {
+    // Reminder element not found - skip
+    console.warn('[BUG] file-draft-reminder element not found in HTML');
     return;
   }
 
-  // Create reminder message
-  const reminderHTML = `
-    <div class="file-metadata-reminder" role="alert">
-      <span class="file-metadata-reminder__icon" aria-hidden="true">ℹ️</span>
-      <div class="file-metadata-reminder__content">
-        <strong>Prethodno upload-ovani fajlovi:</strong>
-        <p>Fajlovi nisu sačuvani u draft-u (GDPR). Molimo upload-ujte ponovo:</p>
-        <ul class="file-metadata-reminder__list">
-          ${filesMetadata.map(file => `
-            <li>${file.original_filename} (${formatFileSize(file.file_size)}, ${file.category})</li>
-          `).join('')}
-        </ul>
-      </div>
+  console.log('[DEBUG] file-draft-reminder element found, populating with metadata...');
+
+  // Create file list HTML
+  const fileListHTML = filesMetadata.map(file => {
+    const categoryDisplay = {
+      'BUDGET': 'Budžet',
+      'BIOGRAPHY': 'Biografija',
+      'SUPPORT_LETTER': 'Pismo podrške'
+    }[file.category] || file.category;
+
+    return `<li><strong>${file.original_filename}</strong> (${formatFileSize(file.file_size)}) - ${categoryDisplay}</li>`;
+  }).join('');
+
+  // Update reminder content with file metadata list
+  reminderElement.innerHTML = `
+    <span class="draft-reminder__icon" aria-hidden="true">⚠️</span>
+    <div class="draft-reminder__content">
+      <p class="draft-reminder__text"><strong>Prethodno upload-ovani fajlovi:</strong></p>
+      <ul class="draft-reminder__list">
+        ${fileListHTML}
+      </ul>
+      <p class="draft-reminder__note">Fajlovi nisu sačuvani u draft-u (GDPR zaštita). Molimo upload-ujte ponovo.</p>
     </div>
   `;
 
-  // Insert reminder at top of file upload section
-  fileUploadSection.insertAdjacentHTML('afterbegin', reminderHTML);
+  // Show the reminder (change from display:none to display:block)
+  reminderElement.style.display = 'block';
+
+  console.log('[DEBUG] ✅ File metadata reminder displayed successfully');
+  console.log('[DEBUG] Reminder HTML:', reminderElement.innerHTML.substring(0, 150) + '...');
 }
 
 /**

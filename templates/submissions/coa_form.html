@@ -7,6 +7,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+<link rel="stylesheet" href="{% static 'css/file-upload.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -228,6 +229,88 @@
       </fieldset>
     </div>
 
+    <!-- Section III: Documentation and File Upload (Story 2.9) -->
+    <div id="section-iii" class="section-iii" style="display: none;">
+      <h2 class="section-title">Dokumentacija projekta</h2>
+
+      <fieldset class="section-iii__fieldset">
+        <legend class="sr-only">Upload dokumenata</legend>
+
+        <!-- Budget Upload (Single Excel File) -->
+        <div class="file-upload-section" id="budget-upload-section">
+          <h3 class="file-upload-section__title">Budžet projekta *</h3>
+
+          <!-- Visual Guidance (Story 2.9 - Task 8) -->
+          <div class="upload-guidance">
+            <div class="upload-guidance__step">
+              <span class="upload-guidance__number">1</span>
+              <span class="upload-guidance__text">Preuzmi šablon</span>
+            </div>
+            <div class="upload-guidance__step">
+              <span class="upload-guidance__number">2</span>
+              <span class="upload-guidance__text">Popuni budžet</span>
+            </div>
+            <div class="upload-guidance__step">
+              <span class="upload-guidance__number">3</span>
+              <span class="upload-guidance__text">Upload fajl</span>
+            </div>
+          </div>
+
+          <div class="upload-zone" id="budget-upload-zone" data-category="BUDGET">
+            <input type="file" id="budget-file-input" accept=".xls,.xlsx" style="display:none;" aria-label="Upload budžet projekta">
+            <button type="button" class="upload-btn" id="budget-upload-btn">
+              Odaberi fajl
+            </button>
+            <p class="drag-text">ili prevuci fajl ovde</p>
+            <small class="help-text">Podržani formati: XLS, XLSX. Maksimalna veličina: 10MB</small>
+          </div>
+
+          <div class="uploaded-files-list" id="budget-files-list"></div>
+          <div class="upload-error" id="budget-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
+        </div>
+
+        <!-- Biografije Upload (Multiple PDF/DOC Files) -->
+        <div class="file-upload-section" id="biografije-upload-section">
+          <h3 class="file-upload-section__title">Biografije članova tima *</h3>
+
+          <div class="upload-zone" id="biografije-upload-zone" data-category="BIOGRAPHY">
+            <input type="file" id="biografije-file-input" accept=".pdf,.doc,.docx" multiple style="display:none;" aria-label="Upload biografije članova tima">
+            <button type="button" class="upload-btn" id="biografije-upload-btn">
+              Odaberi fajl(ove)
+            </button>
+            <p class="drag-text">ili prevuci fajl(ove) ovde</p>
+            <small class="help-text">Podržani formati: PDF, DOC, DOCX. Maksimalna veličina: 10MB po fajlu. Može se upload-ovati više fajlova.</small>
+          </div>
+
+          <div class="uploaded-files-list" id="biografije-files-list"></div>
+          <div class="upload-error" id="biografije-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
+        </div>
+
+        <!-- Pisma Podrške Upload (Multiple PDF/DOC Files) -->
+        <div class="file-upload-section" id="pisma-upload-section">
+          <h3 class="file-upload-section__title">Pisma podrške *</h3>
+
+          <div class="upload-zone" id="pisma-upload-zone" data-category="SUPPORT_LETTER">
+            <input type="file" id="pisma-file-input" accept=".pdf,.doc,.docx" multiple style="display:none;" aria-label="Upload pisma podrške">
+            <button type="button" class="upload-btn" id="pisma-upload-btn">
+              Odaberi fajl(ove)
+            </button>
+            <p class="drag-text">ili prevuci fajl(ove) ovde</p>
+            <small class="help-text">Podržani formati: PDF, DOC, DOCX. Maksimalna veličina: 10MB po fajlu. Može se upload-ovati više fajlova.</small>
+          </div>
+
+          <div class="uploaded-files-list" id="pisma-files-list"></div>
+          <div class="upload-error" id="pisma-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
+        </div>
+
+        <!-- Draft Metadata Reminder (Initially hidden, shown on draft recovery) -->
+        <div class="draft-reminder" id="file-draft-reminder" style="display:none;" role="alert">
+          <span class="draft-reminder__icon" aria-hidden="true">ℹ️</span>
+          <p class="draft-reminder__text">Fajlovi nisu sačuvani u draft-u (GDPR zaštita). Molimo upload-ujte ponovo.</p>
+        </div>
+      </fieldset>
+    </div>
+
     <!-- Navigation Buttons (Story 2.7 will implement full navigation) -->
     <div class="form-navigation">
       <button type="button" class="btn btn-secondary" disabled>PRETHODNA SEKCIJA</button>
@@ -243,4 +326,6 @@
 <script src="{% static 'js/entity-type-switcher.js' %}"></script>
 <script src="{% static 'js/character-counter.js' %}"></script>
 <script src="{% static 'js/section-navigation.js' %}"></script>
+<script src="{% static 'js/file-upload-handler.js' %}"></script>
+<script src="{% static 'js/file-preview.js' %}"></script>
 {% endblock %}

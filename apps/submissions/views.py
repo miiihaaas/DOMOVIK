@@ -8,10 +8,11 @@ Story 2.8: File upload/delete API endpoints
 import logging
 from django.views.generic import TemplateView
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.utils.decorators import method_decorator
 from apps.submissions.forms import COAFormSectionI, FileUploadForm
 from apps.submissions.models import UploadedFile
 from apps.submissions.validators import generate_unique_filename
@@ -20,6 +21,7 @@ from apps.submissions.validators import generate_unique_filename
 logger = logging.getLogger('file_uploads')
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class ProjectApplicationView(TemplateView):
     """
     COA (Projekat) application form view.
@@ -27,6 +29,9 @@ class ProjectApplicationView(TemplateView):
     Story 1.3: Basic template rendering
     Story 2.2: Add Section I form handling (GET request - display form)
     Story 2.11: Add POST request handling (form submission)
+
+    CSRF Cookie: ensure_csrf_cookie decorator ensures CSRF cookie is set
+    for JavaScript file upload functionality.
     """
     template_name = 'submissions/coa_form.html'
 
@@ -116,6 +121,7 @@ def upload_file(request):
                 'file_id': file_record.id,
                 'filename': file_record.original_filename,
                 'size': file_record.file_size,
+                'file_type': file_record.file_type,
                 'category': file_record.category,
                 'message': 'Fajl je uspešno upload-ovan.'
             })

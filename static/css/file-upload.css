@@ -1,0 +1,685 @@
+/**
+ * File Upload CSS - Civic Tech Design System
+ * Story 2.9: File Upload UI - Multiple Files with Preview
+ *
+ * Design Principles:
+ * - Civic Tech color palette (tirkizna primarna #0EA5E9, koraljna accent #FF7A59)
+ * - Accessible (4.5:1 color contrast, visible focus states)
+ * - Responsive (mobile-first, breakpoints 320px, 768px, 1024px+)
+ * - Touch-friendly (44x44px minimum tap targets)
+ * - BEM methodology for class naming
+ */
+
+/* ==========================================================================
+   Section III: File Upload Layout
+   ========================================================================== */
+
+.section-iii {
+  margin-top: 2rem;
+}
+
+.section-iii__fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--primary-teal);
+  padding-bottom: 0.5rem;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ==========================================================================
+   File Upload Section (BEM)
+   ========================================================================== */
+
+.file-upload-section {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background: var(--neutral-warm-gray);
+  border-radius: 8px;
+}
+
+.file-upload-section__title {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Visual Guidance Steps (Task 8)
+   ========================================================================== */
+
+.upload-guidance {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+}
+
+.upload-guidance__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  flex: 1;
+}
+
+.upload-guidance__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-teal);
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.upload-guidance__text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Mobile: Stack steps vertically */
+@media (max-width: 480px) {
+  .upload-guidance {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   Upload Zone (Drag & Drop)
+   ========================================================================== */
+
+.upload-zone {
+  border: 2px dashed #D1D5DB;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background: #fff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-zone:hover {
+  border-color: var(--primary-teal);
+  background: #F0F9FF;
+}
+
+/* Drag-over state */
+.upload-zone.drag-over {
+  border-color: var(--accent-coral);
+  background: #FFF7ED;
+  box-shadow: 0 0 0 4px rgba(255, 122, 89, 0.1);
+}
+
+/* Upload Button */
+.upload-btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent-coral);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 160px;
+  min-height: 44px; /* Touch-friendly */
+}
+
+.upload-btn:hover {
+  background: #FF6347;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.3);
+}
+
+.upload-btn:active {
+  transform: translateY(0);
+}
+
+.upload-btn:focus {
+  outline: 3px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+/* Drag Text */
+.drag-text {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Help Text */
+.help-text {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Uploaded Files List (File Preview Cards)
+   ========================================================================== */
+
+.uploaded-files-list {
+  margin-top: 1.5rem;
+}
+
+/* File Preview Card (BEM) */
+.file-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  animation: fadeIn 0.3s ease;
+}
+
+.file-preview-card:hover {
+  border-color: var(--primary-teal);
+  box-shadow: var(--shadow-md);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* File Icon */
+.file-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 24px;
+}
+
+/* Icon colors based on file type */
+.file-icon--pdf {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.file-icon--doc,
+.file-icon--docx {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+
+.file-icon--xls,
+.file-icon--xlsx {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+/* File Info */
+.file-info {
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+}
+
+.file-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.file-status {
+  display: block;
+  font-size: 12px;
+  color: #F59E0B;
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+/* Delete Button */
+.file-delete-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FEE2E2;
+  color: #DC2626;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.file-delete-btn:hover {
+  background: #DC2626;
+  color: #fff;
+}
+
+.file-delete-btn:focus {
+  outline: 3px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+.delete-icon {
+  display: block;
+  line-height: 1;
+}
+
+/* Re-upload Button (for draft metadata) */
+.re-upload-btn {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  background: var(--accent-coral);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 36px;
+}
+
+.re-upload-btn:hover {
+  background: #FF6347;
+}
+
+.re-upload-btn:focus {
+  outline: 3px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+/* Metadata preview card (different styling) */
+.file-preview-card--metadata {
+  border: 2px dashed #F59E0B;
+  background: #FFFBEB;
+}
+
+/* ==========================================================================
+   Upload Progress Bar
+   ========================================================================== */
+
+.upload-progress {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.upload-progress__bar-container {
+  width: 100%;
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.upload-progress__bar {
+  height: 100%;
+  background: var(--primary-teal);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.upload-progress__text {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ==========================================================================
+   Upload Errors (Task 7)
+   ========================================================================== */
+
+.upload-error {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #FEE2E2;
+  border: 1px solid #DC2626;
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.error-message {
+  flex: 1;
+}
+
+.error-icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: #DC2626;
+}
+
+.error-text {
+  display: block;
+  color: #991B1B;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.retry-btn {
+  padding: 0.5rem 1rem;
+  background: #DC2626;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 36px;
+}
+
+.retry-btn:hover {
+  background: #B91C1C;
+}
+
+.retry-btn:focus {
+  outline: 3px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Success Feedback
+   ========================================================================== */
+
+.upload-success {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #D1FAE5;
+  border: 1px solid #059669;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.success-icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: #059669;
+}
+
+.success-text {
+  color: #065F46;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Loading Spinner
+   ========================================================================== */
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #E5E7EB;
+  border-top-color: var(--primary-teal);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.upload-zone--loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ==========================================================================
+   Draft Reminder (GDPR Compliance)
+   ========================================================================== */
+
+.draft-reminder {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #EFF6FF;
+  border: 1px solid var(--primary-teal);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.draft-reminder__icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--primary-teal);
+}
+
+.draft-reminder__text {
+  color: var(--text-primary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.draft-reminder__content {
+  flex: 1;
+}
+
+.draft-reminder__list {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.5rem;
+  color: var(--text-primary);
+  font-size: 14px;
+  list-style-type: disc;
+}
+
+.draft-reminder__list li {
+  margin-bottom: 0.25rem;
+}
+
+.draft-reminder__note {
+  margin: 0.75rem 0 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.file-metadata-reminder {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #FFFBEB;
+  border: 1px solid #F59E0B;
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.file-metadata-reminder__icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: #F59E0B;
+}
+
+.file-metadata-reminder__content {
+  flex: 1;
+}
+
+.file-metadata-reminder__content strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.file-metadata-reminder__content p {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.file-metadata-reminder__list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   Responsive Design (Task 10)
+   ========================================================================== */
+
+/* Mobile (320px - 767px) */
+@media (max-width: 767px) {
+  .file-upload-section {
+    padding: 1rem;
+  }
+
+  .upload-zone {
+    padding: 1.5rem 1rem;
+  }
+
+  .upload-btn {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .file-preview-card {
+    flex-wrap: wrap;
+  }
+
+  .file-name {
+    font-size: 14px;
+  }
+
+  .upload-guidance {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .upload-guidance__step {
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 1rem;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .file-upload-section {
+    padding: 1.25rem;
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .file-preview-card {
+    max-width: 600px;
+  }
+
+  .upload-zone {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ==========================================================================
+   Accessibility Enhancements
+   ========================================================================== */
+
+/* Focus visible polyfill */
+.upload-btn:focus-visible,
+.file-delete-btn:focus-visible,
+.retry-btn:focus-visible,
+.re-upload-btn:focus-visible {
+  outline: 3px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .upload-zone {
+    border-width: 3px;
+  }
+
+  .file-preview-card {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .file-preview-card,
+  .upload-btn,
+  .file-delete-btn,
+  .upload-zone {
+    transition: none;
+  }
+
+  .loading-spinner {
+    animation: none;
+  }
+
+  @keyframes fadeIn {
+    from,
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
