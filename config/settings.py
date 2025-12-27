@@ -167,6 +167,63 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Media files (User uploads)
+# Story 2.8: File Upload Infrastructure
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
+
+# File upload settings (Story 2.8)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB in bytes
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB in bytes
+ALLOWED_FILE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx']
+ALLOWED_MIME_TYPES = {
+    'application/pdf',  # PDF
+    'application/msword',  # DOC
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # DOCX
+    'application/vnd.ms-excel',  # XLS
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  # XLSX
+}
+
+# Logging configuration (Story 2.8: File Upload Infrastructure)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file_uploads': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'file_uploads.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'file_uploads': {
+            'handlers': ['file_uploads', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 

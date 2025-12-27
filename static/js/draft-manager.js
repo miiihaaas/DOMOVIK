@@ -68,8 +68,32 @@ function collectFormData() {
       budžet: document.getElementById('id_budžet')?.value || ''
     },
     consent: {},  // Structure for future checkboxes (Story X.X)
-    files_metadata: []  // Placeholder for FR24 (file uploads in later stories)
+    // Story 2.8 Task 12: File upload metadata integration (GDPR-compliant)
+    uploadedFiles: collectUploadedFileMetadata()
   };
+}
+
+/**
+ * Collect uploaded file metadata for draft (Story 2.8 - Task 12.2)
+ * GDPR Compliance: Only stores METADATA, not actual file content
+ *
+ * Returns array of file metadata objects:
+ * @returns {Array} [{file_id, original_filename, file_size, file_type, category}, ...]
+ */
+function collectUploadedFileMetadata() {
+  // Check if uploadedFilesRegistry exists (defined in file-upload.js - Story 2.9)
+  if (typeof window.uploadedFilesRegistry !== 'undefined' && Array.isArray(window.uploadedFilesRegistry)) {
+    return window.uploadedFilesRegistry.map(file => ({
+      file_id: file.file_id,
+      original_filename: file.filename,
+      file_size: file.size,
+      file_type: file.file_type || file.filename.split('.').pop().toLowerCase(),
+      category: file.category
+    }));
+  }
+
+  // Fallback: No files uploaded yet
+  return [];
 }
 
 /**
@@ -291,6 +315,11 @@ function loadDraft() {
       showSection(draftData.currentSection);
     }
 
+    // Story 2.8 Task 12.5-12.6: Display file metadata reminder
+    if (draftData.uploadedFiles && draftData.uploadedFiles.length > 0) {
+      displayFileMetadataReminder(draftData.uploadedFiles);
+    }
+
     // Development logging (comment out for production)
     // console.log('Draft loaded from localStorage');
 
@@ -298,6 +327,57 @@ function loadDraft() {
     triggerValidationAfterDraftLoad();
   } catch (error) {
     console.error('Failed to load draft:', error);
+  }
+}
+
+/**
+ * Display file metadata reminder to user (Story 2.8 - Task 12.5-12.6)
+ * GDPR Compliance: Actual files NOT saved, only metadata
+ *
+ * Shows user which files they had uploaded before, but requires re-upload
+ * @param {Array} filesMetadata - Array of file metadata objects
+ */
+function displayFileMetadataReminder(filesMetadata) {
+  // Find file upload section (Story 2.9 will create this element)
+  const fileUploadSection = document.getElementById('file-upload-section');
+
+  if (!fileUploadSection) {
+    // Section III not visible yet - skip reminder
+    return;
+  }
+
+  // Create reminder message
+  const reminderHTML = `
+    <div class="file-metadata-reminder" role="alert">
+      <span class="file-metadata-reminder__icon" aria-hidden="true">ℹ️</span>
+      <div class="file-metadata-reminder__content">
+        <strong>Prethodno upload-ovani fajlovi:</strong>
+        <p>Fajlovi nisu sačuvani u draft-u (GDPR). Molimo upload-ujte ponovo:</p>
+        <ul class="file-metadata-reminder__list">
+          ${filesMetadata.map(file => `
+            <li>${file.original_filename} (${formatFileSize(file.file_size)}, ${file.category})</li>
+          `).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+
+  // Insert reminder at top of file upload section
+  fileUploadSection.insertAdjacentHTML('afterbegin', reminderHTML);
+}
+
+/**
+ * Format file size in human-readable format (Story 2.8 - Task 12.5)
+ * @param {number} bytes - File size in bytes
+ * @returns {string} Formatted file size (e.g., "1.5 MB", "500 KB")
+ */
+function formatFileSize(bytes) {
+  if (bytes < 1024) {
+    return bytes + ' B';
+  } else if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + ' KB';
+  } else {
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 }
 

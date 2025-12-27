@@ -23,4 +23,6 @@ urlpatterns = [
     path('', include('apps.landing.urls')),  # Root → landing page
     path('projekat/', submission_views.ProjectApplicationView.as_view(), name='coa_form'),
     path('inicijativa/', submission_views.InitiativeApplicationView.as_view(), name='cob_form'),
+    # File upload API endpoints (Story 2.8)
+    path('api/files/', include('apps.submissions.urls')),
 ]

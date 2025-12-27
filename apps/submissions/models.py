@@ -359,3 +359,124 @@ class Applicant(models.Model):
                     raise ValidationError({
                         'maticni_broj': 'Matični broj je obavezan za pravna lica u COA prijavama.'
                     })
+
+
+class UploadedFile(models.Model):
+    """
+    Model for storing uploaded file metadata.
+
+    Stores metadata about files uploaded by users (budgets, biographies, support letters).
+    Files are linked to sessions during draft phase and to applications after submission.
+
+    Security Features:
+    - Unique filenames (timestamp + UUID + sanitized original)
+    - Storage outside web root (media/uploads/)
+    - Session-based ownership validation
+    - MIME type validation to prevent spoofing
+    - Extension whitelist enforcement
+    - Size limit enforcement (10MB max)
+
+    Fields:
+        original_filename: Original name of uploaded file
+        stored_filename: Unique filename used for storage
+        file_path: Path to file in media storage
+        file_size: Size in bytes
+        file_type: File extension (pdf, doc, docx, xls, xlsx)
+        mime_type: Detected MIME type
+        category: File category (budget, biography, support letter)
+        upload_date: When file was uploaded
+        uploaded_by_session: Session key of uploader
+        application: Linked application (null for drafts)
+        is_deleted: Soft delete flag
+    """
+
+    CATEGORY_CHOICES = [
+        ('BUDGET', 'Budžet'),
+        ('BIOGRAPHY', 'Biografija'),
+        ('SUPPORT_LETTER', 'Pismo Podrške'),
+    ]
+
+    original_filename = models.CharField(
+        max_length=255,
+        verbose_name='Originalni Naziv',
+        help_text='Original file name as uploaded by user'
+    )
+
+    stored_filename = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name='Naziv u Skladištu',
+        help_text='Unique filename used for storage'
+    )
+
+    file_path = models.FileField(
+        upload_to='uploads/%Y/%m/%d/',
+        verbose_name='Putanja Fajla'
+    )
+
+    file_size = models.IntegerField(
+        verbose_name='Veličina Fajla',
+        help_text='Size in bytes'
+    )
+
+    file_type = models.CharField(
+        max_length=10,
+        verbose_name='Tip Fajla',
+        help_text='File extension: pdf, doc, docx, xls, xlsx'
+    )
+
+    mime_type = models.CharField(
+        max_length=100,
+        verbose_name='MIME Tip',
+        help_text='Detected MIME type for validation'
+    )
+
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        verbose_name='Kategorija',
+        help_text='Purpose of uploaded file'
+    )
+
+    upload_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Datum Upload-a'
+    )
+
+    uploaded_by_session = models.CharField(
+        max_length=40,
+        db_index=True,
+        verbose_name='Sesija Korisnika',
+        help_text='Session key for draft file ownership'
+    )
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='uploaded_files',
+        verbose_name='Prijava',
+        help_text='Linked application (null for draft files)'
+    )
+
+    is_deleted = models.BooleanField(
+        default=False,
+        verbose_name='Obrisan',
+        help_text='Soft delete flag'
+    )
+
+    class Meta:
+        ordering = ['-upload_date']
+        verbose_name = 'Upload-ovani Fajl'
+        verbose_name_plural = 'Upload-ovani Fajlovi'
+        indexes = [
+            models.Index(fields=['uploaded_by_session']),
+            models.Index(fields=['application']),
+            models.Index(fields=['upload_date']),
+            models.Index(fields=['is_deleted']),
+        ]
+
+    def __str__(self):
+        """Return string representation of uploaded file."""
+        return f"{self.original_filename} ({self.file_type})"

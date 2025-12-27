@@ -2,10 +2,16 @@
 """
 Django Forms for COA/COB application submission.
 Story 2.2: COAFormSectionI - Section I (General Data Entry)
+Story 2.8: FileUploadForm - File Upload with Validation
 """
 from django import forms
 from django.core.exceptions import ValidationError
 from apps.submissions.models import Applicant, Application
+from apps.submissions.validators import (
+    validate_file_extension,
+    validate_file_size,
+    validate_mime_type
+)
 
 
 class COAFormSectionI(forms.ModelForm):
@@ -215,3 +221,65 @@ class COAFormSectionII(forms.ModelForm):
         if budžet is not None and budžet < 0:
             raise ValidationError('Budžet mora biti pozitivan broj.')
         return budžet
+
+
+class FileUploadForm(forms.Form):
+    """
+    File Upload Form with comprehensive validation.
+    Story 2.8: File Upload Infrastructure
+
+    Validates:
+    - File extension (PDF, DOC, DOCX, XLS, XLSX only)
+    - File size (10MB max)
+    - MIME type (prevents extension spoofing)
+    - File category (budget, biography, support letter)
+
+    Security Features:
+    - Extension whitelist enforcement
+    - Size limit enforcement
+    - MIME type validation
+    - CSRF protection (handled by view decorator)
+    """
+
+    CATEGORY_CHOICES = [
+        ('BUDGET', 'Budžet'),
+        ('BIOGRAPHY', 'Biografija'),
+        ('SUPPORT_LETTER', 'Pismo Podrške'),
+    ]
+
+    file = forms.FileField(
+        label='Fajl',
+        help_text='Dozvoljeni formati: PDF, DOC, DOCX, XLS, XLSX (max 10MB)',
+        validators=[validate_file_extension, validate_file_size],
+        error_messages={
+            'required': 'Molimo izaberite fajl za upload.',
+            'invalid': 'Upload fajla nije uspeo. Molimo pokušajte ponovo.',
+        }
+    )
+
+    category = forms.ChoiceField(
+        label='Kategorija',
+        choices=CATEGORY_CHOICES,
+        help_text='Izaberite svrhu upload-ovanog fajla',
+        error_messages={
+            'required': 'Molimo izaberite kategoriju fajla.',
+            'invalid_choice': 'Izabrana kategorija nije validna.',
+        }
+    )
+
+    def clean_file(self):
+        """
+        Additional file validation including MIME type check.
+
+        Validates MIME type to prevent extension spoofing attacks.
+        """
+        file = self.cleaned_data.get('file')
+
+        if file:
+            # MIME type validation (prevents .exe renamed to .pdf)
+            try:
+                validate_mime_type(file)
+            except ValidationError as e:
+                raise ValidationError(str(e))
+
+        return file
