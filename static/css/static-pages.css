@@ -1,0 +1,158 @@
+/**
+ * Static Pages Styles - Politika privatnosti, Uslovi korišćenja
+ * Story 2.10 - Task 8.8: Style policy pages
+ *
+ * Civic Tech Design:
+ * - Clean, readable typography
+ * - Consistent header/footer with main site
+ * - Accessible links and navigation
+ */
+
+.static-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.static-page__header {
+  margin-bottom: 3rem;
+  border-bottom: 2px solid #0EA5E9; /* Tirkizna primarna */
+  padding-bottom: 1.5rem;
+}
+
+.static-page__title {
+  font-size: 2.5rem;
+  color: #2C3E50; /* Text primary */
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.static-page__subtitle {
+  font-size: 1rem;
+  color: #666666;
+  font-style: italic;
+}
+
+.static-page__content {
+  line-height: 1.8;
+  color: #2C3E50;
+}
+
+/* Policy sections */
+.policy-section {
+  margin-bottom: 2.5rem;
+}
+
+.policy-section h2 {
+  font-size: 1.75rem;
+  color: #0EA5E9; /* Tirkizna primarna */
+  margin-bottom: 1rem;
+  margin-top: 2rem;
+  font-weight: 600;
+}
+
+.policy-section h3 {
+  font-size: 1.3rem;
+  color: #2C3E50;
+  margin-bottom: 0.75rem;
+  margin-top: 1.5rem;
+  font-weight: 600;
+}
+
+.policy-section p {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.policy-section ul,
+.policy-section ol {
+  margin-bottom: 1rem;
+  margin-left: 1.5rem;
+}
+
+.policy-section li {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.policy-section strong {
+  font-weight: 600;
+  color: #2C3E50;
+}
+
+.policy-section a {
+  color: #FF7A59; /* Koraljna accent */
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.policy-section a:hover {
+  border-bottom-color: #FF7A59;
+}
+
+.policy-section a:focus {
+  outline: 2px solid #FF7A59;
+  outline-offset: 2px;
+}
+
+/* Footer navigation */
+.static-page__footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #E5E7EB;
+  text-align: center;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background-color: #F5F5F0; /* Neutral warm gray */
+  color: #2C3E50;
+  border: 1px solid #CCCCCC;
+}
+
+.btn-secondary:hover {
+  background-color: #E5E5E0;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:focus {
+  outline: 2px solid #0EA5E9;
+  outline-offset: 2px;
+}
+
+/* Responsive design */
+@media (max-width: 767px) {
+  .static-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .static-page__title {
+    font-size: 2rem;
+  }
+
+  .policy-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .policy-section h3 {
+    font-size: 1.2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .static-page {
+    padding: 3rem 2rem;
+  }
+}

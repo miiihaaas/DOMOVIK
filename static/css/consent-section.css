@@ -1,0 +1,310 @@
+/**
+ * Consent Section Styles - Story 2.10
+ *
+ * BEM Methodology:
+ * - .consent-section (Block)
+ * - .consent-section__title (Element)
+ * - .consent-checkbox (Block)
+ * - .consent-checkbox__input (Element)
+ * - .consent-checkbox__checkmark (Element)
+ * - .consent-checkbox__label (Element)
+ * - .submit-btn (Block)
+ * - .submit-btn--disabled (Modifier)
+ * - .submit-btn--enabled (Modifier)
+ *
+ * Civic Tech Design:
+ * - Tirkizna primarna: #0EA5E9
+ * - Koraljna accent: #FF7A59
+ * - Neutral warm gray: #F5F5F0
+ * - Text primary: #2C3E50
+ */
+
+/* Consent section container */
+.consent-section {
+  padding: 2rem;
+  background-color: #F5F5F0; /* Warm neutral */
+  border-radius: 8px;
+  margin-top: 2rem;
+}
+
+.consent-section__title {
+  color: #2C3E50; /* Text primary */
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+/* Consent checkboxes container */
+.consent-checkboxes {
+  margin-bottom: 1.5rem;
+}
+
+/* Custom checkbox label */
+.consent-checkbox {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  position: relative;
+  padding-left: 2.5rem; /* Space for custom checkbox */
+  min-height: 24px; /* Minimum height for touch targets */
+}
+
+/* Hide default checkbox */
+.consent-checkbox__input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+/* Custom checkbox checkmark container */
+.consent-checkbox__checkmark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 24px;
+  width: 24px;
+  background-color: #FFFFFF;
+  border: 2px solid #0EA5E9; /* Tirkizna primarna */
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+/* Checkmark icon (hidden by default) */
+.consent-checkbox__checkmark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 12px;
+  border: solid #FFFFFF;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Show checkmark when checked */
+.consent-checkbox__input:checked ~ .consent-checkbox__checkmark {
+  background-color: #0EA5E9; /* Tirkizna */
+}
+
+.consent-checkbox__input:checked ~ .consent-checkbox__checkmark::after {
+  display: block;
+}
+
+/* Focus state (accessibility) */
+.consent-checkbox__input:focus ~ .consent-checkbox__checkmark {
+  outline: 2px solid #FF7A59; /* Koraljna */
+  outline-offset: 2px;
+}
+
+/* Hover state */
+.consent-checkbox:hover .consent-checkbox__checkmark {
+  border-color: #FF7A59; /* Koraljna accent */
+}
+
+/* Checkbox label text */
+.consent-checkbox__label {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #2C3E50;
+}
+
+.consent-checkbox__label a {
+  color: #FF7A59; /* Koraljna */
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.consent-checkbox__label a:hover {
+  border-bottom-color: #FF7A59;
+}
+
+.consent-checkbox__label a:focus {
+  outline: 2px solid #FF7A59;
+  outline-offset: 2px;
+}
+
+/* Consent error message */
+.consent-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: #FEE2E2;
+  border: 1px solid #DC2626;
+  border-radius: 4px;
+  color: #991B1B;
+  margin-bottom: 1.5rem;
+}
+
+.consent-error .error-icon {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+}
+
+.consent-error .error-text {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+/* Submit button base */
+.submit-btn {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Disabled state (default) */
+.submit-btn--disabled,
+.submit-btn:disabled {
+  background-color: #CCCCCC; /* Gray */
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Enabled state */
+.submit-btn--enabled,
+.submit-btn:not(:disabled) {
+  background-color: #FF7A59; /* Koraljna accent */
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+/* Hover state (enabled only) */
+.submit-btn--enabled:hover,
+.submit-btn:not(:disabled):hover {
+  background-color: #E6644A; /* Darker koraljna */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.4);
+}
+
+/* Active/pressed state */
+.submit-btn--enabled:active,
+.submit-btn:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(255, 122, 89, 0.3);
+}
+
+/* Focus state (accessibility) */
+.submit-btn:focus {
+  outline: 2px solid #0EA5E9; /* Tirkizna */
+  outline-offset: 2px;
+}
+
+/* Loading spinner */
+.submit-spinner {
+  display: inline-block;
+  margin-left: 0.5rem;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #FFFFFF;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Reduced motion support (accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  .submit-btn,
+  .submit-spinner,
+  .consent-checkbox__checkmark {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Mobile responsive (320px - 767px) */
+@media (max-width: 767px) {
+  .consent-section {
+    padding: 1.5rem 1rem;
+  }
+
+  .consent-section__title {
+    font-size: 1.3rem;
+  }
+
+  .consent-checkbox {
+    padding-left: 3rem; /* Larger touch target */
+    margin-bottom: 1.25rem;
+  }
+
+  .consent-checkbox__checkmark {
+    height: 32px; /* Larger checkbox on mobile (44x44 touch target) */
+    width: 32px;
+    top: -4px; /* Center with text */
+  }
+
+  .consent-checkbox__checkmark::after {
+    left: 10px;
+    top: 5px;
+    width: 8px;
+    height: 14px;
+  }
+
+  .consent-checkbox__label {
+    font-size: 1.05rem; /* Larger text on mobile */
+    line-height: 1.6;
+  }
+
+  .submit-btn {
+    width: 100%;
+    max-width: none;
+    padding: 1.2rem 2rem;
+    font-size: 1.3rem;
+  }
+}
+
+/* Tablet responsive (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .consent-section {
+    padding: 2rem 1.5rem;
+  }
+
+  .submit-btn {
+    max-width: 500px;
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .consent-section {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2.5rem;
+  }
+}
+
+/* Screen reader only (sr-only) utility class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

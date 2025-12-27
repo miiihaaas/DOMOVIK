@@ -8,6 +8,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/forms.css' %}">
 <link rel="stylesheet" href="{% static 'css/file-upload.css' %}">
+<link rel="stylesheet" href="{% static 'css/consent-section.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -309,6 +310,77 @@
           <p class="draft-reminder__text">Fajlovi nisu sačuvani u draft-u (GDPR zaštita). Molimo upload-ujte ponovo.</p>
         </div>
       </fieldset>
+
+      <!-- Consent Section (Story 2.10) -->
+      <div class="consent-section">
+        <h3 class="consent-section__title">Saglasnost i potvrda</h3>
+
+        <p id="consent-description" class="sr-only">
+          Obavezno potvrdite sve tri saglasnosti da biste nastavili sa slanjem prijave.
+        </p>
+
+        <div class="consent-checkboxes">
+          <label class="consent-checkbox">
+            <input
+              type="checkbox"
+              id="consent-privacy"
+              name="consent_privacy"
+              class="consent-checkbox__input"
+              aria-required="true"
+              aria-describedby="consent-description"
+            />
+            <span class="consent-checkbox__checkmark"></span>
+            <span class="consent-checkbox__label">
+              Prihvatam <a href="/politika-privatnosti/" target="_blank" rel="noopener noreferrer">Politiku privatnosti</a>
+            </span>
+          </label>
+
+          <label class="consent-checkbox">
+            <input
+              type="checkbox"
+              id="consent-terms"
+              name="consent_terms"
+              class="consent-checkbox__input"
+              aria-required="true"
+              aria-describedby="consent-description"
+            />
+            <span class="consent-checkbox__checkmark"></span>
+            <span class="consent-checkbox__label">
+              Prihvatam <a href="/uslovi-koristenja/" target="_blank" rel="noopener noreferrer">Uslove korišćenja</a>
+            </span>
+          </label>
+
+          <label class="consent-checkbox">
+            <input
+              type="checkbox"
+              id="consent-accuracy"
+              name="consent_accuracy"
+              class="consent-checkbox__input"
+              aria-required="true"
+              aria-describedby="consent-description"
+            />
+            <span class="consent-checkbox__checkmark"></span>
+            <span class="consent-checkbox__label">
+              Izjavljujem da su svi podaci tačni i potpuni
+            </span>
+          </label>
+        </div>
+
+        <div class="consent-error" id="consent-error" role="alert" aria-live="assertive" style="display:none;"></div>
+
+        <button
+          type="submit"
+          id="submit-btn"
+          class="submit-btn submit-btn--disabled"
+          disabled
+          aria-disabled="true"
+          aria-label="Podnesite prijavu za projekat"
+          data-requires-files="true"
+        >
+          PODNESI PRIJAVU
+          <span class="submit-spinner" style="display:none;">Šalje se...</span>
+        </button>
+      </div>
     </div>
 
     <!-- Navigation Buttons (Story 2.7 will implement full navigation) -->
@@ -328,4 +400,5 @@
 <script src="{% static 'js/section-navigation.js' %}"></script>
 <script src="{% static 'js/file-upload-handler.js' %}"></script>
 <script src="{% static 'js/file-preview.js' %}"></script>
+<script src="{% static 'js/consent-manager.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Politika privatnosti - DOMOVIK{% endblock %}
+
+{% block meta_description %}Politika privatnosti za DOMOVIK platformu. GDPR compliance, zaštita podataka, i prava korisnika.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/static-pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="container static-page">
+  <div class="static-page__header">
+    <h1 class="static-page__title">Politika privatnosti</h1>
+    <p class="static-page__subtitle">Poslednja izmena: Decembar 2025</p>
+  </div>
+
+  <div class="static-page__content">
+    <section class="policy-section">
+      <h2>1. Uvod</h2>
+      <p>
+        DOMOVIK platforma je posvećena zaštiti vaše privatnosti i sigurnosti vaših podataka. Ova Politika privatnosti
+        objašnjava kako prikupljamo, koristimo, čuvamo i štitimo vaše lične podatke tokom procesa podnošenja prijave
+        za finansiranje projekata.
+      </p>
+      <p>
+        Naša platforma je u potpunosti usklađena sa Opštom uredbom o zaštiti podataka (GDPR) i lokalnim zakonima
+        Republike Srbije o zaštiti podataka.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>2. Podaci koje prikupljamo</h2>
+      <p>Tokom procesa prijave, prikupljamo sledeće vrste podataka:</p>
+
+      <h3>2.1 Lični podaci podnosioca</h3>
+      <ul>
+        <li>Za fizička lica: Ime, prezime, JMBG, adresa, email, telefon</li>
+        <li>Za pravna lica: Naziv organizacije, matični broj, adresa, email, telefon</li>
+      </ul>
+
+      <h3>2.2 Podaci o projektu</h3>
+      <ul>
+        <li>Naslov projekta, opis, ciljevi, ciljne grupe</li>
+        <li>Aktivnosti, rezultati, budžet</li>
+      </ul>
+
+      <h3>2.3 Dokumentacija</h3>
+      <ul>
+        <li>Budžet projekta (Excel fajl)</li>
+        <li>Biografije članova tima (PDF/DOC fajlovi)</li>
+        <li>Pisma podrške (PDF/DOC fajlovi)</li>
+      </ul>
+    </section>
+
+    <section class="policy-section">
+      <h2>3. Kako koristimo vaše podatke</h2>
+      <p>Vaše podatke koristimo isključivo za sledeće svrhe:</p>
+      <ul>
+        <li>Procena i evaluacija prijava za finansiranje projekata</li>
+        <li>Komunikacija sa podnosiocima u vezi sa prijavama</li>
+        <li>Izveštavanje donatorima i zainteresovanim stranama</li>
+        <li>Statistička analiza i unapređenje procesa prijave</li>
+      </ul>
+      <p>
+        <strong>Nikada ne delimo vaše podatke sa trećim licima</strong> osim u slučajevima kada je to zakonom
+        propisano ili kada je neophodno za realizaciju finansiranja projekta (npr. deljenje sa donatorima).
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>4. Kako čuvamo vaše podatke</h2>
+
+      <h3>4.1 Client-side storage (localStorage)</h3>
+      <p>
+        <strong>GDPR Compliance:</strong> DOMOVIK koristi client-side localStorage za čuvanje draft verzija prijava.
+        Ovo znači da vaši podaci ostaju <strong>isključivo na vašem uređaju</strong> dok ne podneste prijavu.
+      </p>
+      <ul>
+        <li>Draft podaci se čuvaju <strong>samo u vašem browser-u</strong> (localStorage)</li>
+        <li>Server <strong>NIKADA ne dobija draft podatke</strong> pre nego što kliknete "PODNESI PRIJAVU"</li>
+        <li>Draft se automatski briše nakon <strong>7 dana</strong> (GDPR compliance)</li>
+        <li>Možete ručno obrisati draft klikanjem na "Počni ispočetka" u draft recovery modal-u</li>
+      </ul>
+
+      <h3>4.2 Server-side storage (nakon submita)</h3>
+      <p>
+        Kada podneste prijavu, vaši podaci se šalju na server i čuvaju u MySQL bazi podataka sa sledećim
+        sigurnosnim merama:
+      </p>
+      <ul>
+        <li>SSL/TLS enkripcija tokom prenosa podataka (HTTPS)</li>
+        <li>Enkripcija baze podataka (MySQL 8.0+ sa AES-256)</li>
+        <li>Redovne backup-e (dnevno, sa 30-day retention)</li>
+        <li>Pristup podacima je ograničen samo na autorizovane administratore</li>
+      </ul>
+
+      <h3>4.3 Fajlovi i dokumentacija</h3>
+      <p>
+        Upload-ovani fajlovi (budžet, biografije, pisma podrške) se čuvaju na serveru sa sledećim merama zaštite:
+      </p>
+      <ul>
+        <li>Fajlovi se čuvaju u privatnoj media direktorijumu (nisu javno dostupni)</li>
+        <li>Pristup fajlovima je kontrolisan autentifikacijom i autorizacijom</li>
+        <li>Fajlovi se brišu nakon završetka procesa evaluacije (30 dana po završetku projekta)</li>
+      </ul>
+    </section>
+
+    <section class="policy-section">
+      <h2>5. Retention period (Period čuvanja podataka)</h2>
+      <ul>
+        <li><strong>Draft podaci (localStorage):</strong> 7 dana, automatsko brisanje</li>
+        <li><strong>Podnesene prijave:</strong> 5 godina po završetku projekta (zakonska obaveza)</li>
+        <li><strong>Upload-ovani fajlovi:</strong> Brišu se 30 dana po završetku projekta</li>
+      </ul>
+    </section>
+
+    <section class="policy-section">
+      <h2>6. Vaša prava (GDPR)</h2>
+      <p>U skladu sa GDPR regulativom (EU Regulation 2016/679), imate sledeća prava:</p>
+      <ul>
+        <li><strong>Pravo pristupa (GDPR Art. 15):</strong> Možete zatražiti kopiju svojih podataka</li>
+        <li><strong>Pravo ispravke (GDPR Art. 16):</strong> Možete ažurirati netačne ili nepotpune podatke</li>
+        <li><strong>Pravo brisanja (GDPR Art. 17):</strong> Možete zatražiti brisanje svojih podataka ("right to be forgotten")</li>
+        <li><strong>Pravo prenosivosti (GDPR Art. 20):</strong> Možete zatražiti prenos podataka u mašinski čitljivom formatu</li>
+        <li><strong>Pravo prigovora (GDPR Art. 21):</strong> Možete podneti prigovor na obradu vaših podataka</li>
+      </ul>
+      <p>
+        <strong>Pravni osnov obrade (GDPR Art. 6):</strong> Vaše podatke obrađujemo na osnovu vašeg pristanka i legitimnog interesa
+        za evaluaciju prijava za finansiranje projekata.
+      </p>
+      <p>
+        Da biste ostvarili svoja prava, molimo kontaktirajte nas na:
+        <a href="mailto:privacy@domovik.rs">privacy@domovik.rs</a>
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>7. Cookies</h2>
+      <p>
+        DOMOVIK koristi isključivo <strong>neophodne cookies</strong> za funkcionisanje platforme:
+      </p>
+      <ul>
+        <li><strong>csrftoken:</strong> Django CSRF zaštita (obavezno za sigurnost)</li>
+        <li><strong>sessionid:</strong> Autentifikacija administratora (samo za admin panel)</li>
+      </ul>
+      <p>
+        <strong>NE koristimo tracking cookies, analytics cookies, ili advertising cookies.</strong>
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>8. Izmene politike privatnosti</h2>
+      <p>
+        Zadržavamo pravo da izmenimo ovu Politiku privatnosti. Sve izmene će biti objavljene na ovoj stranici
+        sa datumom poslednje izmene. Molimo vas da redovno proveravate ovu stranicu.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>9. Kontakt</h2>
+      <p>
+        Ako imate pitanja ili nedoumice u vezi sa našom Politikom privatnosti, molimo kontaktirajte nas:
+      </p>
+      <p>
+        Email: <a href="mailto:privacy@domovik.rs">privacy@domovik.rs</a><br>
+        Telefon: +381 11 1234 567
+      </p>
+    </section>
+  </div>
+
+  <div class="static-page__footer">
+    <a href="javascript:history.back()" class="btn btn-secondary">Vrati se na formu</a>
+  </div>
+</main>
+{% endblock %}

@@ -67,9 +67,30 @@ function collectFormData() {
       rezultati: document.getElementById('id_rezultati')?.value || '',
       budžet: document.getElementById('id_budžet')?.value || ''
     },
-    consent: {},  // Structure for future checkboxes (Story X.X)
+    // Story 2.10 Task 7: Consent checkboxes state (GDPR-compliant - client-side only)
+    consent_checkboxes: collectConsentStates(),
     // Story 2.8 Task 12: File upload metadata integration (GDPR-compliant)
     uploadedFiles: collectUploadedFileMetadata()
+  };
+}
+
+/**
+ * Collect consent checkbox states for draft (Story 2.10 - Task 7.2-7.3)
+ * GDPR Compliance: Client-side only, saved to localStorage
+ *
+ * @returns {Object} { privacy: boolean, terms: boolean, accuracy: boolean }
+ */
+function collectConsentStates() {
+  // Check if ConsentManager exists and has getConsentStates method
+  if (window.consentManager && typeof window.consentManager.getConsentStates === 'function') {
+    return window.consentManager.getConsentStates();
+  }
+
+  // Fallback: Directly check checkbox states
+  return {
+    privacy: document.getElementById('consent-privacy')?.checked || false,
+    terms: document.getElementById('consent-terms')?.checked || false,
+    accuracy: document.getElementById('consent-accuracy')?.checked || false
   };
 }
 
@@ -323,6 +344,11 @@ function loadDraft() {
       console.log('No uploaded files in draft, skipping reminder');
     }
 
+    // Story 2.10 Task 7.5-7.7: Restore consent checkbox states
+    if (draftData.consent_checkboxes) {
+      loadConsentStatesFromDraft(draftData.consent_checkboxes);
+    }
+
     // Development logging (comment out for production)
     // console.log('Draft loaded from localStorage');
 
@@ -330,6 +356,62 @@ function loadDraft() {
     triggerValidationAfterDraftLoad();
   } catch (error) {
     console.error('Failed to load draft:', error);
+  }
+}
+
+/**
+ * Load consent checkbox states from draft (Story 2.10 - Task 7.5-7.7)
+ * Restores checkbox states and updates submit button accordingly
+ *
+ * @param {Object} consentStates - { privacy: boolean, terms: boolean, accuracy: boolean }
+ */
+function loadConsentStatesFromDraft(consentStates) {
+  try {
+    // Use ConsentManager if available
+    if (window.consentManager && typeof window.consentManager.setConsentStates === 'function') {
+      window.consentManager.setConsentStates(consentStates);
+    } else {
+      // Fallback: Directly set checkbox states (Story 2.10 Code Review Fix #8)
+      const privacyCheckbox = document.getElementById('consent-privacy');
+      const termsCheckbox = document.getElementById('consent-terms');
+      const accuracyCheckbox = document.getElementById('consent-accuracy');
+
+      if (privacyCheckbox && consentStates.privacy !== undefined) {
+        privacyCheckbox.checked = consentStates.privacy;
+      }
+      if (termsCheckbox && consentStates.terms !== undefined) {
+        termsCheckbox.checked = consentStates.terms;
+      }
+      if (accuracyCheckbox && consentStates.accuracy !== undefined) {
+        accuracyCheckbox.checked = consentStates.accuracy;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load consent states from draft:', error);
+  }
+}
+
+/**
+ * Save consent checkbox states to draft (Story 2.10 - Task 7.3-7.4)
+ * Called from ConsentManager when checkbox state changes
+ * Triggers auto-save debounce timer
+ */
+function saveConsentStatesToDraft() {
+  // Trigger standard draft save which includes consent states via collectConsentStates()
+  saveDraft();
+}
+
+/**
+ * Clear consent states from draft (Story 2.10 - Task 7.8)
+ * Called on successful submission to cleanup
+ */
+function clearConsentStatesFromDraft() {
+  const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
+
+  if (draft && draft.consent_checkboxes) {
+    delete draft.consent_checkboxes;
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    console.log('Consent states cleared from draft');
   }
 }
 

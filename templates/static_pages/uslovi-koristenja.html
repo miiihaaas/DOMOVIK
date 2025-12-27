@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Uslovi korišćenja - DOMOVIK{% endblock %}
+
+{% block meta_description %}Uslovi korišćenja za DOMOVIK platformu. Proces prijave, odgovornosti korisnika, i smernice za podnošenje.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/static-pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="container static-page">
+  <div class="static-page__header">
+    <h1 class="static-page__title">Uslovi korišćenja</h1>
+    <p class="static-page__subtitle">Poslednja izmena: Decembar 2025</p>
+  </div>
+
+  <div class="static-page__content">
+    <section class="policy-section">
+      <h2>1. Prihvatanje uslova</h2>
+      <p>
+        Korišćenjem DOMOVIK platforme za podnošenje prijava za finansiranje projekata, prihvatate ove Uslove
+        korišćenja u potpunosti. Ako se ne slažete sa bilo kojim delom ovih uslova, molimo vas da ne koristite
+        platformu.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>2. Prihvatljivost za prijavu</h2>
+
+      <h3>2.1 Tipovi prijava</h3>
+      <p>DOMOVIK platforma podržava dva tipa prijava:</p>
+      <ul>
+        <li>
+          <strong>COA (Call for Applications - Projekat):</strong> Detaljni projekat sa budžetom, timom i
+          kompletnom dokumentacijom
+        </li>
+        <li>
+          <strong>COB (Call for Budding Ideas - Inicijativa):</strong> Početna inicijativa/ideja sa osnovnim
+          podacima (bez budžeta)
+        </li>
+      </ul>
+
+      <h3>2.2 Ko može podneti prijavu</h3>
+      <ul>
+        <li>Fizička lica (sa JMBG-om)</li>
+        <li>Pravna lica (sa matičnim brojem)</li>
+        <li>Podnosilac mora biti punoletan (18+)</li>
+        <li>Podnosilac mora imati validnu email adresu i kontakt telefon</li>
+      </ul>
+    </section>
+
+    <section class="policy-section">
+      <h2>3. Proces podnošenja prijave</h2>
+
+      <h3>3.1 Opšti proces</h3>
+      <ol>
+        <li>Popunite formu sa opštim podacima (Sekcija I)</li>
+        <li>Unesite podatke o projektu (Sekcija II - samo za COA)</li>
+        <li>Upload-ujte obaveznu dokumentaciju (Sekcija III)</li>
+        <li>Potvrdite saglasnosti i podnese prijavu</li>
+        <li>Dobijte reference broj (COA-YYYY-NNN ili COB-YYYY-NNN)</li>
+      </ol>
+
+      <h3>3.2 Obavezna dokumentacija</h3>
+      <p><strong>Za COA prijave (Projekat):</strong></p>
+      <ul>
+        <li><strong>Budžet projekta:</strong> Excel fajl (XLS/XLSX), maksimalno 10MB</li>
+        <li><strong>Biografije članova tima:</strong> Minimum 1 fajl (PDF/DOC/DOCX), maksimalno 5 fajlova, 10MB po fajlu</li>
+        <li><strong>Pisma podrške:</strong> Minimum 1 fajl (PDF/DOC/DOCX), maksimalno 5 fajlova, 10MB po fajlu</li>
+      </ul>
+
+      <p><strong>Za COB prijave (Inicijativa):</strong></p>
+      <ul>
+        <li><strong>Biografija podnosioca:</strong> 1 fajl (PDF/DOC/DOCX), maksimalno 10MB</li>
+        <li><strong>Pisma podrške:</strong> Minimum 1 fajl (PDF/DOC/DOCX), maksimalno 5 fajlova, 10MB po fajlu</li>
+      </ul>
+    </section>
+
+    <section class="policy-section">
+      <h2>4. Auto-save i draft sistem</h2>
+      <p>
+        DOMOVIK koristi auto-save sistem koji čuva vašu prijavu u lokalnom browser storage-u (localStorage):
+      </p>
+      <ul>
+        <li>Podaci se automatski čuvaju svakih <strong>30 sekundi</strong></li>
+        <li>Draft se čuva <strong>7 dana</strong>, nakon čega se automatski briše</li>
+        <li>Draft podaci ostaju <strong>samo na vašem uređaju</strong> (GDPR compliance)</li>
+        <li>Možete nastaviti sa popunjavanjem forme kasnije koristeći draft recovery</li>
+        <li>Upload-ovani fajlovi se <strong>ne čuvaju u draft-u</strong> - potrebno ih je ponovo upload-ovati</li>
+      </ul>
+    </section>
+
+    <section class="policy-section">
+      <h2>5. Odgovornosti podnosioca</h2>
+
+      <h3>5.1 Tačnost podataka</h3>
+      <p>
+        Podnosilac prijave je odgovoran za tačnost i potpunost svih unetih podataka. Netačni ili lažni podaci mogu
+        dovesti do odbijanja prijave ili poništavanja dodeljenog finansiranja.
+      </p>
+
+      <h3>5.2 Originalnost dokumentacije</h3>
+      <p>
+        Sva upload-ovana dokumentacija mora biti originalna i tačna. Plagijarizam, falsifikovanje dokumenata ili
+        bilo koji oblik prevare je strogo zabranjen i može imati pravne posledice.
+      </p>
+
+      <h3>5.3 Kompletnost prijave</h3>
+      <p>
+        Podnosilac je odgovoran da obezbedi kompletnu prijavu sa svom obaveznom dokumentacijom. Nepotpune prijave
+        neće biti razmatrane.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>6. Tehnički zahtevi</h2>
+
+      <h3>6.1 Podržani browser-i</h3>
+      <ul>
+        <li>Google Chrome (latest 2 versions)</li>
+        <li>Mozilla Firefox (latest 2 versions)</li>
+        <li>Safari (latest 2 versions)</li>
+        <li>Microsoft Edge (latest 2 versions)</li>
+      </ul>
+
+      <h3>6.2 JavaScript i localStorage</h3>
+      <p>
+        Za optimalno korišćenje platforme, preporučuje se da:
+      </p>
+      <ul>
+        <li>JavaScript bude omogućen (za auto-save i real-time validaciju)</li>
+        <li>localStorage bude omogućen (za draft sistem)</li>
+        <li>Cookies budu omogućeni (za CSRF zaštitu)</li>
+      </ul>
+      <p>
+        <strong>Napomena:</strong> Osnovna funkcionalnost forme će raditi i bez JavaScript-a, ali bez auto-save i
+        real-time validacije.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>7. Ograničenja odgovornosti</h2>
+
+      <h3>7.1 Dostupnost platforme</h3>
+      <p>
+        DOMOVIK nastoji da platforma bude dostupna 24/7, ali ne garantuje neprekinuti rad. Platforma može biti
+        nedostupna zbog planiranog održavanja ili tehničkih problema.
+      </p>
+
+      <h3>7.2 Gubitak podataka</h3>
+      <p>
+        Iako koristimo pouzdane backup sisteme, ne možemo garantovati da neće doći do gubitka podataka. Preporučujemo
+        da čuvate kopije važnih dokumenata na svom uređaju.
+      </p>
+
+      <h3>7.3 Browser localStorage</h3>
+      <p>
+        Draft podaci se čuvaju u browser localStorage-u. Ako obrišete browser cache ili koristite "Private/Incognito"
+        režim, draft podaci mogu biti izgubljeni.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>8. Proces evaluacije</h2>
+      <p>
+        Podnesene prijave će biti evaluirane u skladu sa kriterijumima donatora. Proces evaluacije može trajati
+        od 2 do 8 nedelja, u zavisnosti od broja primljenih prijava.
+      </p>
+      <p>
+        Podnosioci će biti obavešteni o statusu prijave putem email-a.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>9. Izmene uslova korišćenja</h2>
+      <p>
+        DOMOVIK zadržava pravo da izmeni ove Uslove korišćenja u bilo kom trenutku. Sve izmene će biti objavljene
+        na ovoj stranici sa datumom poslednje izmene.
+      </p>
+      <p>
+        Nastavak korišćenja platforme nakon izmena znači da prihvatate nove uslove.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>10. Kontakt i podrška</h2>
+      <p>
+        Ako imate pitanja ili probleme sa platformom, molimo kontaktirajte nas:
+      </p>
+      <p>
+        Email: <a href="mailto:support@domovik.rs">support@domovik.rs</a><br>
+        Telefon: +381 11 1234 567<br>
+        Radno vreme: Ponedeljak - Petak, 09:00 - 17:00
+      </p>
+    </section>
+  </div>
+
+  <div class="static-page__footer">
+    <a href="javascript:history.back()" class="btn btn-secondary">Vrati se na formu</a>
+  </div>
+</main>
+{% endblock %}
