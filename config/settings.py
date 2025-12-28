@@ -184,7 +184,40 @@ ALLOWED_MIME_TYPES = {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  # XLSX
 }
 
-# Logging configuration (Story 2.8: File Upload Infrastructure)
+# Celery Configuration (Story 2.14: Email Confirmation with Celery)
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Europe/Belgrade'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+
+# Celery optimization and reliability settings
+CELERY_RESULT_EXPIRES = 3600  # Results expire after 1 hour (prevent Redis memory bloat)
+CELERY_TASK_ACKS_LATE = True  # Acknowledge tasks after completion (idempotency)
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Fetch one task at a time (prevent task hoarding)
+CELERY_BROKER_CONNECTION_RETRY = True  # Retry broker connection on failure
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True  # Retry on startup
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10  # Max connection retries
+
+# Task routing (future expansion for priority queues)
+CELERY_TASK_ROUTES = {
+    'apps.submissions.tasks.send_confirmation_email': {'queue': 'emails'},
+}
+
+# Email Configuration (Story 2.14: Email Confirmation with Celery)
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='info@domovik.org')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Logging configuration (Story 2.8: File Upload Infrastructure, Story 2.14: Email Tasks)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -211,6 +244,14 @@ LOGGING = {
             'filename': BASE_DIR / 'logs' / 'submissions.log',
             'formatter': 'verbose',
         },
+        'email_tasks': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'email_tasks.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -225,6 +266,11 @@ LOGGING = {
         },
         'domovik.submissions': {
             'handlers': ['submissions', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.submissions.tasks': {
+            'handlers': ['email_tasks', 'console'],
             'level': 'INFO',
             'propagate': False,
         },

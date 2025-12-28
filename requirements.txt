@@ -16,5 +16,6 @@ mysqlclient==2.2.7
 # PDF Generation (Story 2.13)
 reportlab==4.0.7
 
-# Future dependencies (will be added in later stories)
-# Celery==5.3.0  # Epic 2 - Email notifications, background tasks
+# Task Queue & Email (Story 2.14: Email Confirmation with Celery)
+celery==5.3.0
+redis==5.0.1

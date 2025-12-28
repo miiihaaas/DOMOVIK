@@ -22,6 +22,7 @@ from apps.submissions.forms import COAFormSectionI, FileUploadForm
 from apps.submissions.models import UploadedFile, Application, Applicant
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
+from apps.submissions.tasks import send_confirmation_email
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, Http404
 
@@ -362,6 +363,13 @@ def submit_application(request):
             )
             uploaded_files.update(application=application_obj)
 
+            # Trigger async email task (Story 2.14)
+            # SECURITY: Don't log email addresses (GDPR compliance)
+            submission_logger.info(
+                f"Triggering email confirmation task for {result['reference_number']}"
+            )
+            send_confirmation_email.delay(application_obj.id)
+
             logger.info(
                 f"Submission completed successfully: {result['reference_number']}, "
                 f"session: {session_key}"
@@ -532,10 +540,9 @@ def resend_email(request, reference_number):
             'message': f"Prijava sa referentnim brojem {reference_number} nije pronađena."
         }, status=404)
 
-    # TODO Story 2.14: Trigger Celery email task
-    # For now, return stub response
-    # from apps.notifications.tasks import send_confirmation_email
-    # send_confirmation_email.delay(application.id)
+    # Story 2.14: Trigger Celery email task
+    logger.info(f"Resending email confirmation for {reference_number}")
+    send_confirmation_email.delay(application.id)
 
     return JsonResponse({
         'success': True,

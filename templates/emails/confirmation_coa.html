@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potvrda prijema prijave - {{ reference_number }}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #2C3E50; background-color: #F5F5F0; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+
+        <!-- Header -->
+        <div style="background-color: #0EA5E9; color: #ffffff; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700;">Prijava uspešno primljena!</h1>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 30px 20px;">
+            <p>Poštovani/a <strong>{{ applicant_name|escape }}</strong>,</p>
+
+            <p>Hvala što ste podneli prijavu putem DOMOVIK platforme. Potvrđujemo da smo primili vašu prijavu za <strong>{{ application_type|escape }}</strong>.</p>
+
+            <!-- Reference Number -->
+            <div style="background-color: #E8F4F8; border: 2px solid #0EA5E9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+                <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; text-transform: uppercase; color: #2C3E50;">
+                    Vaš referentni broj:
+                </p>
+                <h2 style="margin: 0; font-size: 32px; font-weight: 800; color: #0EA5E9; font-family: 'Courier New', monospace; letter-spacing: 2px;">
+                    {{ reference_number|escape }}
+                </h2>
+            </div>
+
+            <p>Molimo sačuvajte ovaj referentni broj za buduću komunikaciju.</p>
+
+            <!-- Submission Details -->
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; font-weight: 600; color: #2C3E50; width: 40%;">
+                        Tip prijave:
+                    </td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; color: #6B7280;">
+                        {{ application_type|escape }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; font-weight: 600; color: #2C3E50;">
+                        Naslov:
+                    </td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; color: #6B7280;">
+                        {{ project_title|escape }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; font-weight: 600; color: #2C3E50;">
+                        Datum podnošenja:
+                    </td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; color: #6B7280;">
+                        {{ submission_date|escape }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; font-weight: 600; color: #2C3E50;">
+                        Status:
+                    </td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #E8F4F8; color: #6B7280;">
+                        Primljeno
+                    </td>
+                </tr>
+            </table>
+
+            <p><strong>Šta je sledeće?</strong></p>
+            <ul style="line-height: 1.8; color: #2C3E50;">
+                <li>Vaša prijava će biti pregledana u roku od 7-10 radnih dana</li>
+                <li>Bićete obavešteni putem emaila o daljem toku procesa</li>
+                <li>Ako imate pitanja, kontaktirajte nas putem emaila ili telefona</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div style="background-color: #F5F5F0; padding: 20px; text-align: center; font-size: 14px; color: #6B7280;">
+            <p style="margin: 0 0 10px 0;"><strong>DOMOVIK - Udruženje za podršku građanskih inicijativa</strong></p>
+            <p style="margin: 0 0 10px 0;">
+                Email: <a href="mailto:info@domovik.org" style="color: #0EA5E9; text-decoration: none;">info@domovik.org</a> |
+                Telefon: +381 11 1234 567
+            </p>
+            <p style="font-size: 12px; margin: 15px 0 0 0; color: #9CA3AF;">
+                Ovaj email je automatski generisan. Molimo ne odgovarajte direktno na ovaj email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
