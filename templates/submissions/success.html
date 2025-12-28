@@ -28,7 +28,7 @@
         <!-- Reference Number (PROMINENT) -->
         <div class="reference-number-container">
             <p class="reference-label">Vaš referentni broj:</p>
-            <!-- XSS FIX: Django auto-escapes {{ }} templates, but use |escape for clarity -->
+            <!-- XSS FIX: Django auto-escapes variables, but use escape filter for clarity -->
             <p class="reference-number" id="reference-number">{{ reference_number|escape }}</p>
             <button class="copy-btn" id="copy-btn" aria-label="Kopiraj referentni broj" aria-live="polite">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -42,7 +42,7 @@
         <!-- Email Confirmation Info -->
         <div class="email-info">
             <p class="email-info__text">
-                <!-- XSS FIX: Escape email address to prevent XSS -->
+                <!-- XSS FIX: Escape email address for security -->
                 Email potvrda je poslata na <strong>{{ applicant_email|escape }}</strong>.
             </p>
             <p class="email-info__subtext">
