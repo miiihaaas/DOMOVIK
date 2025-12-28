@@ -13,6 +13,8 @@ mysqlclient==2.2.7
 # Note: Install python-magic-bin on Windows OR use fallback to content_type header
 # Production Linux servers should have libmagic installed by default
 
+# PDF Generation (Story 2.13)
+reportlab==4.0.7
+
 # Future dependencies (will be added in later stories)
 # Celery==5.3.0  # Epic 2 - Email notifications, background tasks
-# Pillow==10.0.0  # Epic 2 - Image upload handling

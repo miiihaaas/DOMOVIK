@@ -419,6 +419,7 @@ class SubmissionHandler {
   /**
    * Handle successful submission
    * Story 2.11 - Task 7: Draft cleanup on success
+   * Story 2.13 - Redirect to success screen
    *
    * @param {Object} response - Success response with reference number
    */
@@ -443,11 +444,21 @@ class SubmissionHandler {
     // Announce success to screen readers
     this.announceToScreenReader(`Prijava uspešno podnesena. Vaš referentni broj: ${referenceNumber}`);
 
-    // Show success message with reference number
-    this.showSuccessMessage(referenceNumber);
+    // Story 2.13: Redirect to success screen
+    const applicationType = 'COA'; // Will be dynamic in Story 3.x for COB
 
-    // Disable form to prevent re-submission
-    this.disableForm();
+    if (!referenceNumber) {
+      console.error('Reference number missing from response');
+      this.handleSubmissionError('Greška: Referentni broj nije primljen.');
+      return;
+    }
+
+    // BUGFIX: Correct success URL path (was /api/submissions/success/, should be /success/)
+    // URL pattern from urls.py: /api/submissions/success/<application_type>/<reference_number>/
+    const successUrl = `/api/submissions/success/${applicationType}/${referenceNumber}/`;
+
+    console.log(`Redirecting to success screen: ${successUrl}`);
+    window.location.href = successUrl;
   }
 
   /**

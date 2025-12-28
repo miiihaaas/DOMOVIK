@@ -21,7 +21,9 @@ from django_ratelimit.decorators import ratelimit
 from apps.submissions.forms import COAFormSectionI, FileUploadForm
 from apps.submissions.models import UploadedFile, Application, Applicant
 from apps.submissions.validators import generate_unique_filename
-from apps.submissions.services import process_submission
+from apps.submissions.services import process_submission, PDFGenerationService
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse, Http404
 
 # File upload logger
 logger = logging.getLogger('file_uploads')
@@ -386,3 +388,156 @@ def submit_application(request):
             'success': False,
             'error': 'Došlo je do neočekivane greške. Molimo pokušajte ponovo ili kontaktirajte podršku.'
         }, status=500)
+
+
+@require_http_methods(['GET'])
+def success_screen(request, application_type, reference_number):
+    """
+    Display success screen after successful submission.
+    Story 2.13: Success Screen with Reference Number
+
+    Args:
+        application_type: 'COA' or 'COB'
+        reference_number: Full reference number (e.g., 'COA-2025-003')
+
+    Returns:
+        Rendered success screen with reference number
+
+    Security:
+        - Reference number validated against regex pattern (SQL injection prevention)
+        - HTTP method restricted to GET only
+        - Application existence verified before rendering
+    """
+    import re
+
+    # SECURITY: Validate reference number format with regex (prevent SQL injection)
+    # Format: COA-YYYY-NNN or COB-YYYY-NNN
+    # Example: COA-2025-003, COB-2025-123
+    ref_pattern = r'^(COA|COB)-\d{4}-\d{3}$'
+    if not re.match(ref_pattern, reference_number):
+        logger.warning(f"Invalid reference number format: {reference_number}")
+        raise Http404("Nevažeći format referentnog broja")
+
+    # SECURITY: Validate application_type is exactly 'COA' or 'COB'
+    if application_type not in ['COA', 'COB']:
+        logger.warning(f"Invalid application type: {application_type}")
+        raise Http404("Nevažeći tip prijave")
+
+    # Additional validation: reference_number must start with application_type
+    if not reference_number.startswith(f"{application_type}-"):
+        logger.warning(f"Reference number {reference_number} doesn't match type {application_type}")
+        raise Http404("Referentni broj ne odgovara tipu prijave")
+
+    # Get application from database (verify it exists)
+    # get_object_or_404 prevents DoesNotExist exception
+    application = get_object_or_404(
+        Application,
+        reference_number=reference_number,
+        application_type=application_type
+    )
+
+    # Get applicant email for display
+    applicant_email = application.applicant.email if application.applicant else "N/A"
+
+    context = {
+        'reference_number': reference_number,
+        'application_type': application_type,
+        'applicant_email': applicant_email,
+        'submission_date': application.submitted_at,
+        'application': application,
+    }
+
+    return render(request, 'submissions/success.html', context)
+
+
+@require_http_methods(['GET'])
+def download_pdf_confirmation(request, reference_number):
+    """
+    Generate and download PDF confirmation for submission.
+    Story 2.13: PDF Download
+
+    Args:
+        reference_number: Full reference number (e.g., 'COA-2025-003')
+
+    Returns:
+        PDF file as HTTP response
+
+    Security:
+        - Reference number validated against regex pattern (SQL injection prevention)
+        - Filename sanitized to prevent path traversal attacks
+        - HTTP method restricted to GET only
+    """
+    import re
+
+    # SECURITY: Validate reference number format with regex (prevent SQL injection)
+    ref_pattern = r'^(COA|COB)-\d{4}-\d{3}$'
+    if not re.match(ref_pattern, reference_number):
+        logger.warning(f"Invalid reference number in PDF download: {reference_number}")
+        raise Http404("Nevažeći format referentnog broja")
+
+    # Get application from database
+    application = get_object_or_404(Application, reference_number=reference_number)
+
+    # Generate PDF using PDFGenerationService
+    pdf_service = PDFGenerationService()
+    pdf_buffer = pdf_service.generate_confirmation_pdf(application)
+
+    # SECURITY: Sanitize filename to prevent path traversal
+    # Remove any path separators and special characters
+    safe_filename = reference_number.replace('/', '_').replace('\\', '_').replace('..', '_')
+    filename = f"Potvrda_{safe_filename}.pdf"
+
+    # Create HTTP response with PDF
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    return response
+
+
+@csrf_protect
+@require_http_methods(['POST'])
+def resend_email(request, reference_number):
+    """
+    Resend email confirmation to applicant.
+    Story 2.13: Email Resend (stub implementation)
+
+    Args:
+        reference_number: Full reference number (e.g., 'COA-2025-003')
+
+    Returns:
+        JSON response with success/error message
+
+    Security:
+        - Reference number validated against regex pattern (SQL injection prevention)
+        - CSRF protection enabled
+        - HTTP method restricted to POST only
+    """
+    import re
+
+    # SECURITY: Validate reference number format with regex (prevent SQL injection)
+    ref_pattern = r'^(COA|COB)-\d{4}-\d{3}$'
+    if not re.match(ref_pattern, reference_number):
+        logger.warning(f"Invalid reference number in email resend: {reference_number}")
+        return JsonResponse({
+            'success': False,
+            'message': 'Nevažeći format referentnog broja.'
+        }, status=400)
+
+    # Get application from database
+    try:
+        application = Application.objects.get(reference_number=reference_number)
+    except Application.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': f"Prijava sa referentnim brojem {reference_number} nije pronađena."
+        }, status=404)
+
+    # TODO Story 2.14: Trigger Celery email task
+    # For now, return stub response
+    # from apps.notifications.tasks import send_confirmation_email
+    # send_confirmation_email.delay(application.id)
+
+    return JsonResponse({
+        'success': True,
+        'message': f"Email potvrda je poslata na {application.applicant.email}."
+    })

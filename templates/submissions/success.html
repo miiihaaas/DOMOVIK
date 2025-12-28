@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prijava uspešno podnesena - DOMOVIK{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/success.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="success-container">
+    <!-- Confetti Animation -->
+    <div class="confetti-container" id="confetti-container" aria-hidden="true"></div>
+
+    <!-- Success Card -->
+    <div class="success-card" role="main">
+        <!-- Success Icon -->
+        <div class="success-icon" aria-hidden="true">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="40" r="40" fill="#0EA5E9"/>
+                <path d="M25 40L35 50L55 30" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <!-- Success Message -->
+        <h1 class="success-title">Prijava uspešno podnesena!</h1>
+
+        <!-- Reference Number (PROMINENT) -->
+        <div class="reference-number-container">
+            <p class="reference-label">Vaš referentni broj:</p>
+            <!-- XSS FIX: Django auto-escapes {{ }} templates, but use |escape for clarity -->
+            <p class="reference-number" id="reference-number">{{ reference_number|escape }}</p>
+            <button class="copy-btn" id="copy-btn" aria-label="Kopiraj referentni broj" aria-live="polite">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                </svg>
+                Kopiraj
+            </button>
+        </div>
+
+        <!-- Email Confirmation Info -->
+        <div class="email-info">
+            <p class="email-info__text">
+                <!-- XSS FIX: Escape email address to prevent XSS -->
+                Email potvrda je poslata na <strong>{{ applicant_email|escape }}</strong>.
+            </p>
+            <p class="email-info__subtext">
+                Ako email ne stigne za 5 minuta, proverite spam folder ili:
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <a href="{% url 'submissions:download_pdf' reference_number %}"
+               class="btn btn--primary"
+               download="Potvrda_{{ reference_number }}.pdf"
+               aria-label="Preuzmi PDF potvrdu sa svim podacima prijave">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                Preuzmi PDF potvrdu
+            </a>
+
+            <button class="btn btn--secondary" id="resend-email-btn" aria-label="Pošalji email potvrdu ponovo">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                </svg>
+                Pošalji email ponovo
+            </button>
+        </div>
+
+        <!-- Back to Home Link -->
+        <div class="back-link">
+            <a href="/" class="link-text">
+                ← Nazad na početnu stranicu
+            </a>
+        </div>
+    </div>
+
+    <!-- ARIA Live Region for Notifications -->
+    <div id="notification-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/success-handler.js' %}"></script>
+{% endblock %}

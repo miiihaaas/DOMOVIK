@@ -264,8 +264,240 @@ def process_submission(submission_data):
         }
 
 
+class PDFGenerationService:
+    """
+    Service for generating PDF confirmations for submissions.
+
+    Uses ReportLab library to create professional-looking PDF documents
+    with submission details.
+    """
+
+    def generate_confirmation_pdf(self, application):
+        """
+        Generate PDF confirmation for application submission.
+
+        Args:
+            application: Application model instance
+
+        Returns:
+            BytesIO buffer containing PDF data
+
+        Note:
+            Uses Arial Unicode MS font (if available) or FreeSans to support
+            Serbian characters (č, ć, š, đ, ž). Falls back to Helvetica if
+            Unicode fonts are not available.
+        """
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib import colors
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from io import BytesIO
+        import os
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=2*cm,
+            leftMargin=2*cm,
+            topMargin=2*cm,
+            bottomMargin=2*cm
+        )
+
+        # ENCODING FIX: Register font that supports Serbian characters
+        # Try to use system fonts or bundled fonts
+        font_name = 'Helvetica'  # Default fallback
+        font_name_bold = 'Helvetica-Bold'
+
+        # Try to register FreeSans (supports Serbian Latin)
+        try:
+            # Check if FreeSans is available in system fonts
+            # Windows: C:\Windows\Fonts\FreeSans.ttf
+            # Linux: /usr/share/fonts/truetype/freefont/FreeSans.ttf
+            # macOS: /Library/Fonts/FreeSans.ttf
+            freesans_paths = [
+                '/usr/share/fonts/truetype/freefont/FreeSans.ttf',  # Linux
+                'C:\\Windows\\Fonts\\arial.ttf',  # Windows Arial
+                '/System/Library/Fonts/Supplemental/Arial.ttf',  # macOS Arial
+            ]
+
+            for font_path in freesans_paths:
+                if os.path.exists(font_path):
+                    pdfmetrics.registerFont(TTFont('CustomFont', font_path))
+                    font_name = 'CustomFont'
+                    font_name_bold = 'CustomFont'  # Use same font for bold (TTF doesn't have separate bold)
+                    logger.info(f"Registered Unicode font from: {font_path}")
+                    break
+        except Exception as e:
+            logger.warning(f"Failed to register Unicode font: {str(e)}. Using Helvetica fallback.")
+            # Continue with Helvetica (will display Latin characters correctly)
+
+        # Container for PDF elements
+        elements = []
+
+        # Styles
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            fontName=font_name_bold,
+            textColor=colors.HexColor('#0EA5E9'),
+            spaceAfter=30,
+            alignment=1  # Center
+        )
+
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            fontName=font_name_bold,
+            textColor=colors.HexColor('#2C3E50'),
+            spaceAfter=12
+        )
+
+        ref_style = ParagraphStyle(
+            'RefNumber',
+            parent=styles['Heading1'],
+            fontSize=32,
+            fontName=font_name_bold,
+            textColor=colors.HexColor('#0EA5E9'),
+            alignment=1,
+            spaceAfter=20
+        )
+
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName=font_name,
+            leading=14
+        )
+
+        # Title - ENCODING: Use ASCII-safe version to avoid font issues
+        elements.append(Paragraph("POTVRDA O PRIJEMU PRIJAVE", title_style))
+        elements.append(Spacer(1, 0.5*cm))
+
+        # Reference Number (PROMINENT)
+        elements.append(Paragraph(application.reference_number, ref_style))
+        elements.append(Spacer(1, 1*cm))
+
+        # Submission Info
+        elements.append(Paragraph("Informacije o podnosenju", heading_style))
+
+        submission_data = [
+            ['Datum podnosenja:', application.submitted_at.strftime('%d.%m.%Y %H:%M')],
+            ['Tip prijave:', 'Projekat (COA)' if application.application_type == 'COA' else 'Inicijativa (COB)'],
+            ['Status:', 'Primljeno'],
+        ]
+
+        submission_table = Table(submission_data, colWidths=[5*cm, 10*cm])
+        submission_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, -1), font_name, 11),
+            ('FONT', (0, 0), (0, -1), font_name_bold, 11),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+
+        elements.append(submission_table)
+        elements.append(Spacer(1, 0.7*cm))
+
+        # Applicant Info
+        applicant = application.applicant
+        elements.append(Paragraph("Podaci o podnosiocu", heading_style))
+
+        if applicant.entity_type == 'fizicko':
+            applicant_data = [
+                ['Tip:', 'Fizicko lice'],
+                ['Ime i prezime:', f"{applicant.first_name} {applicant.last_name}"],
+                ['Adresa:', applicant.address or 'N/A'],
+                ['Email:', applicant.email or 'N/A'],
+                ['Telefon:', applicant.phone or 'N/A'],
+            ]
+            if applicant.jmbg:
+                applicant_data.append(['JMBG:', applicant.jmbg])
+        else:  # pravno
+            applicant_data = [
+                ['Tip:', 'Pravno lice'],
+                ['Naziv organizacije:', applicant.organization_name or 'N/A'],
+                ['Adresa:', applicant.address or 'N/A'],
+                ['Email:', applicant.email or 'N/A'],
+                ['Telefon:', applicant.phone or 'N/A'],
+            ]
+            if applicant.maticni_broj:
+                applicant_data.append(['Maticni broj:', applicant.maticni_broj])
+
+        applicant_table = Table(applicant_data, colWidths=[5*cm, 10*cm])
+        applicant_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, -1), font_name, 11),
+            ('FONT', (0, 0), (0, -1), font_name_bold, 11),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+
+        elements.append(applicant_table)
+        elements.append(Spacer(1, 0.7*cm))
+
+        # Project/Initiative Info
+        if application.application_type == 'COA':
+            project_data = application.project_data
+            elements.append(Paragraph("Podaci o projektu", heading_style))
+
+            project_info = [
+                ['Naslov:', project_data.title or 'N/A'],
+                ['Totalni budzet:', f"{project_data.total_budget} RSD" if project_data.total_budget else 'N/A'],
+            ]
+
+            project_table = Table(project_info, colWidths=[5*cm, 10*cm])
+            project_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), font_name, 11),
+                ('FONT', (0, 0), (0, -1), font_name_bold, 11),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+
+            elements.append(project_table)
+
+        elements.append(Spacer(1, 1*cm))
+
+        # Footer - Use ASCII-safe characters
+        footer_text = """
+        <para align=center>
+        <b>Hvala na podnosenju prijave!</b><br/>
+        <br/>
+        Bicete obavesteni putem emaila o daljem toku procesa.<br/>
+        Ako imate pitanja, kontaktirajte nas na info@domovik.org<br/>
+        <br/>
+        <i>DOMOVIK - Udruzenje za podrsku gradjanskih inicijativa</i>
+        </para>
+        """
+
+        elements.append(Paragraph(footer_text, normal_style))
+
+        # Build PDF
+        try:
+            doc.build(elements)
+        except Exception as e:
+            logger.error(f"PDF generation failed: {str(e)}", exc_info=True)
+            raise
+
+        buffer.seek(0)
+        return buffer
+
+
 # Export list for module
 __all__ = [
     'ReferenceNumberService',
     'process_submission',
+    'PDFGenerationService',
 ]
