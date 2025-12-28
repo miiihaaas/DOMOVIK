@@ -19,7 +19,7 @@ from django.core.files.base import ContentFile
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
-from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm
+from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm, COBInitiativeDataForm
 from apps.submissions.models import UploadedFile, Application, Applicant, DraftMetadata
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
@@ -785,6 +785,86 @@ def validate_cob_section_i(request):
         submission_logger.error(f"COB Section I validation error: {str(e)}")
 
         # ISSUE 4 FIX: Use __all__ instead of _all
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': [{'message': 'Greška pri validaciji. Molimo pokušajte ponovo.', 'code': 'server_error'}]}
+        }, status=500)
+
+
+@csrf_protect
+@ensure_csrf_cookie
+@require_http_methods(['POST'])
+def validate_cob_section_ii(request):
+    """
+    AJAX endpoint for validating COB Section II data (initiative data).
+    Story 3.3: COB Section II - Backend Form Validation
+
+    Purpose: Client-side can validate before proceeding to Section III.
+    Architecture: Dual-layer validation (client calls this for server validation).
+
+    Request: POST /api/validate/cob/section-ii/
+    Body: { naslov, kratak_opis, problem, cilj, planirani_koraci, ocekivani_uticaj }
+
+    Response:
+    - Success: { "valid": true }
+    - Error: { "valid": false, "errors": { "field": ["error message"] } }
+    """
+    # Content-Type validation (Story 3-2 ISSUE 11)
+    content_type = request.META.get('CONTENT_TYPE', '')
+    if 'application/json' not in content_type:
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': ['Content-Type mora biti application/json.']}
+        }, status=400)
+
+    try:
+        data = json.loads(request.body)
+        form = COBInitiativeDataForm(data)
+
+        if form.is_valid():
+            # ISSUE 8 FIX: Add IP address logging (consistency with Section I)
+            submission_logger.info(
+                'COB Section II validation successful',
+                extra={
+                    'validation_type': 'cob_section_ii',
+                    'status': 'valid',
+                    'ip': request.META.get('REMOTE_ADDR')
+                }
+            )
+
+            return JsonResponse({
+                'valid': True,
+                'message': 'Podaci su validni.'
+            })
+        else:
+            # ISSUE 7 FIX: Log validation failures (GDPR-compliant audit trail)
+            submission_logger.info(
+                'COB Section II validation failed',
+                extra={
+                    'validation_type': 'cob_section_ii',
+                    'status': 'invalid',
+                    'error_count': len(form.errors),
+                    'ip': request.META.get('REMOTE_ADDR')
+                }
+            )
+
+            # Return field-specific errors
+            return JsonResponse({
+                'valid': False,
+                'errors': form.errors.get_json_data()
+            }, status=400)
+
+    except json.JSONDecodeError:
+        # ISSUE 5 FIX: Match Story 3-2 error format (consistency)
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': [{'message': 'Neispravan JSON format.', 'code': 'invalid_json'}]}
+        }, status=400)
+    except Exception as e:
+        # Log error for debugging
+        submission_logger.error(f"COB Section II validation error: {str(e)}")
+
+        # ISSUE 6 FIX: Match Story 3-2 error format (consistency)
         return JsonResponse({
             'valid': False,
             'errors': {'__all__': [{'message': 'Greška pri validaciji. Molimo pokušajte ponovo.', 'code': 'server_error'}]}

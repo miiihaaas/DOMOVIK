@@ -46,6 +46,7 @@ urlpatterns = [
     path('api/drafts/register/', views.register_draft, name='register_draft'),
     path('api/drafts/check/<uuid:draft_id>/', views.check_draft_expiration, name='check_draft_expiration'),
 
-    # COB validation API (Story 3.2)
+    # COB validation API (Story 3.2, 3.3)
     path('api/validate/cob/section-i/', views.validate_cob_section_i, name='validate_cob_section_i'),
+    path('api/validate/cob/section-ii/', views.validate_cob_section_ii, name='validate_cob_section_ii'),
 ]

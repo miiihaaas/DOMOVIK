@@ -2,9 +2,10 @@
 """
 Unit tests for Django Forms.
 Story 3.2: COBApplicantForm - Simplified applicant validation (no JMBG/matični broj)
+Story 3.3: COBInitiativeDataForm - Initiative data validation (no budget)
 """
 from django.test import TestCase
-from apps.submissions.forms import COBApplicantForm
+from apps.submissions.forms import COBApplicantForm, COBInitiativeDataForm
 
 
 class COBApplicantFormTests(TestCase):
@@ -284,3 +285,247 @@ class COBApplicantFormTests(TestCase):
         })
         self.assertFalse(form.is_valid())
         self.assertIn('naziv_organizacije', form.errors)
+
+
+class COBInitiativeDataFormTests(TestCase):
+    """Test suite for COBInitiativeDataForm validation."""
+
+    def test_valid_initiative_data(self):
+        """Test valid initiative data passes validation."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Inicijativa za park',
+            'kratak_opis': 'Obnova lokalnog parka sa igralištima.',
+            'problem': 'Park je zanemaren i nebezbedno mesto za decu.',
+            'cilj': 'Kreirati bezbednu zelenu površinu za zajednicu.',
+            'planirani_koraci': 'Prikupljanje sredstava, čišćenje, postavljanje opreme.',
+            'ocekivani_uticaj': 'Povećanje kvaliteta života residents i dečije bezbednosti.',
+        })
+        self.assertTrue(form.is_valid())
+
+    def test_missing_required_fields(self):
+        """Test missing required fields fail validation."""
+        form = COBInitiativeDataForm({
+            'naslov': '',  # Missing
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('naslov', form.errors)
+
+    def test_naslov_max_length(self):
+        """Test naslov exceeding 150 characters fails validation."""
+        form = COBInitiativeDataForm({
+            'naslov': 'A' * 200,  # Exceeds 150
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('naslov', form.errors)
+
+    def test_kratak_opis_max_length(self):
+        """Test kratak_opis exceeding 500 characters fails validation."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'A' * 600,  # Exceeds 500
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('kratak_opis', form.errors)
+
+    def test_problem_max_length(self):
+        """Test problem exceeding 1500 characters fails validation."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': 'A' * 1600,  # Exceeds 1500
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('problem', form.errors)
+
+    def test_cilj_max_length(self):
+        """Test cilj exceeding 1500 characters fails validation (ISSUE 9 FIX)."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'A' * 1600,  # Exceeds 1500
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('cilj', form.errors)
+
+    def test_planirani_koraci_max_length(self):
+        """Test planirani_koraci exceeding 1500 characters fails validation (ISSUE 9 FIX)."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'A' * 1600,  # Exceeds 1500
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('planirani_koraci', form.errors)
+
+    def test_ocekivani_uticaj_max_length(self):
+        """Test ocekivani_uticaj exceeding 1500 characters fails validation (ISSUE 9 FIX)."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'A' * 1600,  # Exceeds 1500
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('ocekivani_uticaj', form.errors)
+
+    def test_whitespace_only_naslov(self):
+        """Test naslov with only whitespace fails validation."""
+        form = COBInitiativeDataForm({
+            'naslov': '    ',  # Whitespace only
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('naslov', form.errors)
+
+    def test_whitespace_only_problem(self):
+        """Test problem with only whitespace fails validation."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': '    ',  # Whitespace only
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('problem', form.errors)
+
+    def test_whitespace_only_kratak_opis(self):
+        """Test kratak_opis with only whitespace fails validation (ISSUE 10 FIX)."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': '    ',  # Whitespace only
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('kratak_opis', form.errors)
+
+    def test_whitespace_only_cilj(self):
+        """Test cilj with only whitespace fails validation (ISSUE 10 FIX)."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': '    ',  # Whitespace only
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('cilj', form.errors)
+
+    def test_whitespace_only_planirani_koraci(self):
+        """Test planirani_koraci with only whitespace fails validation (ISSUE 10 FIX)."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': '    ',  # Whitespace only
+            'ocekivani_uticaj': 'Uticaj',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('planirani_koraci', form.errors)
+
+    def test_whitespace_only_ocekivani_uticaj(self):
+        """Test ocekivani_uticaj with only whitespace fails validation (ISSUE 10 FIX)."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Naslov',
+            'kratak_opis': 'Opis',
+            'problem': 'Problem',
+            'cilj': 'Cilj',
+            'planirani_koraci': 'Koraci',
+            'ocekivani_uticaj': '    ',  # Whitespace only
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('ocekivani_uticaj', form.errors)
+
+    def test_serbian_characters(self):
+        """Test Serbian characters (č, ć, š, đ, ž) are accepted."""
+        form = COBInitiativeDataForm({
+            'naslov': 'Иницијатива за заједницу',
+            'kratak_opis': 'Побољшање квалитета живота',
+            'problem': 'Недостатак зелених површина',
+            'cilj': 'Креирати заједнички простор',
+            'planirani_koraci': 'Организација волонтера',
+            'ocekivani_uticaj': 'Јачање заједничког духа',
+        })
+        self.assertTrue(form.is_valid())
+
+    def test_leading_trailing_whitespace_normalization(self):
+        """Test leading/trailing whitespace is stripped."""
+        form = COBInitiativeDataForm({
+            'naslov': '  Test inicijativa  ',
+            'kratak_opis': '  Kratak opis  ',
+            'problem': '  Problem  ',
+            'cilj': '  Cilj  ',
+            'planirani_koraci': '  Koraci  ',
+            'ocekivani_uticaj': '  Uticaj  ',
+        })
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data['naslov'], 'Test inicijativa')
+        self.assertEqual(form.cleaned_data['kratak_opis'], 'Kratak opis')
+
+    def test_all_fields_at_max_length(self):
+        """Test all fields at exactly max length pass validation."""
+        form = COBInitiativeDataForm({
+            'naslov': 'A' * 150,
+            'kratak_opis': 'B' * 500,
+            'problem': 'C' * 1500,
+            'cilj': 'D' * 1500,
+            'planirani_koraci': 'E' * 1500,
+            'ocekivani_uticaj': 'F' * 1500,
+        })
+        self.assertTrue(form.is_valid())
+
+    def test_no_budzet_field(self):
+        """Test COB form does NOT have budžet field (simplification)."""
+        form = COBInitiativeDataForm()
+        self.assertNotIn('budzet', form.fields)
+        self.assertNotIn('totalni_budzet', form.fields)
+
+    def test_no_ciljne_grupe_field(self):
+        """Test COB form does NOT have ciljne_grupe field (simplification)."""
+        form = COBInitiativeDataForm()
+        self.assertNotIn('ciljne_grupe', form.fields)
+
+    def test_no_aktivnosti_field(self):
+        """Test COB form does NOT have aktivnosti field (simplification)."""
+        form = COBInitiativeDataForm()
+        self.assertNotIn('aktivnosti', form.fields)
+
+    def test_no_rezultati_field(self):
+        """Test COB form does NOT have rezultati field (simplification)."""
+        form = COBInitiativeDataForm()
+        self.assertNotIn('rezultati', form.fields)

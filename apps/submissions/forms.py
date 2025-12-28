@@ -456,3 +456,157 @@ class COBApplicantForm(forms.Form):
 
         # Store normalized format
         return telefon
+
+
+class COBInitiativeDataForm(forms.Form):
+    """
+    COB (Inicijativa) Section II - Initiative data validation.
+
+    Differences from COA:
+    - NO budžet field (COB doesn't require budget)
+    - NO ciljne_grupe, aktivnosti, rezultati (simpler structure)
+    - Problem limit: 1500 chars (vs COA's 2000)
+    - Single cilj field: 1500 chars (vs COA's glavni_cilj + specifični_ciljevi)
+
+    Architecture: Dual-layer validation (client-side + server-side)
+    GDPR: Validation only, does NOT persist draft data
+    """
+
+    # Naslov inicijative
+    naslov = forms.CharField(
+        max_length=150,
+        required=True,
+        label='Naslov inicijative',
+        error_messages={
+            'required': 'Naslov inicijative je obavezan.',
+            'max_length': 'Naslov ne može biti duži od 150 karaktera.',
+        },
+        widget=forms.TextInput(attrs={'maxlength': '150'})
+    )
+
+    # Kratak opis
+    kratak_opis = forms.CharField(
+        max_length=500,
+        required=True,
+        label='Kratak opis',
+        error_messages={
+            'required': 'Kratak opis je obavezan.',
+            'max_length': 'Kratak opis ne može biti duži od 500 karaktera.',
+        },
+        widget=forms.Textarea(attrs={'rows': 3, 'maxlength': '500'})
+    )
+
+    # Problem koji inicijativa rešava
+    problem = forms.CharField(
+        max_length=1500,
+        required=True,
+        label='Problem koji inicijativa rešava',
+        error_messages={
+            'required': 'Opis problema je obavezan.',
+            'max_length': 'Opis problema ne može biti duži od 1500 karaktera.',
+        },
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+    )
+
+    # Cilj inicijative
+    cilj = forms.CharField(
+        max_length=1500,
+        required=True,
+        label='Cilj inicijative',
+        error_messages={
+            'required': 'Cilj inicijative je obavezan.',
+            'max_length': 'Cilj inicijative ne može biti duži od 1500 karaktera.',
+        },
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+    )
+
+    # Planirani koraci
+    planirani_koraci = forms.CharField(
+        max_length=1500,
+        required=True,
+        label='Planirani koraci',
+        error_messages={
+            'required': 'Planirani koraci su obavezni.',
+            'max_length': 'Planirani koraci ne mogu biti duži od 1500 karaktera.',
+        },
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+    )
+
+    # Očekivani uticaj na zajednicu
+    ocekivani_uticaj = forms.CharField(
+        max_length=1500,
+        required=True,
+        label='Očekivani uticaj na zajednicu',
+        error_messages={
+            'required': 'Očekivani uticaj je obavezan.',
+            'max_length': 'Očekivani uticaj ne može biti duži od 1500 karaktera.',
+        },
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+    )
+
+    # NO budžet field - COB simplification
+    # NO ciljne_grupe field - COB simplification
+    # NO aktivnosti field - COB simplification
+    # NO rezultati field - COB simplification
+
+    # ISSUE 16 FIX: Removed clean() method - it's DEAD CODE
+    # Django calls clean_<field>() FIRST, then clean()
+    # By the time clean() executes, values are already stripped by clean_<field>() methods
+    # So the check "if value and not value.strip()" would NEVER trigger
+    # Whitespace validation is correctly handled in individual clean_<field>() methods below
+
+    def clean_naslov(self):
+        """Normalize and validate naslov."""
+        naslov = self.cleaned_data.get('naslov')
+        if naslov:
+            # Strip leading/trailing whitespace
+            naslov = naslov.strip()
+            # Ensure non-empty after strip
+            if not naslov:
+                raise ValidationError('Naslov ne može biti prazan.')
+        return naslov
+
+    def clean_kratak_opis(self):
+        """Normalize and validate kratak_opis."""
+        kratak_opis = self.cleaned_data.get('kratak_opis')
+        if kratak_opis:
+            kratak_opis = kratak_opis.strip()
+            if not kratak_opis:
+                raise ValidationError('Kratak opis ne može biti prazan.')
+        return kratak_opis
+
+    def clean_problem(self):
+        """Normalize and validate problem."""
+        problem = self.cleaned_data.get('problem')
+        if problem:
+            problem = problem.strip()
+            if not problem:
+                raise ValidationError('Opis problema ne može biti prazan.')
+        return problem
+
+    def clean_cilj(self):
+        """Normalize and validate cilj."""
+        cilj = self.cleaned_data.get('cilj')
+        if cilj:
+            cilj = cilj.strip()
+            if not cilj:
+                raise ValidationError('Cilj inicijative ne može biti prazan.')
+        return cilj
+
+    def clean_planirani_koraci(self):
+        """Normalize and validate planirani_koraci."""
+        planirani_koraci = self.cleaned_data.get('planirani_koraci')
+        if planirani_koraci:
+            planirani_koraci = planirani_koraci.strip()
+            if not planirani_koraci:
+                raise ValidationError('Planirani koraci ne mogu biti prazni.')
+        return planirani_koraci
+
+    def clean_ocekivani_uticaj(self):
+        """Normalize and validate ocekivani_uticaj."""
+        ocekivani_uticaj = self.cleaned_data.get('ocekivani_uticaj')
+        if ocekivani_uticaj:
+            ocekivani_uticaj = ocekivani_uticaj.strip()
+            if not ocekivani_uticaj:
+                raise ValidationError('Očekivani uticaj ne može biti prazan.')
+        return ocekivani_uticaj
