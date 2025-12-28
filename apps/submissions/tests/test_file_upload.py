@@ -45,7 +45,7 @@ class FileUploadViewTests(TestCase):
         )
 
         # Get CSRF token
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         # Upload file
@@ -82,7 +82,7 @@ class FileUploadViewTests(TestCase):
             content_type='application/msword'
         )
 
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(
@@ -108,7 +108,7 @@ class FileUploadViewTests(TestCase):
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(
@@ -136,7 +136,7 @@ class FileUploadViewTests(TestCase):
             content_type='application/pdf'
         )
 
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(
@@ -164,7 +164,7 @@ class FileUploadViewTests(TestCase):
             content_type='application/x-msdownload'
         )
 
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(
@@ -212,7 +212,7 @@ class FileUploadViewTests(TestCase):
             content_type='application/pdf'
         )
 
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(
@@ -261,7 +261,7 @@ class FileDeleteViewTests(TestCase):
 
     def test_delete_file_successfully(self):
         """Should successfully delete file."""
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(
@@ -281,7 +281,7 @@ class FileDeleteViewTests(TestCase):
 
     def test_delete_non_existent_file(self):
         """Should return 404 for non-existent file."""
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(
@@ -308,7 +308,7 @@ class FileDeleteViewTests(TestCase):
             uploaded_by_session='different_session_key_12345'
         )
 
-        response = self.client.get(reverse('coa_form'))
+        response = self.client.get(reverse('submissions:coa_form'))
         csrf_token = response.cookies.get('csrftoken').value
 
         response = self.client.post(

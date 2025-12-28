@@ -1,6 +1,7 @@
 /**
  * Character Counter Module - Real-Time Character Counting & Overflow Management
  * Story 2.6: COA Form Section II - Project Data with Character Management
+ * Story 3.1: Made application-agnostic to support both COA and COB forms
  *
  * Features:
  * - Real-time character counting (< 100ms performance - NFR5)
@@ -8,6 +9,7 @@
  * - Serbian error messages for overflow
  * - ARIA live regions for screen reader announcements
  * - Vanilla JavaScript ES6+ (no frameworks)
+ * - Application-agnostic: Detects COA vs COB and uses appropriate limits
  *
  * Performance Optimization:
  * - Uses requestAnimationFrame for smooth 60fps updates
@@ -15,8 +17,8 @@
  * - Avoids DOM thrashing: batch reads, then batch writes
  */
 
-// Character limits object (Task 2.2) - authoritative source
-const CHAR_LIMITS = {
+// Character limits object per application type (Story 3.1)
+const CHAR_LIMITS_COA = {
   naslov: 150,
   opis: 500,
   problem: 2000,
@@ -27,19 +29,42 @@ const CHAR_LIMITS = {
   rezultati: 1500
 };
 
+const CHAR_LIMITS_COB = {
+  naslov: 150,
+  kratak_opis: 500,
+  problem: 1500,
+  cilj: 1500,
+  planirani_koraci: 1500,
+  ocekivani_uticaj: 1500
+};
+
+/**
+ * Get character limits based on application type (Story 3.1)
+ * @returns {Object} CHAR_LIMITS object for current application
+ */
+function getCharLimits() {
+  const appType = document.body.dataset.applicationType || 'COA';
+  return appType === 'COB' ? CHAR_LIMITS_COB : CHAR_LIMITS_COA;
+}
+
+// For backward compatibility
+const CHAR_LIMITS = getCharLimits();
+
 /**
  * Initialize character counters for all Section II textareas (Task 2.3)
+ * Story 3.1: Now application-agnostic, uses getCharLimits()
  * Finds all textareas, attaches input listeners for real-time updates
  */
 function initializeCharacterCounters() {
-  Object.keys(CHAR_LIMITS).forEach(fieldId => {
+  const charLimits = getCharLimits();
+  Object.keys(charLimits).forEach(fieldId => {
     const textarea = document.getElementById(`id_${fieldId}`);
     if (!textarea) {
       console.warn(`Character Counter: Textarea id_${fieldId} nije pronađena`);
       return;
     }
 
-    const maxLength = CHAR_LIMITS[fieldId];
+    const maxLength = charLimits[fieldId];
     const counterElement = document.querySelector(`.character-counter[data-field="${fieldId}"]`);
 
     if (!counterElement) {
@@ -351,7 +376,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // Export functions for testing and draft-manager integration
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    CHAR_LIMITS,
+    CHAR_LIMITS_COA,
+    CHAR_LIMITS_COB,
+    getCharLimits,
     initializeCharacterCounters,
     updateCharacterCount,
     handleCharacterOverflow,

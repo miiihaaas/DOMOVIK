@@ -54,12 +54,61 @@ class ProjectApplicationView(TemplateView):
         return context
 
 
-class InitiativeApplicationView(TemplateView):
+@ensure_csrf_cookie
+@require_http_methods(['GET'])
+def cob_form(request):
     """
-    Placeholder view for COB (Initiative) application form.
-    Full implementation in Epic 3 (Stories 3.1-3.6).
+    COB (Inicijativa) form view - Simplified application flow.
+    Story 3.1: COB Routing & Form Initialization
+
+    Differences from COA:
+    - NO JMBG field (fizičko lice)
+    - NO matični broj field (pravno lice)
+    - Simpler Section II (no budget)
+    - Only 2 file uploads (vs COA's 3+)
+
+    Reuses:
+    - Draft system (DraftManager with application_type='COB')
+    - Validation infrastructure (email, phone, character counter)
+    - File upload system (same backend)
+    - Progress stepper (3 sections)
+
+    Security:
+    - CSRF cookie ensured for file upload functionality
+    - HTTP GET method only (no form processing)
     """
-    template_name = 'submissions/cob_form.html'
+    context = {
+        'application_type': 'COB',  # Critical for draft-manager.js
+        'form_title': 'Prijava za Inicijativu (COB)',
+        'sections': [
+            {'number': 1, 'title': 'Opšti podaci'},
+            {'number': 2, 'title': 'Podaci o inicijativi'},
+            {'number': 3, 'title': 'Dokumentacija i saglasnost'},
+        ],
+        'entity_types': [
+            {'value': 'fizicko', 'label': 'Fizičko lice'},
+            {'value': 'pravno', 'label': 'Pravno lice'},
+        ],
+        # Character limits (from epics.md - Story 3.3)
+        'char_limits': {
+            'naslov': 150,
+            'kratak_opis': 500,
+            'problem': 1500,
+            'cilj': 1500,
+            'planirani_koraci': 1500,
+            'ocekivani_uticaj': 1500,
+        },
+        # File upload requirements (Story 3.4)
+        'required_files': [
+            {'id': 'opis_inicijative', 'label': 'Opis inicijative (PDF/DOC)', 'accept': '.pdf,.doc,.docx', 'required': True},
+            {'id': 'pismo_namere', 'label': 'Pismo namere (PDF/DOC)', 'accept': '.pdf,.doc,.docx', 'required': True},
+        ],
+        # Privacy policy links (same as COA)
+        'privacy_policy_url': '/politika-privatnosti/',
+        'terms_of_use_url': '/uslovi-koristenja/',
+    }
+
+    return render(request, 'submissions/cob_form.html', context)
 
 
 @csrf_protect

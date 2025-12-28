@@ -3,6 +3,7 @@
  * Story 2.2: Basic draft save/load for entity type switching
  * Story 2.4: Auto-save every 30s, beforeunload handler, visual notifications
  * Story 2.15: Server-side draft tracking for GDPR 7-day auto-deletion
+ * Story 3.1: Application-agnostic support for COA and COB forms
  *
  * Features:
  * - Auto-save every 30 seconds (debounced from last input)
@@ -13,9 +14,13 @@
  * - QuotaExceededError handling with graceful degradation
  * - Performance measurement (development mode only)
  * - Server-side draft expiration sync
+ * - Application type detection (COA/COB) from data attribute
  */
 
-const DRAFT_KEY = 'domovik_coa_draft';
+// Story 3.1: Dynamic draft key based on application type
+const getApplicationType = () => document.body.dataset.applicationType || 'COA';
+const getDraftKey = () => `domovik_${getApplicationType().toLowerCase()}_draft`;
+const DRAFT_KEY = getDraftKey();
 
 // Global auto-save timer reference (Story 2.4 - Task 1.1)
 // Explicitly on window object for access from entity-type-switcher.js (Task 4.4)
@@ -44,11 +49,12 @@ function generateUUID() {
 
 /**
  * Get or create draft ID from localStorage (Story 2.15)
+ * Story 3.1: Updated to use dynamic draft key
  * @returns {string} Draft UUID
  */
 function getOrCreateDraftId() {
   try {
-    const draftJson = localStorage.getItem(DRAFT_KEY);
+    const draftJson = localStorage.getItem(getDraftKey());
     if (draftJson) {
       const draftData = JSON.parse(draftJson);
       if (draftData.draft_id) {
@@ -154,7 +160,7 @@ async function checkDraftExpiration() {
     // ISSUE 10 FIX: Handle CSRF token errors by deleting stale draft
     if (response.status === 403) {
       console.warn('CSRF token invalid - deleting stale draft from localStorage');
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(getDraftKey());
       return true; // Treat as expired
     }
 
@@ -168,7 +174,7 @@ async function checkDraftExpiration() {
     // If server says draft doesn't exist or is expired
     if (!data.exists || data.expired) {
       console.log('Draft expired on server. Deleting from localStorage.');
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(getDraftKey());
       return true; // Expired
     }
 
@@ -182,6 +188,7 @@ async function checkDraftExpiration() {
 
 /**
  * Collect all form data for saving (Story 2.4 - Task 3, Story 2.7 - Task 11)
+ * Story 3.1: Updated to handle both COA and COB forms dynamically
  * @returns {Object} Draft data object with application_type, timestamp, and all fields
  */
 function collectFormData() {
@@ -191,19 +198,24 @@ function collectFormData() {
     currentSectionNumber = currentSection;
   }
 
-  return {
+  const appType = getApplicationType();
+
+  // Common data for both COA and COB
+  const baseData = {
     draft_id: draftId,  // Story 2.15: UUID for server-side tracking
-    application_type: 'COA',  // Distinguishes COA vs COB drafts (multi-form system - Epic 3+)
+    application_type: appType,  // Story 3.1: Dynamic COA/COB detection
     timestamp: new Date().toISOString(),
     currentSection: currentSectionNumber,  // Story 2.7: Track current section for restoration
     entity_type: document.getElementById('id_entity_type')?.value || 'fizicko',
     fizicko: {
       ime: document.getElementById('id_ime')?.value || '',
       prezime: document.getElementById('id_prezime')?.value || '',
+      // COA has JMBG, COB does NOT (Story 3.1 simplification)
       jmbg: document.getElementById('id_jmbg')?.value || ''
     },
     pravno: {
       naziv_organizacije: document.getElementById('id_naziv_organizacije')?.value || '',
+      // COA has matični_broj, COB does NOT (Story 3.1 simplification)
       maticni_broj: document.getElementById('id_maticni_broj')?.value || ''
     },
     common: {
@@ -211,8 +223,16 @@ function collectFormData() {
       email: document.getElementById('id_email')?.value || '',
       telefon: document.getElementById('id_telefon')?.value || ''
     },
-    // Section II: Project Data (Story 2.6 - Task 6.2)
-    sectionII: {
+    // Story 2.10 Task 7: Consent checkboxes state (GDPR-compliant - client-side only)
+    consent_checkboxes: collectConsentStates(),
+    // Story 2.8 Task 12: File upload metadata integration (GDPR-compliant)
+    uploadedFiles: collectUploadedFileMetadata()
+  };
+
+  // Section II: Different fields for COA vs COB
+  if (appType === 'COA') {
+    // COA: Project Data (Story 2.6)
+    baseData.sectionII = {
       naslov: document.getElementById('id_naslov')?.value || '',
       opis: document.getElementById('id_opis')?.value || '',
       problem: document.getElementById('id_problem')?.value || '',
@@ -222,12 +242,21 @@ function collectFormData() {
       aktivnosti: document.getElementById('id_aktivnosti')?.value || '',
       rezultati: document.getElementById('id_rezultati')?.value || '',
       budžet: document.getElementById('id_budžet')?.value || ''
-    },
-    // Story 2.10 Task 7: Consent checkboxes state (GDPR-compliant - client-side only)
-    consent_checkboxes: collectConsentStates(),
-    // Story 2.8 Task 12: File upload metadata integration (GDPR-compliant)
-    uploadedFiles: collectUploadedFileMetadata()
-  };
+    };
+  } else if (appType === 'COB') {
+    // COB: Initiative Data (Story 3.1 - Simpler fields, NO budget)
+    baseData.sectionII = {
+      naslov: document.getElementById('id_naslov')?.value || '',
+      kratak_opis: document.getElementById('id_kratak_opis')?.value || '',
+      problem: document.getElementById('id_problem')?.value || '',
+      cilj: document.getElementById('id_cilj')?.value || '',
+      planirani_koraci: document.getElementById('id_planirani_koraci')?.value || '',
+      ocekivani_uticaj: document.getElementById('id_ocekivani_uticaj')?.value || ''
+      // NO BUDGET - COB simplification
+    };
+  }
+
+  return baseData;
 }
 
 /**
@@ -288,7 +317,9 @@ function collectUploadedFileMetadata() {
  * - Admin panel NEVER sees draft data (only submitted applications)
  */
 function saveDraft() {
-  const form = document.getElementById('coa-form-section-i');
+  // Story 3.1: Dynamic form ID based on application type
+  const formId = getApplicationType() === 'COA' ? 'coa-form-section-i' : 'cob-form';
+  const form = document.getElementById(formId);
   if (!form) {
     console.warn('Draft Manager: Forma nije pronađena');
     return;
@@ -313,7 +344,8 @@ function saveDraft() {
     // Show saving indicator (Task 2.2)
     showSavingIndicator();
 
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+    // Story 3.1: Use dynamic draft key
+    localStorage.setItem(getDraftKey(), JSON.stringify(draftData));
 
     // Performance measurement end
     if (isDevelopment) {
@@ -350,7 +382,8 @@ function saveDraft() {
  */
 function checkDraftExists() {
   try {
-    const draftJson = localStorage.getItem(DRAFT_KEY);
+    // Story 3.1: Use dynamic draft key
+    const draftJson = localStorage.getItem(getDraftKey());
     if (!draftJson) {
       return { exists: false, expired: false, data: null };
     }
@@ -360,7 +393,7 @@ function checkDraftExists() {
     // Check if draft is expired (>7 days old) using extracted helper
     if (isExpiredDraft(draftData)) {
       // Auto-delete expired draft (GDPR - NFR18)
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(getDraftKey());
       console.log('Draft expired (>7 days), auto-deleted');
       return { exists: false, expired: true, data: null };
     }
@@ -370,7 +403,7 @@ function checkDraftExists() {
   } catch (error) {
     // Corrupt JSON handling - cleanup and return false
     console.error('Corrupt draft data detected, cleaning up:', error);
-    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(getDraftKey());
     return { exists: false, expired: false, data: null };
   }
 }
@@ -478,17 +511,30 @@ function loadDraft() {
       restoreFieldValue('id_telefon', draftData.common.telefon);
     }
 
-    // Restore Section II fields (Story 2.6 - Task 6.3)
+    // Restore Section II fields (Story 2.6 - Task 6.3, Story 3.1 - COB support)
     if (draftData.sectionII) {
-      restoreFieldValue('id_naslov', draftData.sectionII.naslov);
-      restoreFieldValue('id_opis', draftData.sectionII.opis);
-      restoreFieldValue('id_problem', draftData.sectionII.problem);
-      restoreFieldValue('id_cilj', draftData.sectionII.cilj);
-      restoreFieldValue('id_specifični_ciljevi', draftData.sectionII.specifični_ciljevi);
-      restoreFieldValue('id_ciljne_grupe', draftData.sectionII.ciljne_grupe);
-      restoreFieldValue('id_aktivnosti', draftData.sectionII.aktivnosti);
-      restoreFieldValue('id_rezultati', draftData.sectionII.rezultati);
-      restoreFieldValue('id_budžet', draftData.sectionII.budžet);
+      const appType = getApplicationType();
+
+      if (appType === 'COA') {
+        // COA: Project Data
+        restoreFieldValue('id_naslov', draftData.sectionII.naslov);
+        restoreFieldValue('id_opis', draftData.sectionII.opis);
+        restoreFieldValue('id_problem', draftData.sectionII.problem);
+        restoreFieldValue('id_cilj', draftData.sectionII.cilj);
+        restoreFieldValue('id_specifični_ciljevi', draftData.sectionII.specifični_ciljevi);
+        restoreFieldValue('id_ciljne_grupe', draftData.sectionII.ciljne_grupe);
+        restoreFieldValue('id_aktivnosti', draftData.sectionII.aktivnosti);
+        restoreFieldValue('id_rezultati', draftData.sectionII.rezultati);
+        restoreFieldValue('id_budžet', draftData.sectionII.budžet);
+      } else if (appType === 'COB') {
+        // COB: Initiative Data (simpler, no budget)
+        restoreFieldValue('id_naslov', draftData.sectionII.naslov);
+        restoreFieldValue('id_kratak_opis', draftData.sectionII.kratak_opis);
+        restoreFieldValue('id_problem', draftData.sectionII.problem);
+        restoreFieldValue('id_cilj', draftData.sectionII.cilj);
+        restoreFieldValue('id_planirani_koraci', draftData.sectionII.planirani_koraci);
+        restoreFieldValue('id_ocekivani_uticaj', draftData.sectionII.ocekivani_uticaj);
+      }
 
       // Trigger character counter updates for Section II (Task 6.4)
       triggerCharacterCountersAfterDraftLoad();
@@ -567,14 +613,15 @@ function saveConsentStatesToDraft() {
 
 /**
  * Clear consent states from draft (Story 2.10 - Task 7.8)
+ * Story 3.1: Updated to use dynamic draft key
  * Called on successful submission to cleanup
  */
 function clearConsentStatesFromDraft() {
-  const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
+  const draft = JSON.parse(localStorage.getItem(getDraftKey()) || '{}');
 
   if (draft && draft.consent_checkboxes) {
     delete draft.consent_checkboxes;
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    localStorage.setItem(getDraftKey(), JSON.stringify(draft));
     console.log('Consent states cleared from draft');
   }
 }
@@ -647,13 +694,24 @@ function formatFileSize(bytes) {
 
 /**
  * Trigger character counters for Section II after draft load (Story 2.6 - Task 6.4)
+ * Story 3.1: Updated to handle both COA and COB fields
  * IMPORTANT: Only triggers for Section II textareas if they have content
  */
 function triggerCharacterCountersAfterDraftLoad() {
-  // Character limits from character-counter.js
-  const SECTION_II_FIELDS = ['naslov', 'opis', 'problem', 'cilj', 'specifični_ciljevi', 'ciljne_grupe', 'aktivnosti', 'rezultati'];
+  const appType = getApplicationType();
 
-  SECTION_II_FIELDS.forEach(fieldId => {
+  let sectionIIFields;
+  if (appType === 'COA') {
+    // COA: Project Data fields
+    sectionIIFields = ['naslov', 'opis', 'problem', 'cilj', 'specifični_ciljevi', 'ciljne_grupe', 'aktivnosti', 'rezultati'];
+  } else if (appType === 'COB') {
+    // COB: Initiative Data fields (simpler, no budget)
+    sectionIIFields = ['naslov', 'kratak_opis', 'problem', 'cilj', 'planirani_koraci', 'ocekivani_uticaj'];
+  } else {
+    sectionIIFields = [];
+  }
+
+  sectionIIFields.forEach(fieldId => {
     const field = document.getElementById(`id_${fieldId}`);
     if (field && field.value) {
       // Dispatch input event to trigger character counter update
@@ -880,7 +938,9 @@ function showModal() {
   const previousFocus = document.activeElement;
 
   // Disable form interaction while modal is open (Task 10.5)
-  const form = document.getElementById('coa-form-section-i');
+  // Story 3.1: Dynamic form ID based on application type
+  const formId = getApplicationType() === 'COA' ? 'coa-form-section-i' : 'cob-form';
+  const form = document.getElementById(formId);
   if (form) {
     form.style.pointerEvents = 'none';
     form.style.opacity = '0.5';
@@ -957,8 +1017,10 @@ function handleContinue(modal, previousFocus) {
   initializeAutoSave();
 
   // Focus first form field after modal closes (Task 4.6)
+  // Story 3.1: Dynamic form ID
   setTimeout(() => {
-    const firstInput = document.querySelector('#coa-form-section-i input[type="text"]');
+    const formId = getApplicationType() === 'COA' ? 'coa-form-section-i' : 'cob-form';
+    const firstInput = document.querySelector(`#${formId} input[type="text"]`);
     if (firstInput) {
       firstInput.focus();
     }
@@ -967,14 +1029,18 @@ function handleContinue(modal, previousFocus) {
 
 /**
  * Handle "Počni ispočetka" button click (Story 2.5 - Task 5.1-5.7)
+ * Story 3.1: Updated to use dynamic draft key and form ID
  * Clears draft and resets form
  */
 function handleStartFresh(modal, previousFocus) {
   // Delete draft from localStorage (Task 5.2)
-  localStorage.removeItem(DRAFT_KEY);
+  // Story 3.1: Use dynamic draft key
+  localStorage.removeItem(getDraftKey());
 
   // Reset form (Task 5.3)
-  const form = document.getElementById('coa-form-section-i');
+  // Story 3.1: Dynamic form ID
+  const formId = getApplicationType() === 'COA' ? 'coa-form-section-i' : 'cob-form';
+  const form = document.getElementById(formId);
   if (form) {
     form.reset();
   }
@@ -1001,8 +1067,10 @@ function handleStartFresh(modal, previousFocus) {
   initializeAutoSave();
 
   // Focus first form field (Task 5.7)
+  // Story 3.1: Dynamic form ID
   setTimeout(() => {
-    const firstInput = document.querySelector('#coa-form-section-i input[type="text"]');
+    const formId = getApplicationType() === 'COA' ? 'coa-form-section-i' : 'cob-form';
+    const firstInput = document.querySelector(`#${formId} input[type="text"]`);
     if (firstInput) {
       firstInput.focus();
     }
@@ -1028,7 +1096,9 @@ function closeModal(modal, previousFocus, clearDraft) {
     document.body.style.overflow = '';
 
     // Re-enable form interaction (Task 10.6)
-    const form = document.getElementById('coa-form-section-i');
+    // Story 3.1: Dynamic form ID
+    const formId = getApplicationType() === 'COA' ? 'coa-form-section-i' : 'cob-form';
+    const form = document.getElementById(formId);
     if (form) {
       form.style.pointerEvents = '';
       form.style.opacity = '';
@@ -1042,14 +1112,14 @@ function closeModal(modal, previousFocus, clearDraft) {
         previousFocus.focus();
       } catch (e) {
         // Fallback: focus first form input if restoration fails
-        const fallbackInput = document.querySelector('#coa-form-section-i input[type="text"]');
+        const fallbackInput = document.querySelector(`#${formId} input[type="text"]`);
         if (fallbackInput) {
           fallbackInput.focus();
         }
       }
     } else if (previousFocus) {
       // Element was removed from DOM, use fallback
-      const fallbackInput = document.querySelector('#coa-form-section-i input[type="text"]');
+      const fallbackInput = document.querySelector(`#${formId} input[type="text"]`);
       if (fallbackInput) {
         fallbackInput.focus();
       }
@@ -1059,10 +1129,13 @@ function closeModal(modal, previousFocus, clearDraft) {
 
 /**
  * Show localStorage unavailable warning (Story 2.5 - Task 9.2-9.4)
+ * Story 3.1: Updated to use dynamic form ID
  * Displays persistent warning at top of form when localStorage is unavailable
  */
 function showLocalStorageWarning() {
-  const form = document.getElementById('coa-form-section-i');
+  // Story 3.1: Dynamic form ID
+  const formId = getApplicationType() === 'COA' ? 'coa-form-section-i' : 'cob-form';
+  const form = document.getElementById(formId);
   if (!form) return;
 
   const warningHTML = `

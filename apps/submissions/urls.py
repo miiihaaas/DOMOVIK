@@ -5,6 +5,7 @@ Story 2.8: File upload/delete API endpoints
 Story 2.11: Submission processing endpoint
 Story 2.13: Success screen, PDF download, email resend
 Story 2.15: Draft registration and expiration check API endpoints
+Story 3.1: COB routing and form initialization
 """
 from django.urls import path
 from apps.submissions import views
@@ -12,6 +13,12 @@ from apps.submissions import views
 app_name = 'submissions'
 
 urlpatterns = [
+    # COA - Projekat (Epic 2)
+    path('projekat/', views.ProjectApplicationView.as_view(), name='coa_form'),
+
+    # COB - Inicijativa (Epic 3 - Story 3.1)
+    path('inicijativa/', views.cob_form, name='cob_form'),
+
     # File upload/delete endpoints (Story 2.8)
     path('upload/', views.upload_file, name='upload_file'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),

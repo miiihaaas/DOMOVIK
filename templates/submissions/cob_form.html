@@ -5,20 +5,315 @@
 
 {% block meta_description %}Podnesi brzu prijavu za inicijativu kroz DOMOVIK platformu. Bez potrebe za detaljnim budžetom ili velikim timom.{% endblock %}
 
-{% block content %}
-<main class="cob-form">
-    <section class="cob-form__hero">
-        <h1>Prijava za Inicijativu (COB)</h1>
-        <p class="cob-form__subtitle">Brza prijava u tri koraka bez komplikovane dokumentacije.</p>
-    </section>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/forms.css' %}">
+<link rel="stylesheet" href="{% static 'css/file-upload.css' %}">
+<link rel="stylesheet" href="{% static 'css/consent-section.css' %}">
+{% endblock %}
 
-    <section class="cob-form__placeholder">
-        <div class="placeholder-message">
-            <h2>⚠️ Forma u razvoju</h2>
-            <p>COB forma će biti implementirana u Epic 3 (Stories 3.1-3.6).</p>
-            <p>Za sada, možete se vratiti na početnu stranu.</p>
-            <a href="{% url 'landing_home' %}" class="btn btn--primary">Nazad na početnu</a>
+{% block body_attrs %} data-application-type="COB"{% endblock %}
+
+{% block content %}
+<main class="container">
+  <h1 class="form-title">{{ form_title }}</h1>
+  <p class="form-subtitle">Pojednostavljen proces prijave inicijativa</p>
+
+  <!-- Auto-Save Indicator (Story 2.4 - Reused) -->
+  <div id="autosave-indicator" class="autosave-indicator" aria-live="polite" aria-atomic="true">
+    <span class="autosave-indicator__icon"></span>
+    <span class="autosave-indicator__text"></span>
+  </div>
+
+  <!-- NoScript Fallback -->
+  <noscript>
+    <div class="noscript-warning">
+      <strong>JavaScript je onemogućen.</strong> Osnovna funkcionalnost forme će raditi, ali bez auto-save i real-time validacije.
+    </div>
+  </noscript>
+
+  {% include "submissions/_progress_stepper.html" %}
+
+  <form method="post" action="" class="cob-form" id="cob-form">
+    {# TODO Story 3.5: Update action to {% url 'cob_submit' %} when submission view is implemented #}
+    {% csrf_token %}
+
+    <!-- SECTION I: Opšti podaci (Simplified - NO JMBG/Matični) -->
+    <div id="section-i" class="section-i">
+      <h2 class="section-title">Sekcija I: Opšti podaci</h2>
+
+      <!-- Entity Type Switcher (Reused from COA) -->
+      <div class="entity-type-switcher">
+        <label class="switcher-label">Tip podnosioca:</label>
+        <div class="switcher-buttons">
+          <button type="button" class="switcher-btn active" data-entity="fizicko">
+            Fizičko lice
+          </button>
+          <button type="button" class="switcher-btn" data-entity="pravno">
+            Pravno lice
+          </button>
         </div>
-    </section>
+        <input type="hidden" name="entity_type" id="id_entity_type" value="fizicko">
+      </div>
+
+      <!-- Fizičko lice fields (NO JMBG - COB simplification) -->
+      <div id="fizicko-fields" class="entity-fields active">
+        <h2 class="section-subtitle">Podaci o fizičkom licu</h2>
+
+        <div class="form-group">
+          <label for="id_ime">Ime *</label>
+          <input type="text" name="ime" id="id_ime" autocomplete="given-name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="id_prezime">Prezime *</label>
+          <input type="text" name="prezime" id="id_prezime" autocomplete="family-name" required>
+        </div>
+
+        <!-- NO JMBG FIELD - COB simplification -->
+      </div>
+
+      <!-- Pravno lice fields (NO Matični broj - COB simplification) -->
+      <div id="pravno-fields" class="entity-fields">
+        <h2 class="section-subtitle">Podaci o pravnom licu</h2>
+
+        <div class="form-group">
+          <label for="id_naziv_organizacije">Naziv organizacije *</label>
+          <input type="text" name="naziv_organizacije" id="id_naziv_organizacije" autocomplete="organization">
+        </div>
+
+        <!-- NO MATIČNI BROJ FIELD - COB simplification -->
+      </div>
+
+      <!-- Common fields (always visible) -->
+      <div class="common-fields">
+        <h2 class="section-subtitle">Kontakt informacije</h2>
+
+        <div class="form-group">
+          <label for="id_adresa">Adresa *</label>
+          <textarea name="adresa" id="id_adresa" rows="3" autocomplete="street-address" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="id_email">Email *</label>
+          <input type="email" name="email" id="id_email" autocomplete="email" aria-invalid="false" aria-describedby="id_email_error" required>
+          <div id="id_email_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="id_telefon">Telefon *</label>
+          <input type="tel" name="telefon" id="id_telefon" autocomplete="tel" aria-invalid="false" aria-describedby="id_telefon_error" required>
+          <small class="help-text">Format: 06XXXXXXX ili +3816XXXXXXX</small>
+          <div id="id_telefon_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION II: Podaci o inicijativi (Simplified - NO Budget) -->
+    <div id="section-ii" class="section-ii" style="display: none;">
+      <h2 class="section-title">Sekcija II: Podaci o inicijativi</h2>
+
+      <fieldset class="section-ii__fieldset">
+        <legend class="sr-only">Informacije o inicijativi</legend>
+
+        <!-- Naslov inicijative -->
+        <div class="form-group section-ii__field">
+          <label for="id_naslov">Naslov inicijative *</label>
+          <textarea name="naslov" id="id_naslov" rows="2" maxlength="150" aria-required="true" aria-describedby="id_naslov_counter" required></textarea>
+          <small class="help-text">Maksimalno 150 karaktera</small>
+          <div id="id_naslov_counter" class="character-counter" data-field="naslov" aria-live="polite"></div>
+        </div>
+
+        <!-- Kratak opis -->
+        <div class="form-group section-ii__field">
+          <label for="id_kratak_opis">Kratak opis *</label>
+          <textarea name="kratak_opis" id="id_kratak_opis" rows="4" maxlength="500" aria-required="true" aria-describedby="id_kratak_opis_counter" required></textarea>
+          <small class="help-text">Maksimalno 500 karaktera</small>
+          <div id="id_kratak_opis_counter" class="character-counter" data-field="kratak_opis" aria-live="polite"></div>
+        </div>
+
+        <!-- Problem koji inicijativa rešava -->
+        <div class="form-group section-ii__field">
+          <label for="id_problem">Problem koji inicijativa rešava *</label>
+          <textarea name="problem" id="id_problem" rows="6" data-max="1500" aria-required="true" aria-describedby="id_problem_counter" required></textarea>
+          <small class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_problem_counter" class="character-counter" data-field="problem" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="problem"></div>
+          <div class="character-error-message" data-field="problem" style="display: none;"></div>
+        </div>
+
+        <!-- Cilj inicijative -->
+        <div class="form-group section-ii__field">
+          <label for="id_cilj">Cilj inicijative *</label>
+          <textarea name="cilj" id="id_cilj" rows="6" data-max="1500" aria-required="true" aria-describedby="id_cilj_counter" required></textarea>
+          <small class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_cilj_counter" class="character-counter" data-field="cilj" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="cilj"></div>
+          <div class="character-error-message" data-field="cilj" style="display: none;"></div>
+        </div>
+
+        <!-- Planirani koraci -->
+        <div class="form-group section-ii__field">
+          <label for="id_planirani_koraci">Planirani koraci *</label>
+          <textarea name="planirani_koraci" id="id_planirani_koraci" rows="6" data-max="1500" aria-required="true" aria-describedby="id_planirani_koraci_counter" required></textarea>
+          <small class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_planirani_koraci_counter" class="character-counter" data-field="planirani_koraci" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="planirani_koraci"></div>
+          <div class="character-error-message" data-field="planirani_koraci" style="display: none;"></div>
+        </div>
+
+        <!-- Očekivani uticaj na zajednicu -->
+        <div class="form-group section-ii__field">
+          <label for="id_ocekivani_uticaj">Očekivani uticaj na zajednicu *</label>
+          <textarea name="ocekivani_uticaj" id="id_ocekivani_uticaj" rows="6" data-max="1500" aria-required="true" aria-describedby="id_ocekivani_uticaj_counter" required></textarea>
+          <small class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_ocekivani_uticaj_counter" class="character-counter" data-field="ocekivani_uticaj" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="ocekivani_uticaj"></div>
+          <div class="character-error-message" data-field="ocekivani_uticaj" style="display: none;"></div>
+        </div>
+
+        <!-- NO BUDGET FIELD - COB simplification -->
+      </fieldset>
+    </div>
+
+    <!-- SECTION III: Dokumentacija (Only 2 files - COB simplification) -->
+    <div id="section-iii" class="section-iii" style="display: none;">
+      <h2 class="section-title">Sekcija III: Dokumentacija i saglasnost</h2>
+
+      <fieldset class="section-iii__fieldset">
+        <legend class="sr-only">Upload dokumenata</legend>
+
+        <!-- Opis inicijative Upload (Single PDF/DOC File) -->
+        <div class="file-upload-section" id="opis-inicijative-upload-section">
+          <h3 class="file-upload-section__title">Opis inicijative *</h3>
+
+          <div class="upload-zone" id="opis-inicijative-upload-zone" data-category="INITIATIVE_DESCRIPTION">
+            <input type="file" id="opis-inicijative-file-input" accept=".pdf,.doc,.docx" style="display:none;" aria-label="Odaberi fajl za opis inicijative">
+            <button type="button" class="upload-btn" id="opis-inicijative-upload-btn">
+              Odaberi fajl
+            </button>
+            <p class="drag-text">ili prevuci fajl ovde</p>
+            <small class="help-text">Podržani formati: PDF, DOC, DOCX. Maksimalna veličina: 10MB.</small>
+          </div>
+
+          <div class="uploaded-files-list" id="opis-inicijative-files-list"></div>
+          <div class="upload-error" id="opis-inicijative-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
+        </div>
+
+        <!-- Pismo namere Upload (Single PDF/DOC File) -->
+        <div class="file-upload-section" id="pismo-namere-upload-section">
+          <h3 class="file-upload-section__title">Pismo namere *</h3>
+
+          <div class="upload-zone" id="pismo-namere-upload-zone" data-category="LETTER_OF_INTENT">
+            <input type="file" id="pismo-namere-file-input" accept=".pdf,.doc,.docx" style="display:none;" aria-label="Odaberi fajl za pismo namere">
+            <button type="button" class="upload-btn" id="pismo-namere-upload-btn">
+              Odaberi fajl
+            </button>
+            <p class="drag-text">ili prevuci fajl ovde</p>
+            <small class="help-text">Podržani formati: PDF, DOC, DOCX. Maksimalna veličina: 10MB.</small>
+          </div>
+
+          <div class="uploaded-files-list" id="pismo-namere-files-list"></div>
+          <div class="upload-error" id="pismo-namere-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
+        </div>
+
+        <!-- NO BUDGET, BIOGRAFIJE, PISMA PODRŠKE - COB simplification -->
+
+        <!-- Draft Metadata Reminder (Initially hidden, shown on draft recovery) -->
+        <div class="draft-reminder" id="file-draft-reminder" style="display:none;" role="alert">
+          <span class="draft-reminder__icon" aria-hidden="true">ℹ️</span>
+          <p class="draft-reminder__text">Fajlovi nisu sačuvani u draft-u (GDPR zaštita). Molimo upload-ujte ponovo.</p>
+        </div>
+      </fieldset>
+
+      <!-- Consent Section (Reused from COA - Story 2.10) -->
+      <div class="consent-section">
+        <h3 class="consent-section__title">Saglasnost i potvrda</h3>
+
+        <p id="consent-description" class="sr-only">
+          Obavezno potvrdite sve tri saglasnosti da biste nastavili sa slanjem prijave.
+        </p>
+
+        <div class="consent-checkboxes">
+          <label class="consent-checkbox">
+            <input
+              type="checkbox"
+              id="consent-privacy"
+              name="consent_privacy"
+              class="consent-checkbox__input"
+              aria-required="true"
+              aria-describedby="consent-description"
+            />
+            <span class="consent-checkbox__checkmark"></span>
+            <span class="consent-checkbox__label">
+              Prihvatam <a href="{{ privacy_policy_url }}" target="_blank" rel="noopener noreferrer">Politiku privatnosti</a>
+            </span>
+          </label>
+
+          <label class="consent-checkbox">
+            <input
+              type="checkbox"
+              id="consent-terms"
+              name="consent_terms"
+              class="consent-checkbox__input"
+              aria-required="true"
+              aria-describedby="consent-description"
+            />
+            <span class="consent-checkbox__checkmark"></span>
+            <span class="consent-checkbox__label">
+              Prihvatam <a href="{{ terms_of_use_url }}" target="_blank" rel="noopener noreferrer">Uslove korišćenja</a>
+            </span>
+          </label>
+
+          <label class="consent-checkbox">
+            <input
+              type="checkbox"
+              id="consent-accuracy"
+              name="consent_accuracy"
+              class="consent-checkbox__input"
+              aria-required="true"
+              aria-describedby="consent-description"
+            />
+            <span class="consent-checkbox__checkmark"></span>
+            <span class="consent-checkbox__label">
+              Izjavljujem da su svi podaci tačni i potpuni
+            </span>
+          </label>
+        </div>
+
+        <div class="consent-error" id="consent-error" role="alert" aria-live="assertive" style="display:none;"></div>
+
+        <button
+          type="submit"
+          id="submit-btn"
+          class="submit-btn submit-btn--disabled"
+          disabled
+          aria-disabled="true"
+          aria-label="Podnesite prijavu za inicijativu"
+          data-requires-files="true"
+        >
+          <span class="submit-btn__text">PODNESI PRIJAVU</span>
+          <span class="submit-spinner" style="display:none;" role="status" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Buttons (Managed by section-navigation.js) -->
+    <div class="form-navigation">
+      <button type="button" class="btn btn-secondary" id="prev-btn" disabled>PRETHODNA SEKCIJA</button>
+      <button type="button" class="btn btn-primary" id="next-btn">SLEDEĆA SEKCIJA</button>
+    </div>
+  </form>
 </main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/draft-manager.js' %}"></script>
+<script src="{% static 'js/real-time-validator.js' %}"></script>
+<script src="{% static 'js/entity-type-switcher.js' %}"></script>
+<script src="{% static 'js/character-counter.js' %}"></script>
+<script src="{% static 'js/section-navigation.js' %}"></script>
+<script src="{% static 'js/file-upload-handler.js' %}"></script>
+<script src="{% static 'js/file-preview.js' %}"></script>
+<script src="{% static 'js/consent-manager.js' %}"></script>
+<script src="{% static 'js/submission-handler.js' %}"></script>
 {% endblock %}

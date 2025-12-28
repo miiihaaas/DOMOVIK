@@ -372,8 +372,8 @@ class COARoutingTests(TestCase):
         self.assertTemplateUsed(response, 'submissions/coa_form.html')
 
     def test_projekat_url_reverse(self):
-        """Test that 'coa_form' named URL pattern resolves correctly."""
-        url = reverse('coa_form')
+        """Test that 'submissions:coa_form' named URL pattern resolves correctly."""
+        url = reverse('submissions:coa_form')
         self.assertEqual(url, '/projekat/')
 
     def test_landing_page_links_to_projekat(self):

@@ -46,7 +46,7 @@ development_status:
   1-3-application-type-selection: done
   epic-1-retrospective: done
 
-  epic-2: in-progress
+  epic-2: done
   2-1-django-project-setup-coa-routing: done
   2-2-coa-form-section-i-general-data-entry-with-entity-type-switch: done
   2-3-real-time-validation-for-section-i: done
@@ -59,13 +59,13 @@ development_status:
   2-10-coa-form-section-iii-documentation-consent: done  # ADVERSARIAL review: 11 issues found (3 CRITICAL + 5 MEDIUM + 3 LOW), 8 fixed, 2 skipped (low-priority), Django check PASSED, DoD 98%, PRODUCTION READY
   2-11-submission-processing-reference-number-database-storage: done  # ADVERSARIAL review: 12/12 issues FIXED (admin registrations, backend validators, logging, URL routing, rate limiting, duplicate prevention, constants, transaction isolation, JSDoc, exports, SQLite threading skip), Django check PASSED, ALL TESTS PASSING 63/63 (1 skipped), DoD 100%
   2-12-submission-ui-double-click-protection: done  # ADVERSARIAL review: 10/10 issues FIXED (3 CRITICAL: race condition + CSRF validation + accessibility, 4 HIGH: browser compat + DOM recovery + error handling + focus mgmt, 2 MEDIUM: localStorage + focus, 1 LOW: magic numbers), Django check PASSED, DoD 95%
-  2-13-success-screen-with-reference-number: backlog
-  2-14-email-confirmation-with-celery: backlog
-  2-15-draft-auto-deletion-background-task: backlog
-  epic-2-retrospective: optional
+  2-13-success-screen-with-reference-number: done  # ADVERSARIAL review: 10/10 issues FIXED (2 CRITICAL: SQL injection + URL routing, 3 HIGH: XSS + path traversal + Serbian encoding, 3 MEDIUM: browser compat + memory leak + ARIA, 2 LOW: HTTP methods + SVG), Django check PASSED, Security 95/100, DoD 100%
+  2-14-email-confirmation-with-celery: done  # ADVERSARIAL review: 10/10 issues FIXED (3 CRITICAL: XSS + GDPR + idempotency, 4 HIGH: plain text + retry count + Redis bloat + connection retry, 3 MEDIUM: routing + prefetch + UTF-8), Django check PASSED, Celery worker PASSED, DoD 100%, PRODUCTION READY
+  2-15-draft-auto-deletion-background-task: done  # ADVERSARIAL review: 10/10 issues FIXED (3 CRITICAL: UUID validation + task idempotency + race condition doc, 4 HIGH: timezone doc + timeout + index, 2 MEDIUM: null check + hardcoded type, 1 LOW: CSRF handling), Django check PASSED, Celery Beat VERIFIED, task deletion PASSED (1/1 drafts), GDPR NFR18 VERIFIED, DoD 100%, EPIC 2 COMPLETE (15/15 stories DONE)
+  epic-2-retrospective: done  # Retrospective completed 2025-12-28: 15/15 stories DONE, 99.1% DoD average, 155 issues found/153 fixed, 10 action items for Epic 3
 
-  epic-3: backlog
-  3-1-cob-routing-form-initialization: backlog
+  epic-3: in-progress
+  3-1-cob-routing-form-initialization: done  # ADVERSARIAL review: 16/16 issues FIXED (1 CRITICAL: body data-attr + 5 HIGH: CSRF + data-max + char-counter + HTTP method, 5 MEDIUM: ARIA + help text, 5 LOW: autocomplete + UTF-8 verify), Django check PASSED, DoD 100%, character-counter.js & draft-manager.js now application-agnostic (COA/COB support)
   3-2-cob-section-i-simplified-general-data-no-jmbg-maticni: backlog
   3-3-cob-section-ii-initiative-data-no-budget: backlog
   3-4-cob-section-iii-simplified-documentation-2-files-only: backlog

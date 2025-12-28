@@ -12,7 +12,7 @@
     <!-- Page-specific CSS -->
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body{% block body_attrs %}{% endblock %}>
     <header role="banner">
         {% block header %}
         <!-- Header content will be filled by child templates -->
