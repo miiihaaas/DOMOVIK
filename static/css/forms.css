@@ -374,6 +374,25 @@
   font-size: 0.875rem;
 }
 
+/* Form error container (for submission errors) */
+.form-error {
+  display: none; /* Hidden by default */
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #FEE2E2;
+  color: #991B1B; /* Dark red for better contrast */
+  border-left: 4px solid var(--error-red);
+  border-radius: 4px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+/* Focusable error container (for accessibility) */
+.form-error:focus {
+  outline: 2px solid var(--error-red);
+  outline-offset: 2px;
+}
+
 /* ==========================================================================
    Real-Time Validation States (Story 2.3)
    ========================================================================== */
@@ -1117,5 +1136,100 @@
   .validation-summary__toggle {
     width: 100%;
     text-align: center;
+  }
+}
+
+/* ==========================================================================
+   Submit Button Styles (Story 2.12 - Double-Click Protection)
+   ========================================================================== */
+
+/* Submit button base styles */
+.submit-btn {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 44px; /* Touch-friendly */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--accent-coral); /* Koraljna CTA */
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.3);
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #E6674D; /* Darker coral */
+  box-shadow: 0 6px 16px rgba(255, 122, 89, 0.4);
+  transform: translateY(-2px);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(255, 122, 89, 0.3);
+}
+
+.submit-btn:focus {
+  outline: 2px solid var(--accent-coral);
+  outline-offset: 2px;
+}
+
+/* Submit button disabled state (Story 2.12 - Task 5) */
+.submit-btn:disabled,
+.submit-btn--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #cccccc; /* Gray */
+  color: #666666; /* Darker gray text */
+  pointer-events: none; /* Prevent clicks */
+  box-shadow: none;
+  transform: none !important;
+}
+
+/* Submit button text span */
+.submit-btn__text {
+  display: inline-block;
+}
+
+/* Submit spinner (Story 2.12 - Task 6) */
+.submit-spinner {
+  display: none; /* Hidden by default */
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ffffff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+/* Spinner visible state (set by JavaScript) */
+.submit-spinner[style*="display: inline-block"],
+.submit-spinner[style*="display:inline-block"] {
+  display: inline-block !important;
+}
+
+/* Spin animation keyframes */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile responsive - Submit button */
+@media (max-width: 768px) {
+  .submit-btn {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.875rem 1.5rem;
+  }
+
+  .submit-spinner {
+    width: 18px;
+    height: 18px;
   }
 }

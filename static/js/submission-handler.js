@@ -42,6 +42,9 @@ class SubmissionHandler {
 
     // API endpoint
     this.submitUrl = '/api/submissions/submit/';
+
+    // Network timeout constant (10 seconds)
+    this.NETWORK_TIMEOUT_MS = 10000;
   }
 
   /**
@@ -116,9 +119,18 @@ class SubmissionHandler {
       return;
     }
 
-    // Set submitting state
-    this.isSubmitting = true;
+    // CRITICAL: Disable button FIRST to prevent race condition
     this.disableSubmitButton();
+
+    // Verify button was actually disabled (DOM element exists)
+    if (!this.submitButton || !this.submitButton.disabled) {
+      console.error('Failed to disable submit button - DOM element missing or invalid');
+      this.showError('Greška u inicijalizaciji forme. Osvežite stranicu i pokušajte ponovo.');
+      return;
+    }
+
+    // Set submitting state AFTER button is confirmed disabled
+    this.isSubmitting = true;
 
     try {
       // Collect form data
@@ -137,7 +149,22 @@ class SubmissionHandler {
     } catch (error) {
       // Network or unexpected error
       console.error('Submission exception:', error);
-      this.handleSubmissionError('Došlo je do greške. Proverite internet konekciju i pokušajte ponovo.');
+
+      // Differentiate error types for better UX
+      let errorMessage = 'Došlo je do greške. Proverite internet konekciju i pokušajte ponovo.';
+
+      if (error.name === 'AbortError') {
+        // Timeout error
+        errorMessage = 'Zahtev je trajao predugo. Proverite internet konekciju i pokušajte ponovo.';
+      } else if (error.message && error.message.includes('NetworkError')) {
+        // Network offline
+        errorMessage = 'Nema internet konekcije. Proverite vezu i pokušajte ponovo.';
+      } else if (error.message && error.message.includes('Failed to fetch')) {
+        // Generic fetch failure (CORS, DNS, etc.)
+        errorMessage = 'Ne mogu da se povežem sa serverom. Proverite internet konekciju.';
+      }
+
+      this.handleSubmissionError(errorMessage);
     } finally {
       // Reset submitting state
       this.isSubmitting = false;
@@ -282,6 +309,7 @@ class SubmissionHandler {
   /**
    * Send submission request to backend API
    * Story 2.11 - Task 8: AJAX submission
+   * Story 2.12 - Task 4: Network timeout protection (10 seconds)
    *
    * @param {Object} submissionData - Complete submission data
    * @returns {Promise<Object>} Response from server
@@ -290,27 +318,78 @@ class SubmissionHandler {
     // Get CSRF token
     const csrfToken = this.getCSRFToken();
 
-    // Send POST request
-    const response = await fetch(this.submitUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
-      },
-      body: JSON.stringify(submissionData),
-      credentials: 'same-origin' // Include cookies for session
-    });
-
-    // Parse JSON response
-    const data = await response.json();
-
-    // Check if response is successful
-    if (!response.ok) {
-      // HTTP error (4xx, 5xx)
-      throw new Error(data.error || 'Greška pri komunikaciji sa serverom.');
+    // SECURITY: Validate CSRF token exists
+    if (!csrfToken) {
+      console.error('CSRF token missing - cannot submit form');
+      throw new Error('Bezbednosna greška: CSRF token nedostaje. Osvežite stranicu i pokušajte ponovo.');
     }
 
-    return data;
+    // Create AbortController for network timeout (Story 2.12 - Task 4)
+    // Browser compatibility: Chrome 66+, Firefox 57+, Safari 12.1+, Edge 79+
+    let controller = null;
+    let timeoutId = null;
+
+    // Check if AbortController is supported (graceful degradation)
+    if (typeof AbortController !== 'undefined') {
+      try {
+        controller = new AbortController();
+        timeoutId = setTimeout(() => controller.abort(), this.NETWORK_TIMEOUT_MS);
+      } catch (e) {
+        console.warn('AbortController failed to initialize:', e);
+        // Continue without timeout protection (better than blocking submission)
+      }
+    } else {
+      console.warn('AbortController not supported - timeout protection disabled');
+    }
+
+    try {
+      // Send POST request
+      const fetchOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(submissionData),
+        credentials: 'same-origin' // Include cookies for session
+      };
+
+      // Add abort signal only if controller was successfully created
+      if (controller) {
+        fetchOptions.signal = controller.signal;
+      }
+
+      const response = await fetch(this.submitUrl, fetchOptions);
+
+      // Clear timeout on successful fetch
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      // Parse JSON response
+      const data = await response.json();
+
+      // Check if response is successful
+      if (!response.ok) {
+        // HTTP error (4xx, 5xx)
+        throw new Error(data.error || 'Greška pri komunikaciji sa serverom.');
+      }
+
+      return data;
+    } catch (error) {
+      // Clear timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      // Check if error is due to timeout (AbortError)
+      if (error.name === 'AbortError') {
+        throw new Error('Zahtev je trajao predugo. Proverite internet konekciju i pokušajte ponovo.');
+      }
+
+      // Re-throw other errors
+      throw error;
+    }
   }
 
   /**
@@ -350,9 +429,15 @@ class SubmissionHandler {
 
     // Clear draft from localStorage (Story 2.11 - Task 7)
     if (typeof localStorage !== 'undefined') {
-      const DRAFT_KEY = 'domovik_coa_draft';
-      localStorage.removeItem(DRAFT_KEY);
-      console.log('Draft cleared from localStorage');
+      try {
+        const DRAFT_KEY = 'domovik_coa_draft';
+        localStorage.removeItem(DRAFT_KEY);
+        console.log('Draft cleared from localStorage');
+      } catch (e) {
+        // localStorage.removeItem() can throw if storage is locked or quota exceeded
+        console.warn('Failed to clear draft from localStorage:', e);
+        // Non-critical error - continue with success flow
+      }
     }
 
     // Announce success to screen readers
@@ -379,6 +464,16 @@ class SubmissionHandler {
 
     // Announce error to screen readers
     this.announceToScreenReader(`Greška: ${errorMessage}`);
+
+    // ACCESSIBILITY: Move focus to error message for screen readers
+    if (this.errorContainer) {
+      // Set tabindex to make container focusable
+      this.errorContainer.setAttribute('tabindex', '-1');
+      // Focus the error container
+      setTimeout(() => {
+        this.errorContainer.focus();
+      }, 100); // Small delay to ensure error is rendered
+    }
 
     // Keep draft intact on error (do NOT clear localStorage)
     console.log('Draft preserved due to submission error');
@@ -469,43 +564,67 @@ class SubmissionHandler {
 
   /**
    * Disable submit button and show loading spinner
+   * Story 2.12 - Enhanced with accessibility and error handling
    */
   disableSubmitButton() {
-    if (this.submitButton) {
-      this.submitButton.disabled = true;
-      this.submitButton.setAttribute('aria-disabled', 'true');
-
-      // Show spinner
-      if (this.spinner) {
-        this.spinner.style.display = 'inline-block';
-      }
-
-      // Update button text
-      const buttonText = this.submitButton.querySelector('.submit-btn__text');
-      if (buttonText) {
-        buttonText.textContent = 'Šalje se...';
-      }
+    if (!this.submitButton) {
+      console.error('Cannot disable submit button - element not found');
+      return;
     }
+
+    // Disable button (prevents clicks)
+    this.submitButton.disabled = true;
+    this.submitButton.setAttribute('aria-disabled', 'true');
+
+    // Show spinner
+    if (this.spinner) {
+      this.spinner.style.display = 'inline-block';
+      // ACCESSIBILITY: Add aria-label to spinner for screen readers
+      this.spinner.setAttribute('aria-label', 'Učitavanje u toku');
+    }
+
+    // Update button text
+    const buttonText = this.submitButton.querySelector('.submit-btn__text');
+    if (buttonText) {
+      buttonText.textContent = 'Šalje se prijava, molimo sačekajte...';
+    }
+
+    // ACCESSIBILITY: Announce state change to screen readers
+    this.announceToScreenReader('Prijava se šalje, molimo sačekajte...');
   }
 
   /**
    * Enable submit button and hide loading spinner
+   * Story 2.12 - Enhanced with DOM validation and error recovery
    */
   enableSubmitButton() {
-    if (this.submitButton) {
-      this.submitButton.disabled = false;
-      this.submitButton.setAttribute('aria-disabled', 'false');
+    // EDGE CASE: Re-query button if it was removed from DOM during submission
+    if (!this.submitButton || !document.body.contains(this.submitButton)) {
+      console.warn('Submit button was removed from DOM - re-querying');
+      this.submitButton = document.getElementById('submit-btn');
+      this.spinner = this.submitButton ? this.submitButton.querySelector('.submit-spinner') : null;
+    }
 
-      // Hide spinner
-      if (this.spinner) {
-        this.spinner.style.display = 'none';
-      }
+    if (!this.submitButton) {
+      console.error('Cannot enable submit button - element not found in DOM');
+      return;
+    }
 
-      // Restore button text
-      const buttonText = this.submitButton.querySelector('.submit-btn__text');
-      if (buttonText) {
-        buttonText.textContent = 'Podnesi prijavu';
-      }
+    // Re-enable button
+    this.submitButton.disabled = false;
+    this.submitButton.setAttribute('aria-disabled', 'false');
+
+    // Hide spinner
+    if (this.spinner) {
+      this.spinner.style.display = 'none';
+      // Remove aria-label
+      this.spinner.removeAttribute('aria-label');
+    }
+
+    // Restore button text
+    const buttonText = this.submitButton.querySelector('.submit-btn__text');
+    if (buttonText) {
+      buttonText.textContent = 'PODNESI PRIJAVU';
     }
   }
 
