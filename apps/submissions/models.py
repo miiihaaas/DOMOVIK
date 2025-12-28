@@ -7,8 +7,10 @@ and applicant information in the DOMOVIK system.
 
 Story 2.11: Added ReferenceNumberSequence, ProjectData, FileMetadata models
 Story 2.11: Using constants from constants.py
+Story 2.15: Added DraftMetadata model for GDPR-compliant draft tracking
 """
 
+import uuid
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -476,3 +478,69 @@ class UploadedFile(models.Model):
     def __str__(self):
         """Return string representation of uploaded file."""
         return f"{self.original_filename} ({self.file_type})"
+
+
+class DraftMetadata(models.Model):
+    """
+    Server-side draft tracking model for GDPR-compliant 7-day retention.
+
+    CRITICAL: This model stores ONLY metadata - NO actual form data.
+    Form data remains ONLY in client localStorage.
+
+    Purpose: Enable server-side GDPR 7-day auto-deletion policy
+    without storing actual draft data.
+
+    Privacy: NO form data stored - only existence metadata.
+
+    Story 2.15: Draft Auto-Deletion Background Task
+    """
+    draft_id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        verbose_name='Draft ID',
+        help_text="Unique identifier for draft (matches localStorage key UUID)"
+    )
+
+    application_type = models.CharField(
+        max_length=3,
+        choices=[('COA', 'Projekat'), ('COB', 'Inicijativa')],
+        verbose_name='Tip Prijave',
+        help_text="Type of application (COA or COB)"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,  # ISSUE 7 FIX: Index verified for deletion query performance
+        verbose_name='Kreirano',
+        help_text="Timestamp when draft was first created"
+    )
+
+    last_updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Poslednje Ažurirano',
+        help_text="Last time draft was updated (auto-save ping)"
+    )
+
+    class Meta:
+        db_table = 'submissions_draft_metadata'
+        verbose_name = 'Draft Metadata'
+        verbose_name_plural = 'Draft Metadata Records'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['created_at'], name='draft_created_idx'),
+            models.Index(fields=['application_type'], name='draft_type_idx'),
+        ]
+
+    def __str__(self):
+        """Return string representation of draft metadata."""
+        return f"{self.application_type} Draft {self.draft_id} (created {self.created_at.strftime('%Y-%m-%d')})"
+
+    def is_expired(self):
+        """Check if draft is older than 7 days (GDPR retention)."""
+        from datetime import timedelta
+        # ISSUE 6 FIX: Defensive null check for created_at
+        if not self.created_at:
+            return True  # Treat drafts without created_at as expired
+        expiry_date = timezone.now() - timedelta(days=7)
+        return self.created_at < expiry_date

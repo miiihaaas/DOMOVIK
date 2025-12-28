@@ -2,15 +2,17 @@
  * Draft Manager - Auto-Save Draft Preservation System
  * Story 2.2: Basic draft save/load for entity type switching
  * Story 2.4: Auto-save every 30s, beforeunload handler, visual notifications
+ * Story 2.15: Server-side draft tracking for GDPR 7-day auto-deletion
  *
  * Features:
  * - Auto-save every 30 seconds (debounced from last input)
  * - Immediate save on browser close/navigate (beforeunload)
  * - Visual "Sačuvano" notification with queueing
  * - 7-day retention with automatic deletion
- * - GDPR-compliant (client-side only, no server transmission)
+ * - GDPR-compliant (metadata-only server tracking, form data client-side only)
  * - QuotaExceededError handling with graceful degradation
  * - Performance measurement (development mode only)
+ * - Server-side draft expiration sync
  */
 
 const DRAFT_KEY = 'domovik_coa_draft';
@@ -25,6 +27,159 @@ let indicatorTimeout;
 // Guard flag to prevent duplicate event listener registration (Code Review Fix MEDIUM #6)
 let autoSaveInitialized = false;
 
+// Draft ID for server-side tracking (Story 2.15)
+let draftId = null;
+
+/**
+ * Generate UUID v4 for draft tracking (Story 2.15)
+ * @returns {string} UUID v4 string
+ */
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+/**
+ * Get or create draft ID from localStorage (Story 2.15)
+ * @returns {string} Draft UUID
+ */
+function getOrCreateDraftId() {
+  try {
+    const draftJson = localStorage.getItem(DRAFT_KEY);
+    if (draftJson) {
+      const draftData = JSON.parse(draftJson);
+      if (draftData.draft_id) {
+        return draftData.draft_id;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to parse draft JSON for draft_id:', error);
+  }
+
+  // Generate new UUID
+  return generateUUID();
+}
+
+/**
+ * Get CSRF token from cookie (Story 2.15)
+ * @returns {string} CSRF token
+ */
+function getCSRFToken() {
+  const name = 'csrftoken';
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+/**
+ * Register draft metadata on server for GDPR tracking (Story 2.15)
+ * Non-blocking: Draft still saved to localStorage even if server registration fails
+ */
+async function registerDraftOnServer() {
+  if (!draftId) {
+    console.warn('No draft ID - skipping server registration');
+    return;
+  }
+
+  try {
+    // ISSUE 5 FIX: Add 5-second timeout to prevent blocking on slow server
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    // ISSUE 9 FIX: Read application type from data attribute instead of hardcoding
+    const applicationType = document.body.dataset.applicationType || 'COA';
+
+    const response = await fetch('/api/drafts/register/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify({
+        draft_id: draftId,
+        application_type: applicationType
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn('Draft registration failed (non-critical):', await response.text());
+    } else {
+      const data = await response.json();
+      console.log('Draft registered on server:', data.message);
+    }
+
+  } catch (error) {
+    // Non-blocking - draft still saved in localStorage
+    if (error.name === 'AbortError') {
+      console.warn('Server registration timeout (5s) - draft saved locally only');
+    } else {
+      console.warn('Server registration failed (offline or error):', error);
+    }
+  }
+}
+
+/**
+ * Check if draft has expired server-side (Story 2.15)
+ * Called on page load to sync localStorage with server
+ * @returns {Promise<boolean>} True if expired, false otherwise
+ */
+async function checkDraftExpiration() {
+  if (!draftId) {
+    return false; // No draft ID to check
+  }
+
+  try {
+    const response = await fetch(`/api/drafts/check/${draftId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCSRFToken()
+      }
+    });
+
+    // ISSUE 10 FIX: Handle CSRF token errors by deleting stale draft
+    if (response.status === 403) {
+      console.warn('CSRF token invalid - deleting stale draft from localStorage');
+      localStorage.removeItem(DRAFT_KEY);
+      return true; // Treat as expired
+    }
+
+    if (!response.ok) {
+      console.warn('Draft expiration check failed');
+      return false;
+    }
+
+    const data = await response.json();
+
+    // If server says draft doesn't exist or is expired
+    if (!data.exists || data.expired) {
+      console.log('Draft expired on server. Deleting from localStorage.');
+      localStorage.removeItem(DRAFT_KEY);
+      return true; // Expired
+    }
+
+    return false; // Still valid
+
+  } catch (error) {
+    console.error('Draft expiration check error:', error);
+    return false; // Assume valid if server unreachable
+  }
+}
+
 /**
  * Collect all form data for saving (Story 2.4 - Task 3, Story 2.7 - Task 11)
  * @returns {Object} Draft data object with application_type, timestamp, and all fields
@@ -37,6 +192,7 @@ function collectFormData() {
   }
 
   return {
+    draft_id: draftId,  // Story 2.15: UUID for server-side tracking
     application_type: 'COA',  // Distinguishes COA vs COB drafts (multi-form system - Epic 3+)
     timestamp: new Date().toISOString(),
     currentSection: currentSectionNumber,  // Story 2.7: Track current section for restoration
@@ -121,12 +277,13 @@ function collectUploadedFileMetadata() {
  * Save all form field values to localStorage
  * Story 2.2: Basic save functionality
  * Story 2.4: Added performance measurement, visual indicators, error handling
+ * Story 2.15: Added server-side draft registration for GDPR tracking
  * Called by: entity-type-switcher.js, auto-save timer, beforeunload handler
  *
  * GDPR COMPLIANCE (NFR16-18):
- * - Data stored ONLY in client-side localStorage (no server transmission)
- * - Zero network requests during auto-save operation
- * - 7-day retention enforced by loadDraft() check (lines 104-114)
+ * - Form data stored ONLY in client-side localStorage (no server transmission)
+ * - Only METADATA (draft_id, application_type) sent to server
+ * - 7-day retention enforced by server-side periodic task
  * - User data remains on user's device until explicit form submission
  * - Admin panel NEVER sees draft data (only submitted applications)
  */
@@ -162,6 +319,13 @@ function saveDraft() {
     if (isDevelopment) {
       console.timeEnd('saveDraft');
     }
+
+    // Story 2.15: Register draft metadata on server (non-blocking)
+    registerDraftOnServer().catch(err => {
+      // Silent fail - localStorage save already succeeded
+      console.warn('Background server registration failed:', err);
+    });
+
   } catch (error) {
     saveError = error;
     // QuotaExceededError specific handling (Task 5.4)
@@ -942,8 +1106,9 @@ function initializeAutoSave() {
  * Initialize draft system on page load (Story 2.5 - Task 10)
  * Story 2.4: Auto-save timer, beforeunload handler, localStorage availability check
  * Story 2.5: Draft recovery modal integration
+ * Story 2.15: Server-side draft expiration check
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   // STEP 1: Check if localStorage is available FIRST (Task 10.2)
   if (!isLocalStorageAvailable()) {
     showLocalStorageWarning(); // Show warning banner (Task 9.2)
@@ -951,15 +1116,28 @@ document.addEventListener('DOMContentLoaded', function() {
     return; // Stop initialization - form still works but no draft functionality
   }
 
-  // STEP 2: Check if draft exists (Task 10.3)
+  // STEP 2: Initialize draft ID (Story 2.15)
+  draftId = getOrCreateDraftId();
+  console.log('Draft ID initialized:', draftId);
+
+  // STEP 3: Check if draft expired on server (Story 2.15)
+  const expired = await checkDraftExpiration();
+  if (expired) {
+    console.log('Draft expired - starting fresh');
+    draftId = generateUUID(); // Generate new ID for fresh start
+    initializeAutoSave();
+    return;
+  }
+
+  // STEP 4: Check if draft exists (Task 10.3)
   const draftCheck = checkDraftExists();
 
-  // STEP 3: If draft exists AND valid, show modal (Task 10.4)
+  // STEP 5: If draft exists AND valid, show modal (Task 10.4)
   if (draftCheck.exists) {
     showModal(); // Modal will handle draft loading or clearing
     // Note: Auto-save timer will be initialized after modal is closed
   } else {
-    // STEP 4: No draft - proceed with normal flow (Task 10.7)
+    // STEP 6: No draft - proceed with normal flow (Task 10.7)
     // Load draft anyway (will do nothing if no draft exists)
     loadDraft();
 

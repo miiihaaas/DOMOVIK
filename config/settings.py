@@ -191,6 +191,17 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/Belgrade'
+CELERY_ENABLE_UTC = False  # Use local timezone for scheduled tasks
+
+# ISSUE 3 DOCUMENTATION: Timezone Consistency Policy
+# - Django: USE_TZ=True, TIME_ZONE='Europe/Belgrade'
+# - Celery: CELERY_TIMEZONE='Europe/Belgrade', CELERY_ENABLE_UTC=False
+# - Both use Europe/Belgrade timezone for consistency
+# - timezone.now() returns Europe/Belgrade-aware datetime when USE_TZ=True
+# - Celery Beat schedule uses Europe/Belgrade (2:00 AM = 2:00 AM Belgrade time)
+# - Draft deletion task uses timezone.now() which respects TIME_ZONE setting
+# - Result: No timezone mismatch - all times in Europe/Belgrade
+
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
@@ -205,6 +216,19 @@ CELERY_BROKER_CONNECTION_MAX_RETRIES = 10  # Max connection retries
 # Task routing (future expansion for priority queues)
 CELERY_TASK_ROUTES = {
     'apps.submissions.tasks.send_confirmation_email': {'queue': 'emails'},
+}
+
+# Celery Beat Configuration (Story 2.15: Periodic Tasks)
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'delete-old-drafts-daily': {
+        'task': 'submissions.delete_old_drafts',
+        'schedule': crontab(hour=2, minute=0),  # Daily at 2:00 AM Europe/Belgrade
+        'options': {
+            'expires': 3600,  # Task expires after 1 hour if not executed
+        },
+    },
 }
 
 # Email Configuration (Story 2.14: Email Confirmation with Celery)

@@ -5,6 +5,7 @@ Story 1.3: Created placeholder views
 Story 2.2: Add COAFormSectionI form handling
 Story 2.8: File upload/delete API endpoints
 Story 2.11: Submission processing endpoint with rate limiting and duplicate prevention
+Story 2.15: Draft registration and expiration check API endpoints
 """
 import logging
 import json
@@ -19,7 +20,7 @@ from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 from apps.submissions.forms import COAFormSectionI, FileUploadForm
-from apps.submissions.models import UploadedFile, Application, Applicant
+from apps.submissions.models import UploadedFile, Application, Applicant, DraftMetadata
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
 from apps.submissions.tasks import send_confirmation_email
@@ -548,3 +549,120 @@ def resend_email(request, reference_number):
         'success': True,
         'message': f"Email potvrda je poslata na {application.applicant.email}."
     })
+
+
+@csrf_protect
+@require_http_methods(['POST'])
+def register_draft(request):
+    """
+    Register client-side draft creation on server for GDPR tracking.
+    Story 2.15: Draft Auto-Deletion Background Task
+
+    Request JSON:
+        {
+            "draft_id": "uuid-string",
+            "application_type": "COA" or "COB"
+        }
+
+    Privacy: NO form data accepted or stored.
+
+    Returns:
+        {
+            "success": true,
+            "message": "Draft registered for 7-day retention tracking",
+            "expires_at": "ISO datetime string"
+        }
+    """
+    try:
+        data = json.loads(request.body)
+        draft_id = data.get('draft_id')
+        application_type = data.get('application_type')
+
+        # Validation
+        if not draft_id or not application_type:
+            return JsonResponse({
+                'success': False,
+                'message': 'draft_id and application_type required'
+            }, status=400)
+
+        if application_type not in ['COA', 'COB']:
+            return JsonResponse({
+                'success': False,
+                'message': 'application_type must be COA or COB'
+            }, status=400)
+
+        # ISSUE 1 FIX: Validate UUID format before database operation
+        try:
+            import uuid as uuid_module
+            uuid_module.UUID(str(draft_id))
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid UUID format in draft registration: {draft_id}")
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid draft_id format - must be valid UUID'
+            }, status=400)
+
+        # ISSUE 8 PARTIAL FIX: Register or update draft metadata
+        # NOTE: Race condition edge case still exists - if Celery deletes draft while user editing,
+        # next auto-save will recreate it with fresh created_at timestamp (clock reset).
+        # This is acceptable behavior: User gets extra 7 days, which is better UX than losing work.
+        # Alternative (rejected): Track "deleted_draft_ids" table - adds complexity for minimal gain.
+        draft, created = DraftMetadata.objects.update_or_create(
+            draft_id=draft_id,
+            defaults={'application_type': application_type}
+        )
+
+        action = "registered" if created else "updated"
+        logger.info(f"Draft {draft_id} ({application_type}) {action} for GDPR tracking")
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Draft {action} for 7-day retention tracking',
+            'expires_at': (draft.created_at + timedelta(days=7)).isoformat()
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON in request body'
+        }, status=400)
+
+    except Exception as e:
+        logger.error(f"Draft registration failed: {e}")
+        return JsonResponse({
+            'success': False,
+            'message': 'Internal server error'
+        }, status=500)
+
+
+@csrf_protect
+@require_http_methods(['POST'])
+def check_draft_expiration(request, draft_id):
+    """
+    Check if draft has expired server-side (>7 days old or deleted).
+    Story 2.15: Draft Auto-Deletion Background Task
+
+    Called by client on page load to sync localStorage with server.
+
+    Returns:
+        {
+            "exists": true/false,
+            "expired": true/false (only if exists),
+            "created_at": "ISO datetime string" (only if exists)
+        }
+    """
+    try:
+        draft = DraftMetadata.objects.get(draft_id=draft_id)
+
+        return JsonResponse({
+            'exists': True,
+            'expired': draft.is_expired(),
+            'created_at': draft.created_at.isoformat()
+        })
+
+    except DraftMetadata.DoesNotExist:
+        # Draft not found on server - client should delete localStorage
+        return JsonResponse({
+            'exists': False,
+            'expired': True  # Treat missing as expired
+        })

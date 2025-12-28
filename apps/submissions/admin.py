@@ -3,6 +3,7 @@
 Django Admin configuration for submissions app.
 Story 2.8: UploadedFile admin interface
 Story 2.11: Added admin registrations for ReferenceNumberSequence, ProjectData, FileMetadata
+Story 2.15: Added DraftMetadata admin interface
 """
 from django.contrib import admin
 from apps.submissions.models import (
@@ -11,7 +12,8 @@ from apps.submissions.models import (
     UploadedFile,
     ReferenceNumberSequence,
     ProjectData,
-    FileMetadata
+    FileMetadata,
+    DraftMetadata
 )
 
 
@@ -120,3 +122,49 @@ class UploadedFileAdmin(admin.ModelAdmin):
             return f"{size_bytes / (1024 * 1024):.2f} MB"
 
     file_size_display.short_description = 'Veličina Fajla'
+
+
+@admin.register(DraftMetadata)
+class DraftMetadataAdmin(admin.ModelAdmin):
+    """
+    Admin interface for DraftMetadata model.
+    Story 2.15: Draft auto-deletion background task
+    """
+    list_display = [
+        'draft_id',
+        'application_type',
+        'created_at',
+        'last_updated_at',
+        'age_in_days',
+        'is_expired'
+    ]
+
+    list_filter = [
+        'application_type',
+        'created_at'
+    ]
+
+    search_fields = [
+        'draft_id'
+    ]
+
+    readonly_fields = [
+        'draft_id',
+        'created_at',
+        'last_updated_at',
+        'age_in_days',
+        'is_expired'
+    ]
+
+    def age_in_days(self, obj):
+        """Display draft age in days."""
+        from django.utils import timezone
+        age = timezone.now() - obj.created_at
+        return f"{age.days} days"
+    age_in_days.short_description = 'Starost (dana)'
+
+    def get_readonly_fields(self, request, obj=None):
+        """Make all fields readonly in admin (metadata is auto-managed)."""
+        if obj:
+            return self.readonly_fields
+        return []

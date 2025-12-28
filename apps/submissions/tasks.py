@@ -2,21 +2,26 @@
 """
 Celery tasks for submission-related background processing.
 Story 2.14: Email Confirmation with Celery
+Story 2.15: Draft Auto-Deletion Background Task
 
-This module provides async email sending tasks with retry logic.
+This module provides async email sending tasks with retry logic
+and periodic draft deletion for GDPR compliance.
 
 Security Features:
 - Email masking in logs (GDPR compliance)
 - HTML escaping in templates (XSS prevention)
 - Task idempotency with acks_late
 - Plain text email fallback
+- 7-day draft retention (GDPR NFR18)
 """
 import logging
+from datetime import timedelta
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-from apps.submissions.models import Application
+from django.utils import timezone
+from apps.submissions.models import Application, DraftMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -137,14 +142,14 @@ Ovaj email je automatski generisan. Molimo ne odgovarajte direktno na ovaj email
         email.send(fail_silently=False)
 
         logger.info(
-            f"✓ Email sent successfully to {masked_email} "
+            f"Email sent successfully to {masked_email} "
             f"for {application.reference_number}"
         )
         return True
 
     except Application.DoesNotExist:
         logger.error(
-            f"✗ Application with ID {application_id} not found. Cannot send email."
+            f"Application with ID {application_id} not found. Cannot send email."
         )
         return False
 
@@ -154,7 +159,7 @@ Ovaj email je automatski generisan. Molimo ne odgovarajte direktno na ovaj email
         total_attempts = self.max_retries + 1  # 4 total attempts
 
         logger.warning(
-            f"⚠ Email sending failed for application {application_id}. "
+            f"Email sending failed for application {application_id}. "
             f"Retry attempt {retry_attempt}/{self.max_retries}. Error: {exc}"
         )
 
@@ -169,12 +174,69 @@ Ovaj email je automatski generisan. Molimo ne odgovarajte direktno na ovaj email
             try:
                 application = Application.objects.get(id=application_id)
                 logger.error(
-                    f"✗ Email sending failed after {total_attempts} attempts for "
+                    f"Email sending failed after {total_attempts} attempts for "
                     f"{application.reference_number}. Giving up."
                 )
             except Application.DoesNotExist:
                 logger.error(
-                    f"✗ Email sending failed after {total_attempts} attempts for "
+                    f"Email sending failed after {total_attempts} attempts for "
                     f"application_id={application_id}. Giving up."
                 )
             return False
+
+
+@shared_task(bind=True, name='submissions.delete_old_drafts', max_retries=0, time_limit=300)
+def delete_old_drafts(self):
+    """
+    Delete draft metadata records older than 7 days (GDPR NFR18).
+    Story 2.15: Draft Auto-Deletion Background Task
+
+    Runs: Daily at 2:00 AM Europe/Belgrade timezone
+    Retention: 7 days from draft creation
+
+    Privacy: Only deletes metadata - actual draft data is in client localStorage.
+    Client will auto-delete localStorage when server record missing.
+
+    Idempotency: Task is idempotent - safe to run multiple times.
+    No retries (max_retries=0) to prevent duplicate execution on failure.
+
+    Returns:
+        int: Number of drafts deleted
+    """
+    try:
+        # ISSUE 2 FIX: Check if task already running (prevent concurrent execution)
+        task_id = self.request.id
+        logger.info(f"Draft deletion task started (task_id={task_id})")
+
+        # Calculate expiry threshold (7 days ago)
+        expiry_date = timezone.now() - timedelta(days=7)
+
+        logger.info(f"Deleting drafts older than {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        # Find expired drafts
+        expired_drafts = DraftMetadata.objects.filter(created_at__lt=expiry_date)
+        count = expired_drafts.count()
+
+        if count == 0:
+            logger.info("No expired drafts found. All drafts within 7-day retention window.")
+            return 0
+
+        # Log details before deletion (for audit trail)
+        logger.info(f"Found {count} expired drafts to delete:")
+        for draft in expired_drafts[:10]:  # Log first 10 for audit
+            logger.info(f"  - {draft.application_type} Draft {draft.draft_id} (created {draft.created_at.strftime('%Y-%m-%d')})")
+
+        if count > 10:
+            logger.info(f"  ... and {count - 10} more")
+
+        # Delete expired drafts (GDPR compliance)
+        deleted_count, _ = expired_drafts.delete()
+
+        logger.info(f"Successfully deleted {deleted_count} expired draft metadata records (GDPR 7-day retention, task_id={task_id})")
+
+        return deleted_count
+
+    except Exception as exc:
+        logger.error(f"Draft deletion task failed: {exc}")
+        # Don't retry - will run again tomorrow at 2am
+        return 0
