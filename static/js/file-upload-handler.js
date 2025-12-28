@@ -6,8 +6,8 @@
  * - Drag and drop file upload
  * - Click to upload (file input fallback)
  * - Client-side validation (file size, extension)
- * - Upload to backend API (/api/files/upload/)
- * - Delete files (/api/files/delete/<id>/)
+ * - Upload to backend API (/upload/)
+ * - Delete files (/delete/<id>/)
  * - CSRF token protection
  * - Progress indication
  * - Error handling with Serbian messages
@@ -34,8 +34,8 @@ class FileUploadHandler {
     this.category = category;
 
     // API endpoints (Story 2.8 backend)
-    this.uploadUrl = '/api/files/upload/';
-    this.deleteBaseUrl = '/api/files/delete/';
+    this.uploadUrl = '/upload/';
+    this.deleteBaseUrl = '/delete/';
 
     // File validation limits
     this.maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
@@ -61,7 +61,8 @@ class FileUploadHandler {
   getAllowedExtensions() {
     if (this.category === 'BUDGET') {
       return ['xls', 'xlsx'];
-    } else if (this.category === 'BIOGRAPHY' || this.category === 'SUPPORT_LETTER') {
+    } else if (this.category === 'BIOGRAPHY' || this.category === 'SUPPORT_LETTER' ||
+               this.category === 'OPIS_INICIJATIVE' || this.category === 'PISMO_NAMERE') {
       return ['pdf', 'doc', 'docx'];
     }
     return [];
@@ -129,9 +130,9 @@ class FileUploadHandler {
     // Clear previous errors
     this.clearError();
 
-    // For BUDGET category, only allow 1 file
-    if (this.category === 'BUDGET' && files.length > 1) {
-      this.showError('Može se upload-ovati samo jedan budžet fajl.');
+    // For BUDGET, OPIS_INICIJATIVE, and PISMO_NAMERE categories, only allow 1 file
+    if ((this.category === 'BUDGET' || this.category === 'OPIS_INICIJATIVE' || this.category === 'PISMO_NAMERE') && files.length > 1) {
+      this.showError('Može se upload-ovati samo jedan fajl.');
       return;
     }
 
@@ -383,7 +384,7 @@ class FileUploadHandler {
    * and returns its value for inclusion in POST requests.
    *
    * Security Note: This token MUST be included in all POST requests
-   * to /api/files/upload/ and /api/files/delete/<id>/ to prevent
+   * to /upload/ and /delete/<id>/ to prevent
    * Cross-Site Request Forgery (CSRF) attacks.
    *
    * @returns {string} CSRF token value or empty string if not found
@@ -426,7 +427,9 @@ class FileUploadHandler {
     const btn = this.uploadZone.querySelector('.upload-btn');
     if (btn) {
       btn.disabled = false;
-      btn.textContent = this.category === 'BUDGET' ? 'Odaberi fajl' : 'Odaberi fajl(ove)';
+      // Single file categories use singular form
+      const singleFileCategories = ['BUDGET', 'OPIS_INICIJATIVE', 'PISMO_NAMERE'];
+      btn.textContent = singleFileCategories.includes(this.category) ? 'Odaberi fajl' : 'Odaberi fajl(ove)';
     }
   }
 
@@ -557,10 +560,44 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Initialize COB form upload handlers (Story 3-4)
+  const opisInicijativeHandler = new FileUploadHandler(
+    'opis-inicijative-upload-zone',
+    'opis-inicijative-file-input',
+    'opis-inicijative-files-list',
+    'opis-inicijative-upload-error',
+    'OPIS_INICIJATIVE'
+  );
+
+  const pismoNamereHandler = new FileUploadHandler(
+    'pismo-namere-upload-zone',
+    'pismo-namere-file-input',
+    'pismo-namere-files-list',
+    'pismo-namere-upload-error',
+    'PISMO_NAMERE'
+  );
+
+  // Attach click handlers for COB upload buttons
+  const opisInicijativeBtn = document.getElementById('opis-inicijative-upload-btn');
+  if (opisInicijativeBtn) {
+    opisInicijativeBtn.addEventListener('click', () => {
+      document.getElementById('opis-inicijative-file-input').click();
+    });
+  }
+
+  const pismoNamereBtn = document.getElementById('pismo-namere-upload-btn');
+  if (pismoNamereBtn) {
+    pismoNamereBtn.addEventListener('click', () => {
+      document.getElementById('pismo-namere-file-input').click();
+    });
+  }
+
   // Expose handlers globally for debugging (development only)
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     window.budgetHandler = budgetHandler;
     window.biografijeHandler = biografijeHandler;
     window.pismaHandler = pismaHandler;
+    window.opisInicijativeHandler = opisInicijativeHandler;
+    window.pismoNamereHandler = pismoNamereHandler;
   }
 });

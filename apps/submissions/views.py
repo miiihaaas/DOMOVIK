@@ -19,7 +19,7 @@ from django.core.files.base import ContentFile
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
-from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm, COBInitiativeDataForm
+from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm, COBInitiativeDataForm, COBSectionIIIForm, validate_cob_file_metadata
 from apps.submissions.models import UploadedFile, Application, Applicant, DraftMetadata
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
@@ -865,6 +865,103 @@ def validate_cob_section_ii(request):
         submission_logger.error(f"COB Section II validation error: {str(e)}")
 
         # ISSUE 6 FIX: Match Story 3-2 error format (consistency)
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': [{'message': 'Greška pri validaciji. Molimo pokušajte ponovo.', 'code': 'server_error'}]}
+        }, status=500)
+
+
+@csrf_protect
+@ensure_csrf_cookie
+@require_http_methods(['POST'])
+def validate_cob_section_iii(request):
+    """
+    AJAX endpoint for validating COB Section III data (documentation & consent).
+    Story 3.4: COB Section III - Simplified Documentation (2 Files Only)
+
+    Purpose: Client-side can validate before final submission.
+    Architecture: Dual-layer validation (client calls this for server validation).
+
+    Request: POST /api/validate/cob/section-iii/
+    Body: {
+        saglasnost_gdpr: true/false,
+        file_metadata: {
+            'OPIS_INICIJATIVE': [{name, size}],
+            'PISMO_NAMERE': [{name, size}]
+        }
+    }
+
+    Response:
+    - Success: { "valid": true }
+    - Error: { "valid": false, "errors": { "field": ["error message"] } }
+    """
+    # Content-Type validation (Story 3-2 ISSUE 11)
+    content_type = request.META.get('CONTENT_TYPE', '')
+    if 'application/json' not in content_type:
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': [{'message': 'Content-Type mora biti application/json.', 'code': 'invalid_content_type'}]}
+        }, status=400)
+
+    try:
+        data = json.loads(request.body)
+
+        # Validate GDPR consent checkbox
+        form = COBSectionIIIForm(data)
+
+        if not form.is_valid():
+            # Return form errors
+            return JsonResponse({
+                'valid': False,
+                'errors': form.errors.get_json_data()
+            }, status=400)
+
+        # Validate file metadata structure
+        file_metadata = data.get('file_metadata', {})
+        files_valid, file_errors = validate_cob_file_metadata(file_metadata)
+
+        if not files_valid:
+            # ISSUE 8 FIX: Log validation failures (match Story 3-3 pattern)
+            submission_logger.info(
+                'COB Section III validation failed - file metadata errors',
+                extra={
+                    'validation_type': 'cob_section_iii',
+                    'status': 'invalid',
+                    'error_count': len(file_errors),
+                    'ip': request.META.get('REMOTE_ADDR')
+                }
+            )
+
+            # Return file validation errors
+            return JsonResponse({
+                'valid': False,
+                'errors': file_errors
+            }, status=400)
+
+        # Success logging (GDPR-compliant, no PII)
+        submission_logger.info(
+            'COB Section III validation successful',
+            extra={
+                'validation_type': 'cob_section_iii',
+                'status': 'valid',
+                'ip': request.META.get('REMOTE_ADDR')
+            }
+        )
+
+        return JsonResponse({
+            'valid': True,
+            'message': 'Podaci su validni.'
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': [{'message': 'Neispravan JSON format.', 'code': 'invalid_json'}]}
+        }, status=400)
+    except Exception as e:
+        # Log error for debugging
+        submission_logger.error(f"COB Section III validation error: {str(e)}")
+
         return JsonResponse({
             'valid': False,
             'errors': {'__all__': [{'message': 'Greška pri validaciji. Molimo pokušajte ponovo.', 'code': 'server_error'}]}

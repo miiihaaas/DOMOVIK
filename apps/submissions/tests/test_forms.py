@@ -3,9 +3,10 @@
 Unit tests for Django Forms.
 Story 3.2: COBApplicantForm - Simplified applicant validation (no JMBG/matični broj)
 Story 3.3: COBInitiativeDataForm - Initiative data validation (no budget)
+Story 3.4: COBSectionIIIForm - Simplified documentation validation (2 files only)
 """
 from django.test import TestCase
-from apps.submissions.forms import COBApplicantForm, COBInitiativeDataForm
+from apps.submissions.forms import COBApplicantForm, COBInitiativeDataForm, COBSectionIIIForm, validate_cob_file_metadata
 
 
 class COBApplicantFormTests(TestCase):
@@ -529,3 +530,363 @@ class COBInitiativeDataFormTests(TestCase):
         """Test COB form does NOT have rezultati field (simplification)."""
         form = COBInitiativeDataForm()
         self.assertNotIn('rezultati', form.fields)
+
+
+class COBSectionIIIFormTests(TestCase):
+    """Test suite for COBSectionIIIForm validation (Story 3.4)."""
+
+    def test_valid_section_iii_data(self):
+        """Test valid Section III data passes validation."""
+        form = COBSectionIIIForm({
+            'saglasnost_gdpr': True,
+        })
+        self.assertTrue(form.is_valid())
+
+    def test_missing_gdpr_consent(self):
+        """Test missing GDPR consent fails validation."""
+        form = COBSectionIIIForm({
+            'saglasnost_gdpr': False,
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('saglasnost_gdpr', form.errors)
+
+    def test_valid_file_metadata(self):
+        """Test valid file metadata passes validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    def test_missing_opis_inicijative(self):
+        """Test missing OPIS_INICIJATIVE fails validation."""
+        file_metadata = {
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+
+    def test_missing_pismo_namere(self):
+        """Test missing PISMO_NAMERE fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('PISMO_NAMERE', errors)
+
+    def test_empty_file_list(self):
+        """Test empty file list fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+
+    def test_multiple_files_single_category(self):
+        """Test multiple files in single category fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [
+                {'name': 'opis1.pdf', 'size': 1024},
+                {'name': 'opis2.pdf', 'size': 2048},
+            ],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+
+    def test_invalid_file_metadata_structure(self):
+        """Test invalid file metadata structure fails validation."""
+        file_metadata = 'not a dict'
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('__all__', errors)
+
+    def test_unexpected_file_categories(self):
+        """Test unexpected file categories (COA categories) fail validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDGET': [{'name': 'budget.xlsx', 'size': 2048}],  # Invalid for COB
+            'BIOGRAPHY': [{'name': 'bio.pdf', 'size': 1024}],  # Invalid for COB
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('__all__', errors)
+
+    def test_file_metadata_non_list_value(self):
+        """Test file metadata with non-list value fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': 'not a list',
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+
+    # ISSUE 4 FIX (HIGH): Test for empty string file names
+    def test_empty_string_filename(self):
+        """Test file with empty string name fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': '', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'empty_filename')
+
+    def test_whitespace_only_filename(self):
+        """Test file with whitespace-only name fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': '   ', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'empty_filename')
+
+    # ISSUE 5 FIX (HIGH): Test for missing 'name' or 'size' fields
+    def test_missing_name_field(self):
+        """Test file object missing 'name' field fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'size': 1024000}],  # Missing 'name'
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'missing_name')
+
+    def test_missing_size_field(self):
+        """Test file object missing 'size' field fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf'}],  # Missing 'size'
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'missing_size')
+
+    def test_missing_both_name_and_size_fields(self):
+        """Test file object missing both 'name' and 'size' fields fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{}],  # Missing both fields
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        # Should catch missing 'name' first
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'missing_name')
+
+    # ISSUE 6 FIX (HIGH): Test for invalid file extensions
+    def test_invalid_extension_exe(self):
+        """Test file with .exe extension fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'malware.exe', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
+
+    def test_invalid_extension_sh(self):
+        """Test file with .sh extension fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'script.sh', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('PISMO_NAMERE', errors)
+        self.assertEqual(errors['PISMO_NAMERE'][0]['code'], 'invalid_extension')
+
+    def test_invalid_extension_bat(self):
+        """Test file with .bat extension fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'script.bat', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
+
+    def test_invalid_extension_jpg(self):
+        """Test file with .jpg extension fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'image.jpg', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
+
+    def test_no_extension(self):
+        """Test file with no extension fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'document', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
+
+    def test_valid_extensions_case_insensitive(self):
+        """Test valid extensions with different cases pass validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.PDF', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.DOC', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    # ISSUE 7 FIX (HIGH): Test for file size exceeding 10MB
+    def test_file_size_exceeds_10mb(self):
+        """Test file exceeding 10MB (10485760 bytes) fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 10485761}],  # 10MB + 1 byte
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'file_too_large')
+
+    def test_file_size_exactly_10mb(self):
+        """Test file exactly 10MB (10485760 bytes) passes validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 10485760}],  # Exactly 10MB
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    def test_file_size_zero(self):
+        """Test file with zero size fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 0}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_size')
+
+    def test_file_size_negative(self):
+        """Test file with negative size fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': -1024}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_size')
+
+    def test_file_size_invalid_format(self):
+        """Test file with invalid size format fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 'not_a_number'}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_size_format')
+
+    # ISSUE 12 FIX (MEDIUM): Test for case-sensitive category names
+    def test_lowercase_category_name(self):
+        """Test lowercase category name fails validation."""
+        file_metadata = {
+            'opis_inicijative': [{'name': 'opis.pdf', 'size': 1024000}],  # Lowercase
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        # Should have error for missing OPIS_INICIJATIVE and unexpected category
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertIn('__all__', errors)
+
+    def test_mixed_case_category_name(self):
+        """Test mixed case category name fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+            'Pismo_Namere': [{'name': 'pismo.pdf', 'size': 512000}],  # Mixed case
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        # Should have error for missing PISMO_NAMERE and unexpected category
+        self.assertIn('PISMO_NAMERE', errors)
+        self.assertIn('__all__', errors)
+
+    # ISSUE 13 FIX (MEDIUM): Test for multiple files in both categories simultaneously
+    def test_multiple_files_both_categories(self):
+        """Test multiple files in both categories fails validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [
+                {'name': 'opis1.pdf', 'size': 1024},
+                {'name': 'opis2.pdf', 'size': 2048},
+            ],
+            'PISMO_NAMERE': [
+                {'name': 'pismo1.pdf', 'size': 512},
+                {'name': 'pismo2.pdf', 'size': 1024},
+            ],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        # Both categories should have errors
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertIn('PISMO_NAMERE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'too_many_files')
+        self.assertEqual(errors['PISMO_NAMERE'][0]['code'], 'too_many_files')
+
+    # ISSUE 14 FIX (MEDIUM): Explicit test for exactly 2 files required
+    def test_exactly_two_files_required(self):
+        """Test that exactly 2 files are required (one per category)."""
+        # Missing one file
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+            # Missing PISMO_NAMERE
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('PISMO_NAMERE', errors)
+
+    def test_exactly_two_files_success(self):
+        """Test that exactly 2 files (one per category) passes validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    def test_three_files_total_fails(self):
+        """Test that 3 total files fail validation."""
+        file_metadata = {
+            'OPIS_INICIJATIVE': [
+                {'name': 'opis1.pdf', 'size': 1024},
+                {'name': 'opis2.pdf', 'size': 2048},
+            ],
+            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'too_many_files')

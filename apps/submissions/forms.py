@@ -6,6 +6,9 @@ Story 2.8: FileUploadForm - File Upload with Validation
 Story 2.11: Updated for ProjectData model separation
 Story 3.2: COBApplicantForm - Simplified applicant validation (no JMBG/matični broj)
 """
+from typing import Dict, Tuple, Any, List
+import re
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -15,7 +18,12 @@ from apps.submissions.validators import (
     validate_file_size,
     validate_mime_type
 )
-import re
+
+
+# ISSUE 10 FIX: Extract hardcoded category names to constants
+COB_FILE_CATEGORIES = ['OPIS_INICIJATIVE', 'PISMO_NAMERE']
+ALLOWED_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx']
+MAX_FILE_SIZE = 10485760  # 10MB in bytes
 
 
 class COAFormSectionI(forms.ModelForm):
@@ -216,12 +224,13 @@ class FileUploadForm(forms.Form):
     """
     File Upload Form with comprehensive validation.
     Story 2.8: File Upload Infrastructure
+    Story 3.4: Added COB file categories (OPIS_INICIJATIVE, PISMO_NAMERE)
 
     Validates:
     - File extension (PDF, DOC, DOCX, XLS, XLSX only)
     - File size (10MB max)
     - MIME type (prevents extension spoofing)
-    - File category (budget, biography, support letter)
+    - File category (budget, biography, support letter, opis inicijative, pismo namere)
 
     Security Features:
     - Extension whitelist enforcement
@@ -231,9 +240,13 @@ class FileUploadForm(forms.Form):
     """
 
     CATEGORY_CHOICES = [
+        # COA categories (Epic 2)
         ('BUDGET', 'Budžet'),
         ('BIOGRAPHY', 'Biografija'),
         ('SUPPORT_LETTER', 'Pismo Podrške'),
+        # COB categories (Epic 3 - Story 3.4)
+        ('OPIS_INICIJATIVE', 'Opis Inicijative'),
+        ('PISMO_NAMERE', 'Pismo Namere'),
     ]
 
     file = forms.FileField(
@@ -610,3 +623,160 @@ class COBInitiativeDataForm(forms.Form):
             if not ocekivani_uticaj:
                 raise ValidationError('Očekivani uticaj ne može biti prazan.')
         return ocekivani_uticaj
+
+
+class COBSectionIIIForm(forms.Form):
+    """
+    COB (Inicijativa) Section III - Simplified documentation validation.
+    Story 3.4: COB Section III - Simplified Documentation (2 Files Only)
+
+    Differences from COA:
+    - Only 2 file categories: OPIS_INICIJATIVE, PISMO_NAMERE
+    - NO budget, biography, support letter categories
+    - Single checkbox: saglasnost_gdpr (required)
+
+    Architecture: Backend validation only (files validated via metadata)
+    GDPR: Validation only, does NOT persist files
+    """
+
+    # GDPR Consent Checkbox
+    saglasnost_gdpr = forms.BooleanField(
+        required=True,
+        label='Prihvatam Politiku privatnosti i Uslove korišćenja',
+        error_messages={
+            'required': 'Saglasnost sa GDPR politikom je obavezna.',
+        }
+    )
+
+    def clean(self):
+        """
+        Custom validation: Ensure saglasnost_gdpr is checked.
+
+        ISSUE 11 FIX: Comprehensive docstring added.
+
+        Validates GDPR consent checkbox is explicitly checked (True).
+        This is a legal requirement for GDPR compliance - users MUST actively
+        consent to data processing before submission.
+
+        Architecture:
+        - Called automatically by Django form validation pipeline
+        - Runs AFTER individual field validation (clean_<field>() methods)
+        - Adds field-specific error if checkbox is False/unchecked
+
+        Returns:
+            dict: Cleaned data dictionary with all validated fields
+
+        Raises:
+            ValidationError: Implicitly via add_error() if GDPR consent not checked
+        """
+        cleaned_data = super().clean()
+
+        saglasnost = cleaned_data.get('saglasnost_gdpr')
+        if not saglasnost:
+            self.add_error('saglasnost_gdpr', 'Morate potvrditi saglasnost sa Politikom privatnosti i Uslovima korišćenja.')
+
+        return cleaned_data
+
+
+def validate_cob_file_metadata(file_metadata: Dict[str, Any]) -> Tuple[bool, Dict[str, List[Dict[str, str]]]]:
+    """
+    Validate COB file upload metadata structure.
+    Story 3.4: COB Section III - File metadata validation for 2 files only
+
+    ISSUE 16 FIX: Added type hints
+    ISSUE 1 FIX: Added file extension validation (.pdf, .doc, .docx only)
+    ISSUE 2 FIX: Added file size validation (max 10MB = 10485760 bytes)
+    ISSUE 3 FIX: Return error objects with {'message': '...', 'code': '...'} format
+    ISSUE 9 FIX: Removed redundant empty list check
+
+    Expected structure:
+    {
+        'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+        'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}]
+    }
+
+    Validation Rules:
+    - Exactly 2 categories required: OPIS_INICIJATIVE, PISMO_NAMERE
+    - Each category must have exactly 1 file (no more, no less)
+    - File extension must be .pdf, .doc, or .docx (case-insensitive)
+    - File size must not exceed 10MB (10485760 bytes)
+    - File metadata must include 'name' and 'size' fields
+    - File name cannot be empty string
+
+    Args:
+        file_metadata: File metadata from localStorage draft
+
+    Returns:
+        Tuple of (valid: bool, errors: dict with error objects)
+        Error format: {'field': [{'message': '...', 'code': '...'}]}
+    """
+    errors: Dict[str, List[Dict[str, str]]] = {}
+
+    if not isinstance(file_metadata, dict):
+        return False, {'__all__': [{'message': 'Neispravan format metapodataka fajlova.', 'code': 'invalid_format'}]}
+
+    # ISSUE 10 FIX: Use constant instead of hardcoded list
+    required_categories = COB_FILE_CATEGORIES
+
+    for category in required_categories:
+        if category not in file_metadata:
+            errors[category] = [{'message': f'{category.replace("_", " ").title()} je obavezan.', 'code': 'missing_category'}]
+        elif not file_metadata[category]:
+            # Empty list
+            errors[category] = [{'message': f'{category.replace("_", " ").title()} je obavezan.', 'code': 'empty_list'}]
+        elif not isinstance(file_metadata[category], list):
+            errors[category] = [{'message': f'Neispravan format za {category.replace("_", " ").lower()}.', 'code': 'invalid_type'}]
+        # ISSUE 9 FIX: Removed redundant "elif len(file_metadata[category]) == 0" check (already covered by "elif not file_metadata[category]")
+        elif len(file_metadata[category]) > 1:
+            # COB allows only single file per category (vs COA's multiple files for some categories)
+            errors[category] = [{'message': f'{category.replace("_", " ").title()} dozvoljava samo 1 fajl.', 'code': 'too_many_files'}]
+        else:
+            # Validate individual file metadata
+            file_obj = file_metadata[category][0]
+
+            # ISSUE 5 FIX (HIGH): Validate 'name' and 'size' fields exist
+            if not isinstance(file_obj, dict):
+                errors[category] = [{'message': f'Neispravan format metapodataka fajla za {category.replace("_", " ").lower()}.', 'code': 'invalid_file_object'}]
+                continue
+
+            if 'name' not in file_obj:
+                errors[category] = [{'message': f'Nedostaje ime fajla za {category.replace("_", " ").lower()}.', 'code': 'missing_name'}]
+                continue
+
+            if 'size' not in file_obj:
+                errors[category] = [{'message': f'Nedostaje veličina fajla za {category.replace("_", " ").lower()}.', 'code': 'missing_size'}]
+                continue
+
+            file_name = file_obj.get('name', '')
+            file_size = file_obj.get('size', 0)
+
+            # ISSUE 4 FIX (HIGH): Validate empty string file names
+            if not file_name or not file_name.strip():
+                errors[category] = [{'message': f'Ime fajla ne može biti prazno za {category.replace("_", " ").lower()}.', 'code': 'empty_filename'}]
+                continue
+
+            # ISSUE 1 FIX (CRITICAL): Validate file extension (.pdf, .doc, .docx only)
+            file_ext = '.' + file_name.split('.')[-1].lower() if '.' in file_name else ''
+            if file_ext not in ALLOWED_FILE_EXTENSIONS:
+                errors[category] = [{'message': f'Nedozvoljena ekstenzija fajla. Dozvoljene ekstenzije: {", ".join(ALLOWED_FILE_EXTENSIONS)}', 'code': 'invalid_extension'}]
+                continue
+
+            # ISSUE 2 FIX (CRITICAL): Validate file size (max 10MB)
+            try:
+                file_size_int = int(file_size)
+                if file_size_int > MAX_FILE_SIZE:
+                    errors[category] = [{'message': f'Fajl prelazi maksimalnu veličinu od 10MB (trenutna veličina: {file_size_int / 1048576:.2f}MB).', 'code': 'file_too_large'}]
+                    continue
+                elif file_size_int <= 0:
+                    errors[category] = [{'message': f'Veličina fajla mora biti veća od 0.', 'code': 'invalid_size'}]
+                    continue
+            except (ValueError, TypeError):
+                errors[category] = [{'message': f'Neispravan format veličine fajla za {category.replace("_", " ").lower()}.', 'code': 'invalid_size_format'}]
+                continue
+
+    # Ensure NO other categories (COB should NOT have BUDGET, BIOGRAPHY, etc.)
+    invalid_categories = set(file_metadata.keys()) - set(required_categories)
+    if invalid_categories:
+        errors['__all__'] = [{'message': f'Neočekivane kategorije fajlova: {", ".join(invalid_categories)}', 'code': 'unexpected_categories'}]
+
+    return len(errors) == 0, errors
