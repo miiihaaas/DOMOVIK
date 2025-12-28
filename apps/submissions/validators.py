@@ -279,3 +279,119 @@ def generate_unique_filename(original_filename):
         return f"{timestamp}_{unique_id}_{base_name}.{extension}"
     else:
         return f"{timestamp}_{unique_id}_{base_name}"
+
+
+def validate_email(email):
+    """
+    Validate email address format.
+
+    Args:
+        email (str): Email address to validate
+
+    Raises:
+        ValidationError: If email format is invalid
+    """
+    if not email:
+        raise ValidationError('Email adresa je obavezna.')
+
+    # Basic email regex pattern
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
+        raise ValidationError('Molimo unesite validnu email adresu.')
+
+
+def validate_phone(phone):
+    """
+    Validate Serbian phone number format.
+
+    Accepts formats:
+    - +381XXXXXXXXX (international)
+    - 06XXXXXXXX (mobile)
+    - 0XXXXXXXX (landline)
+
+    Args:
+        phone (str): Phone number to validate
+
+    Raises:
+        ValidationError: If phone format is invalid
+    """
+    if not phone:
+        raise ValidationError('Broj telefona je obavezan.')
+
+    # Remove spaces and dashes
+    cleaned_phone = phone.replace(' ', '').replace('-', '')
+
+    # Serbian phone pattern: +381 or 0, followed by 8-10 digits
+    phone_pattern = r'^(\+381|0)[0-9]{8,10}$'
+    if not re.match(phone_pattern, cleaned_phone):
+        raise ValidationError('Molimo unesite validan broj telefona (npr. +381XXXXXXXXX ili 06XXXXXXXX).')
+
+
+def validate_jmbg(jmbg):
+    """
+    Validate Serbian JMBG (Unique Master Citizen Number).
+
+    JMBG format: 13 digits (DDMMYYYRRBBBC)
+    - DD: day of birth (01-31)
+    - MM: month of birth (01-12)
+    - YYY: year of birth (last 3 digits)
+    - RR: region code
+    - BBB: birth sequence
+    - C: control digit
+
+    Args:
+        jmbg (str): JMBG to validate
+
+    Raises:
+        ValidationError: If JMBG format is invalid
+    """
+    if not jmbg:
+        return  # JMBG is optional in some cases
+
+    # Must be exactly 13 digits
+    if not re.match(r'^\d{13}$', jmbg):
+        raise ValidationError('JMBG mora imati tačno 13 cifara.')
+
+    # Validate day (01-31)
+    day = int(jmbg[0:2])
+    if day < 1 or day > 31:
+        raise ValidationError('JMBG sadrži neispravan dan rođenja.')
+
+    # Validate month (01-12)
+    month = int(jmbg[2:4])
+    if month < 1 or month > 12:
+        raise ValidationError('JMBG sadrži neispravan mesec rođenja.')
+
+
+def validate_maticni_broj(maticni_broj):
+    """
+    Validate Serbian Matični Broj (Company Registration Number).
+
+    Format: 8 digits
+
+    Args:
+        maticni_broj (str): Matični broj to validate
+
+    Raises:
+        ValidationError: If matični broj format is invalid
+    """
+    if not maticni_broj:
+        return  # Matični broj is optional in some cases
+
+    # Must be exactly 8 digits
+    if not re.match(r'^\d{8}$', maticni_broj):
+        raise ValidationError('Matični broj mora imati tačno 8 cifara.')
+
+
+# Export list for module
+__all__ = [
+    'validate_file_extension',
+    'validate_file_size',
+    'validate_mime_type',
+    'sanitize_filename',
+    'generate_unique_filename',
+    'validate_email',
+    'validate_phone',
+    'validate_jmbg',
+    'validate_maticni_broj',
+]

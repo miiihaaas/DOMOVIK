@@ -4,8 +4,11 @@ Views for COA/COB application submission.
 Story 1.3: Created placeholder views
 Story 2.2: Add COAFormSectionI form handling
 Story 2.8: File upload/delete API endpoints
+Story 2.11: Submission processing endpoint with rate limiting and duplicate prevention
 """
 import logging
+import json
+from datetime import timedelta
 from django.views.generic import TemplateView
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
@@ -13,12 +16,16 @@ from django.views.decorators.http import require_http_methods
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils.decorators import method_decorator
+from django.utils import timezone
+from django_ratelimit.decorators import ratelimit
 from apps.submissions.forms import COAFormSectionI, FileUploadForm
-from apps.submissions.models import UploadedFile
+from apps.submissions.models import UploadedFile, Application, Applicant
 from apps.submissions.validators import generate_unique_filename
+from apps.submissions.services import process_submission
 
 # File upload logger
 logger = logging.getLogger('file_uploads')
+submission_logger = logging.getLogger('domovik.submissions')
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
@@ -234,4 +241,148 @@ def delete_file(request, file_id):
         return JsonResponse({
             'success': False,
             'error': 'Došlo je do greške tokom brisanja. Molimo pokušajte ponovo.'
+        }, status=500)
+
+
+@csrf_protect
+@require_http_methods(['POST'])
+@ratelimit(key='ip', rate='10/h', method='POST', block=True)
+def submit_application(request):
+    """
+    Complete application submission endpoint.
+    Story 2.11: Handle COA/COB submission with reference number generation
+
+    Processes:
+    - Form data validation (applicant + project)
+    - File metadata collection from session
+    - Atomic database transaction (reference number, applicant, project, files)
+    - Draft cleanup on success
+    - Error handling with rollback
+
+    Security Features:
+    - CSRF protection
+    - Rate limiting (10 submissions per hour per IP)
+    - Duplicate submission prevention (same email + title in last 5 minutes)
+    - JSON request body
+    - Session-based file ownership validation
+    - Atomic transactions (no partial submissions)
+
+    Returns:
+        JsonResponse: Success with reference number or error details
+    """
+    try:
+        # Parse JSON request body
+        try:
+            submission_data = json.loads(request.body.decode('utf-8'))
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            logger.error(f"Invalid JSON in submission: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Neispravni podaci. Molimo pokušajte ponovo.'
+            }, status=400)
+
+        # Validate required fields
+        if not submission_data.get('applicant'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Podaci o podnosiocu nisu pronađeni.'
+            }, status=400)
+
+        # Get application type (COA by default)
+        application_type = submission_data.get('application_type', 'COA')
+
+        # Validate project data for COA
+        if application_type == 'COA' and not submission_data.get('project'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Podaci o projektu nisu pronađeni.'
+            }, status=400)
+
+        # Duplicate submission prevention: Check for same email + title in last 5 minutes
+        applicant_email = submission_data.get('applicant', {}).get('email')
+        project_title = submission_data.get('project', {}).get('title') if application_type == 'COA' else None
+
+        if applicant_email and project_title:
+            five_minutes_ago = timezone.now() - timedelta(minutes=5)
+            recent_submissions = Application.objects.filter(
+                applicant__email=applicant_email,
+                project_data__title=project_title,
+                submitted_at__gte=five_minutes_ago
+            ).exists()
+
+            if recent_submissions:
+                submission_logger.warning(
+                    f"Duplicate submission blocked: email={applicant_email}, "
+                    f"title={project_title[:50]}, ip={request.META.get('REMOTE_ADDR')}"
+                )
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Već ste poslali istu prijavu u poslednjih 5 minuta. Molimo sačekajte pre nego što pokušate ponovo.'
+                }, status=429)
+
+        # Get uploaded files from session
+        session_key = request.session.session_key
+        if not session_key:
+            logger.warning("Submission attempt without session")
+            return JsonResponse({
+                'success': False,
+                'error': 'Sesija je istekla. Molimo osvežite stranicu i pokušajte ponovo.'
+            }, status=403)
+
+        # Fetch uploaded files for this session
+        uploaded_files = UploadedFile.objects.filter(
+            uploaded_by_session=session_key,
+            is_deleted=False,
+            application__isnull=True  # Only draft files
+        )
+
+        # Build file metadata list
+        files_metadata = []
+        for file_obj in uploaded_files:
+            files_metadata.append({
+                'file_type': file_obj.category,
+                'original_filename': file_obj.original_filename,
+                'stored_filename': file_obj.stored_filename,
+                'file_size': file_obj.file_size
+            })
+
+        # Add files to submission data
+        submission_data['files'] = files_metadata
+
+        # Process submission using service (atomic transaction)
+        result = process_submission(submission_data)
+
+        if result['success']:
+            # Link uploaded files to application
+            # Note: We'll need to fetch the application to link files
+            application_obj = Application.objects.get(
+                reference_number=result['reference_number']
+            )
+            uploaded_files.update(application=application_obj)
+
+            logger.info(
+                f"Submission completed successfully: {result['reference_number']}, "
+                f"session: {session_key}"
+            )
+
+            return JsonResponse({
+                'success': True,
+                'reference_number': result['reference_number'],
+                'message': f"Prijava je uspešno podnesena. Vaš referentni broj: {result['reference_number']}"
+            })
+        else:
+            # Return error from process_submission
+            logger.error(f"Submission failed: {result.get('error')}")
+            return JsonResponse({
+                'success': False,
+                'error': result.get('error', 'Greška pri čuvanju prijave.')
+            }, status=500)
+
+    except Exception as e:
+        # Log unexpected exception
+        logger.error(f"Unexpected submission error: {str(e)}", exc_info=True)
+
+        return JsonResponse({
+            'success': False,
+            'error': 'Došlo je do neočekivane greške. Molimo pokušajte ponovo ili kontaktirajte podršku.'
         }, status=500)

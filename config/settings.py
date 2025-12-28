@@ -205,6 +205,12 @@ LOGGING = {
             'filename': BASE_DIR / 'logs' / 'file_uploads.log',
             'formatter': 'verbose',
         },
+        'submissions': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'submissions.log',
+            'formatter': 'verbose',
+        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -214,6 +220,11 @@ LOGGING = {
     'loggers': {
         'file_uploads': {
             'handlers': ['file_uploads', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'domovik.submissions': {
+            'handlers': ['submissions', 'console'],
             'level': 'INFO',
             'propagate': False,
         },

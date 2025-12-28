@@ -4,11 +4,57 @@ Models for COA and COB application submissions.
 
 This module defines the data models for storing application submissions
 and applicant information in the DOMOVIK system.
+
+Story 2.11: Added ReferenceNumberSequence, ProjectData, FileMetadata models
+Story 2.11: Using constants from constants.py
 """
 
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from apps.submissions.constants import ApplicationType, ApplicationStatus, EntityType, FileType
+
+
+class ReferenceNumberSequence(models.Model):
+    """
+    Track sequential reference numbers per year and application type.
+
+    This model ensures unique, sequential reference numbers without gaps.
+    Uses database row locking (select_for_update) to prevent race conditions.
+
+    Fields:
+        year: Year for this sequence (e.g., 2025)
+        application_type: COA or COB
+        last_number: Last assigned sequential number
+    """
+    year = models.IntegerField(
+        verbose_name='Godina',
+        help_text='Year for this sequence'
+    )
+
+    application_type = models.CharField(
+        max_length=10,
+        choices=ApplicationType.CHOICES,
+        verbose_name='Tip Prijave'
+    )
+
+    last_number = models.IntegerField(
+        default=0,
+        verbose_name='Poslednji Broj',
+        help_text='Last assigned sequential number'
+    )
+
+    class Meta:
+        unique_together = [['year', 'application_type']]
+        verbose_name = 'Sekvenca Referentnog Broja'
+        verbose_name_plural = 'Sekvence Referentnih Brojeva'
+        indexes = [
+            models.Index(fields=['year', 'application_type']),
+        ]
+
+    def __str__(self):
+        """Return string representation of sequence."""
+        return f"{self.application_type}-{self.year}: {self.last_number:03d}"
 
 
 class Application(models.Model):
@@ -17,28 +63,15 @@ class Application(models.Model):
 
     Represents a single application submission, either for a Project (COA)
     or Initiative (COB). Each application has one associated applicant.
+    Project details for COA are stored in separate ProjectData model.
 
     Fields:
         reference_number: Unique identifier (format: COA-YYYY-NNN or COB-YYYY-NNN)
-        type: Application type (COA or COB)
+        application_type: Application type (COA or COB)
         status: Current application status
         created_at: Timestamp when application was created
         submitted_at: Timestamp when application was submitted (null until submitted)
-        updated_at: Timestamp of last update
     """
-
-    TYPE_CHOICES = [
-        ('COA', 'Prijava za Projekat'),
-        ('COB', 'Prijava za Inicijativu'),
-    ]
-
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('submitted', 'Podneto'),
-        ('under_review', 'U Razmatranju'),
-        ('approved', 'Odobreno'),
-        ('rejected', 'Odbijeno'),
-    ]
 
     reference_number = models.CharField(
         max_length=20,
@@ -48,92 +81,31 @@ class Application(models.Model):
         help_text='Format: COA-YYYY-NNN ili COB-YYYY-NNN'
     )
 
-    type = models.CharField(
+    application_type = models.CharField(
         max_length=3,
-        choices=TYPE_CHOICES,
+        choices=ApplicationType.CHOICES,
+        db_index=True,
         verbose_name='Tip Prijave'
     )
 
     status = models.CharField(
         max_length=20,
-        choices=STATUS_CHOICES,
-        default='draft',
+        choices=ApplicationStatus.CHOICES,
+        default=ApplicationStatus.SUBMITTED,
+        db_index=True,
         verbose_name='Status'
     )
 
     created_at = models.DateTimeField(
-        default=timezone.now,
+        auto_now_add=True,
         verbose_name='Kreirano'
     )
 
     submitted_at = models.DateTimeField(
         null=True,
         blank=True,
+        db_index=True,
         verbose_name='Podneseno'
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='Ažurirano'
-    )
-
-    # Section II: Project Data (Story 2.6)
-    naslov = models.CharField(
-        max_length=150,
-        blank=True,
-        verbose_name='Naslov projekta',
-        help_text='Maksimalno 150 karaktera'
-    )
-
-    opis = models.TextField(
-        blank=True,
-        verbose_name='Kratak opis',
-        help_text='Maksimalno 500 karaktera'
-    )
-
-    problem = models.TextField(
-        blank=True,
-        verbose_name='Problem koji se rešava',
-        help_text='Maksimalno 2000 karaktera'
-    )
-
-    cilj = models.TextField(
-        blank=True,
-        verbose_name='Glavni cilj',
-        help_text='Maksimalno 1000 karaktera'
-    )
-
-    specifični_ciljevi = models.TextField(
-        blank=True,
-        verbose_name='Specifični ciljevi',
-        help_text='Maksimalno 1000 karaktera'
-    )
-
-    ciljne_grupe = models.TextField(
-        blank=True,
-        verbose_name='Ciljne grupe',
-        help_text='Maksimalno 1500 karaktera'
-    )
-
-    aktivnosti = models.TextField(
-        blank=True,
-        verbose_name='Aktivnosti',
-        help_text='Maksimalno 1500 karaktera'
-    )
-
-    rezultati = models.TextField(
-        blank=True,
-        verbose_name='Rezultati',
-        help_text='Maksimalno 1500 karaktera'
-    )
-
-    budžet = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name='Totalni budžet (RSD)',
-        help_text='Iznos u dinarima'
     )
 
     class Meta:
@@ -142,65 +114,13 @@ class Application(models.Model):
         verbose_name_plural = 'Prijave'
         indexes = [
             models.Index(fields=['reference_number']),
-            models.Index(fields=['type', 'status']),
+            models.Index(fields=['application_type', 'status']),
             models.Index(fields=['submitted_at']),
         ]
 
     def __str__(self):
         """Return string representation of application."""
-        return f"{self.reference_number} ({self.get_type_display()})"
-
-    def clean(self):
-        """
-        Validate application data.
-
-        Validates that type field is one of the allowed choices.
-
-        Raises:
-            ValidationError: If validation fails
-        """
-        super().clean()
-
-        # Validate type field
-        valid_types = [choice[0] for choice in self.TYPE_CHOICES]
-        if self.type and self.type not in valid_types:
-            raise ValidationError({
-                'type': f"Invalid type '{self.type}'. Must be one of: {', '.join(valid_types)}"
-            })
-
-    def save(self, *args, **kwargs):
-        """
-        Save application instance.
-
-        Auto-generates reference_number if not set.
-        Auto-sets submitted_at timestamp when status becomes 'submitted'.
-        Note: Full reference number generation implemented in Story 2.11.
-        """
-        if not self.reference_number:
-            self.reference_number = self._generate_reference_number()
-
-        # Auto-set submitted_at when status changes to 'submitted'
-        if self.status == 'submitted' and not self.submitted_at:
-            self.submitted_at = timezone.now()
-
-        super().save(*args, **kwargs)
-
-    def _generate_reference_number(self):
-        """
-        Generate unique reference number for application.
-
-        TODO: Full implementation in Story 2.11 (Submission Processing).
-        For Story 2.1, this is a placeholder stub with unique UUID suffix.
-
-        Returns:
-            str: Placeholder reference number (format: TYPE-YYYY-TEMP-xxxxxx)
-        """
-        import uuid
-        # Placeholder stub - full implementation in Story 2.11
-        # Use dynamic year and UUID suffix to ensure uniqueness
-        year = timezone.now().year
-        unique_suffix = uuid.uuid4().hex[:6]
-        return f"{self.type}-{year}-TEMP-{unique_suffix}"
+        return f"{self.reference_number} ({self.get_application_type_display()})"
 
 
 class Applicant(models.Model):
@@ -212,21 +132,16 @@ class Applicant(models.Model):
 
     Fields:
         application: One-to-one link to Application
-        entity_type: Type of applicant (fizičko or pravno)
-        ime: First name (fizičko lice only)
-        prezime: Last name (fizičko lice only)
+        entity_type: Type of applicant (fizicko or pravno)
+        first_name: First name (fizičko lice only)
+        last_name: Last name (fizičko lice only)
         jmbg: Personal ID number (fizičko lice, COA only)
-        naziv_organizacije: Organization name (pravno lice only)
+        organization_name: Organization name (pravno lice only)
         maticni_broj: Registration number (pravno lice, COA only)
-        adresa: Address (required for both types)
+        address: Address (required for both types)
         email: Email address (required for both types)
-        telefon: Phone number (required for both types)
+        phone: Phone number (required for both types)
     """
-
-    ENTITY_TYPE_CHOICES = [
-        ('fizicko', 'Fizičko Lice'),
-        ('pravno', 'Pravno Lice'),
-    ]
 
     application = models.OneToOneField(
         Application,
@@ -237,18 +152,18 @@ class Applicant(models.Model):
 
     entity_type = models.CharField(
         max_length=10,
-        choices=ENTITY_TYPE_CHOICES,
+        choices=EntityType.CHOICES,
         verbose_name='Tip Podnosioca'
     )
 
     # Fizičko lice fields
-    ime = models.CharField(
+    first_name = models.CharField(
         max_length=100,
         blank=True,
         verbose_name='Ime'
     )
 
-    prezime = models.CharField(
+    last_name = models.CharField(
         max_length=100,
         blank=True,
         verbose_name='Prezime'
@@ -257,108 +172,195 @@ class Applicant(models.Model):
     jmbg = models.CharField(
         max_length=13,
         blank=True,
+        null=True,
         verbose_name='JMBG',
         help_text='13 cifara'
     )
 
     # Pravno lice fields
-    naziv_organizacije = models.CharField(
+    organization_name = models.CharField(
         max_length=200,
         blank=True,
         verbose_name='Naziv Organizacije'
     )
 
     maticni_broj = models.CharField(
-        max_length=20,
+        max_length=8,
         blank=True,
-        verbose_name='Matični Broj'
+        null=True,
+        verbose_name='Matični Broj',
+        help_text='8 cifara'
     )
 
     # Common fields
-    adresa = models.CharField(
+    address = models.CharField(
         max_length=300,
         verbose_name='Adresa'
     )
 
     email = models.EmailField(
+        db_index=True,
         verbose_name='Email'
     )
 
-    telefon = models.CharField(
+    phone = models.CharField(
         max_length=20,
         verbose_name='Telefon'
-    )
-
-    created_at = models.DateTimeField(
-        default=timezone.now,
-        verbose_name='Kreirano'
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='Ažurirano'
     )
 
     class Meta:
         verbose_name = 'Podnosilac'
         verbose_name_plural = 'Podnosioci'
+        # Index on email for duplicate detection queries (Story 2.11)
+        indexes = [
+            models.Index(fields=['email'], name='applicant_email_idx'),
+        ]
 
     def __str__(self):
         """Return string representation of applicant."""
-        if self.entity_type == 'fizicko':
-            return f"{self.ime} {self.prezime}"
+        if self.entity_type == EntityType.FIZICKO:
+            return f"{self.first_name} {self.last_name}"
         else:
-            return self.naziv_organizacije
+            return self.organization_name
 
-    def clean(self):
-        """
-        Validate applicant data based on entity type and application type.
 
-        Validation rules:
-        - Fizičko lice: ime and prezime required
-        - Pravno lice: naziv_organizacije required
-        - COA fizičko: JMBG required (13 digits)
-        - COA pravno: matični broj required
-        - COB: JMBG and matični NOT required
+class ProjectData(models.Model):
+    """
+    Project data for COA submissions only.
 
-        Raises:
-            ValidationError: If validation fails
-        """
-        super().clean()
+    Stores detailed project information for COA applications.
+    This model has a OneToOne relationship with Application.
 
-        # Validate based on entity type
-        if self.entity_type == 'fizicko':
-            if not self.ime or not self.prezime:
-                raise ValidationError({
-                    'ime': 'Ime je obavezno za fizička lica.',
-                    'prezime': 'Prezime je obavezno za fizička lica.'
-                })
-        elif self.entity_type == 'pravno':
-            if not self.naziv_organizacije:
-                raise ValidationError({
-                    'naziv_organizacije': 'Naziv organizacije je obavezan za pravna lica.'
-                })
+    Fields:
+        application: Link to Application (OneToOne)
+        title: Project title (max 150 chars)
+        short_description: Brief description (max 500 chars)
+        problem: Problem being addressed (max 2000 chars)
+        main_goal: Main objective (max 1000 chars)
+        specific_goals: Specific objectives (max 1000 chars)
+        target_groups: Target beneficiaries (max 1500 chars)
+        activities: Planned activities (max 1500 chars)
+        results: Expected outcomes (max 1500 chars)
+        total_budget: Total budget amount in RSD
+    """
 
-        # CRITICAL: Application must be saved before this validation
-        # Django form processing: Create Application → Save → Create Applicant → Link → Validate
-        if self.application_id and self.application.type == 'COA':
-            # COA requires JMBG for fizičko lice
-            if self.entity_type == 'fizicko':
-                if not self.jmbg:
-                    raise ValidationError({
-                        'jmbg': 'JMBG je obavezan za fizička lica u COA prijavama.'
-                    })
-                if len(self.jmbg) != 13 or not self.jmbg.isdigit():
-                    raise ValidationError({
-                        'jmbg': 'JMBG mora imati tačno 13 cifara.'
-                    })
+    application = models.OneToOneField(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='project_data',
+        verbose_name='Prijava'
+    )
 
-            # COA requires matični broj for pravno lice
-            elif self.entity_type == 'pravno':
-                if not self.maticni_broj:
-                    raise ValidationError({
-                        'maticni_broj': 'Matični broj je obavezan za pravna lica u COA prijavama.'
-                    })
+    title = models.CharField(
+        max_length=150,
+        verbose_name='Naslov Projekta'
+    )
+
+    short_description = models.TextField(
+        max_length=500,
+        verbose_name='Kratak Opis'
+    )
+
+    problem = models.TextField(
+        max_length=2000,
+        verbose_name='Problem'
+    )
+
+    main_goal = models.TextField(
+        max_length=1000,
+        verbose_name='Glavni Cilj'
+    )
+
+    specific_goals = models.TextField(
+        max_length=1000,
+        verbose_name='Specifični Ciljevi'
+    )
+
+    target_groups = models.TextField(
+        max_length=1500,
+        verbose_name='Ciljne Grupe'
+    )
+
+    activities = models.TextField(
+        max_length=1500,
+        verbose_name='Aktivnosti'
+    )
+
+    results = models.TextField(
+        max_length=1500,
+        verbose_name='Rezultati'
+    )
+
+    total_budget = models.IntegerField(
+        verbose_name='Ukupan Budžet',
+        help_text='Iznos u RSD'
+    )
+
+    class Meta:
+        verbose_name = 'Podaci Projekta'
+        verbose_name_plural = 'Podaci Projekata'
+
+    def __str__(self):
+        """Return string representation of project data."""
+        return f"ProjectData: {self.title[:50]}"
+
+
+class FileMetadata(models.Model):
+    """
+    Metadata for uploaded files linked to applications.
+
+    Tracks files that have been uploaded and linked to submitted applications.
+    Works in conjunction with Story 2.9's file upload system.
+
+    Fields:
+        application: Link to Application (ForeignKey)
+        file_type: Type of file (BUDGET, BIOGRAPHY, SUPPORT_LETTER)
+        original_filename: Original name of uploaded file
+        stored_filename: Unique filename in storage
+        file_size: Size in bytes
+        uploaded_at: Timestamp of upload
+    """
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='files',
+        verbose_name='Prijava'
+    )
+
+    file_type = models.CharField(
+        max_length=20,
+        choices=FileType.CHOICES,
+        verbose_name='Tip Fajla'
+    )
+
+    original_filename = models.CharField(
+        max_length=255,
+        verbose_name='Originalni Naziv'
+    )
+
+    stored_filename = models.CharField(
+        max_length=255,
+        verbose_name='Naziv u Skladištu'
+    )
+
+    file_size = models.IntegerField(
+        verbose_name='Veličina Fajla',
+        help_text='Bytes'
+    )
+
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Datum Upload-a'
+    )
+
+    class Meta:
+        verbose_name = 'Metadata Fajla'
+        verbose_name_plural = 'Metadata Fajlova'
+
+    def __str__(self):
+        """Return string representation of file metadata."""
+        return f"{self.get_file_type_display()}: {self.original_filename}"
 
 
 class UploadedFile(models.Model):
@@ -389,12 +391,6 @@ class UploadedFile(models.Model):
         application: Linked application (null for drafts)
         is_deleted: Soft delete flag
     """
-
-    CATEGORY_CHOICES = [
-        ('BUDGET', 'Budžet'),
-        ('BIOGRAPHY', 'Biografija'),
-        ('SUPPORT_LETTER', 'Pismo Podrške'),
-    ]
 
     original_filename = models.CharField(
         max_length=255,
@@ -433,7 +429,7 @@ class UploadedFile(models.Model):
 
     category = models.CharField(
         max_length=20,
-        choices=CATEGORY_CHOICES,
+        choices=FileType.CHOICES,
         verbose_name='Kategorija',
         help_text='Purpose of uploaded file'
     )

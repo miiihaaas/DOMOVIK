@@ -2,6 +2,7 @@
 """
 URL configuration for submissions app.
 Story 2.8: File upload/delete API endpoints
+Story 2.11: Submission processing endpoint
 """
 from django.urls import path
 from apps.submissions import views
@@ -12,4 +13,7 @@ urlpatterns = [
     # File upload/delete endpoints (Story 2.8)
     path('upload/', views.upload_file, name='upload_file'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
+
+    # Submission endpoint (Story 2.11)
+    path('submit/', views.submit_application, name='submit_application'),
 ]

@@ -3,10 +3,11 @@
 Django Forms for COA/COB application submission.
 Story 2.2: COAFormSectionI - Section I (General Data Entry)
 Story 2.8: FileUploadForm - File Upload with Validation
+Story 2.11: Updated for ProjectData model separation
 """
 from django import forms
 from django.core.exceptions import ValidationError
-from apps.submissions.models import Applicant, Application
+from apps.submissions.models import Applicant, Application, ProjectData
 from apps.submissions.validators import (
     validate_file_extension,
     validate_file_size,
@@ -27,34 +28,34 @@ class COAFormSectionI(forms.ModelForm):
         fields = [
             'entity_type',
             # Fizičko lice fields
-            'ime', 'prezime', 'jmbg',
+            'first_name', 'last_name', 'jmbg',
             # Pravno lice fields
-            'naziv_organizacije', 'maticni_broj',
+            'organization_name', 'maticni_broj',
             # Common fields
-            'adresa', 'email', 'telefon'
+            'address', 'email', 'phone'
         ]
 
         widgets = {
             'entity_type': forms.HiddenInput(),  # Handled by JavaScript switcher
-            'adresa': forms.Textarea(attrs={'rows': 3}),
+            'address': forms.Textarea(attrs={'rows': 3}),
         }
 
         labels = {
             'entity_type': 'Tip podnosioca',
-            'ime': 'Ime',
-            'prezime': 'Prezime',
+            'first_name': 'Ime',
+            'last_name': 'Prezime',
             'jmbg': 'JMBG',
-            'naziv_organizacije': 'Naziv organizacije',
+            'organization_name': 'Naziv organizacije',
             'maticni_broj': 'Matični broj',
-            'adresa': 'Adresa',
+            'address': 'Adresa',
             'email': 'Email adresa',
-            'telefon': 'Broj telefona',
+            'phone': 'Broj telefona',
         }
 
         help_texts = {
             'jmbg': '13 cifara (npr. 1234567890123)',
             'email': 'npr. marko@example.com',
-            'telefon': 'npr. 0611234567',
+            'phone': 'npr. 0611234567',
         }
 
     def clean(self):
@@ -73,34 +74,18 @@ class COAFormSectionI(forms.ModelForm):
 
         # Create temporary Application and Applicant instances to leverage existing model validation
         # This avoids duplicating validation logic (DRY principle)
-        try:
-            # Mock Application instance (required for Applicant validation)
-            # Save it temporarily to get ID (required for Applicant.clean() COA checks)
-            mock_app = Application(type='COA')
-            mock_app.save()  # Need ID for application_id check in Applicant.clean()
+        # Note: Story 2.11 simplified - validation moved to backend API
+        # Form validation only checks basic field requirements
+        entity_type = cleaned_data.get('entity_type')
 
-            try:
-                # Create Applicant with form data
-                # Use all cleaned_data fields (including empty strings) for proper validation
-                applicant = Applicant(application=mock_app, **cleaned_data)
-
-                # Run model validation - this delegates to Applicant.clean()
-                applicant.clean()
-            finally:
-                # Clean up: Delete temporary Application instance
-                mock_app.delete()
-
-        except ValidationError as e:
-            # Convert model ValidationError to form errors
-            if hasattr(e, 'message_dict'):
-                # Field-specific errors
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        self.add_error(field, error)
-            else:
-                # Non-field errors
-                for error in e.messages:
-                    self.add_error(None, error)
+        if entity_type == 'fizicko':
+            if not cleaned_data.get('first_name'):
+                self.add_error('first_name', 'Ime je obavezno za fizička lica.')
+            if not cleaned_data.get('last_name'):
+                self.add_error('last_name', 'Prezime je obavezno za fizička lica.')
+        elif entity_type == 'pravno':
+            if not cleaned_data.get('organization_name'):
+                self.add_error('organization_name', 'Naziv organizacije je obavezan za pravna lica.')
 
         return cleaned_data
 
@@ -109,69 +94,70 @@ class COAFormSectionII(forms.ModelForm):
     """
     COA Form Section II - Project Data Entry with Character Management
     Story 2.6: Section II fields with character limits and budget validation
+    Story 2.11: Updated to use ProjectData model
 
-    Handles project data including naslov, opis, problem, cilj, etc.
+    Handles project data including title, short_description, problem, main_goal, etc.
     Client-side character counting managed by character-counter.js.
     Server-side validation ensures data integrity.
     """
 
     class Meta:
-        model = Application
+        model = ProjectData
         fields = [
-            'naslov', 'opis', 'problem', 'cilj',
-            'specifični_ciljevi', 'ciljne_grupe',
-            'aktivnosti', 'rezultati', 'budžet'
+            'title', 'short_description', 'problem', 'main_goal',
+            'specific_goals', 'target_groups',
+            'activities', 'results', 'total_budget'
         ]
 
         widgets = {
-            'naslov': forms.Textarea(attrs={'rows': 3}),
-            'opis': forms.Textarea(attrs={'rows': 5}),
+            'title': forms.Textarea(attrs={'rows': 3}),
+            'short_description': forms.Textarea(attrs={'rows': 5}),
             'problem': forms.Textarea(attrs={'rows': 10}),
-            'cilj': forms.Textarea(attrs={'rows': 8}),
-            'specifični_ciljevi': forms.Textarea(attrs={'rows': 8}),
-            'ciljne_grupe': forms.Textarea(attrs={'rows': 10}),
-            'aktivnosti': forms.Textarea(attrs={'rows': 10}),
-            'rezultati': forms.Textarea(attrs={'rows': 10}),
-            'budžet': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
+            'main_goal': forms.Textarea(attrs={'rows': 8}),
+            'specific_goals': forms.Textarea(attrs={'rows': 8}),
+            'target_groups': forms.Textarea(attrs={'rows': 10}),
+            'activities': forms.Textarea(attrs={'rows': 10}),
+            'results': forms.Textarea(attrs={'rows': 10}),
+            'total_budget': forms.NumberInput(attrs={'step': '1', 'min': '0', 'placeholder': '0'}),
         }
 
         labels = {
-            'naslov': 'Naslov projekta',
-            'opis': 'Kratak opis',
+            'title': 'Naslov projekta',
+            'short_description': 'Kratak opis',
             'problem': 'Problem koji se rešava',
-            'cilj': 'Glavni cilj',
-            'specifični_ciljevi': 'Specifični ciljevi',
-            'ciljne_grupe': 'Ciljne grupe',
-            'aktivnosti': 'Aktivnosti',
-            'rezultati': 'Rezultati',
-            'budžet': 'Totalni budžet (RSD)',
+            'main_goal': 'Glavni cilj',
+            'specific_goals': 'Specifični ciljevi',
+            'target_groups': 'Ciljne grupe',
+            'activities': 'Aktivnosti',
+            'results': 'Rezultati',
+            'total_budget': 'Totalni budžet (RSD)',
         }
 
         help_texts = {
-            'naslov': 'Maksimalno 150 karaktera',
-            'opis': 'Maksimalno 500 karaktera',
+            'title': 'Maksimalno 150 karaktera',
+            'short_description': 'Maksimalno 500 karaktera',
             'problem': 'Maksimalno 2000 karaktera',
-            'cilj': 'Maksimalno 1000 karaktera',
-            'specifični_ciljevi': 'Maksimalno 1000 karaktera',
-            'ciljne_grupe': 'Maksimalno 1500 karaktera',
-            'aktivnosti': 'Maksimalno 1500 karaktera',
-            'rezultati': 'Maksimalno 1500 karaktera',
-            'budžet': 'Unesite iznos u dinarima (npr. 1000000)',
+            'main_goal': 'Maksimalno 1000 karaktera',
+            'specific_goals': 'Maksimalno 1000 karaktera',
+            'target_groups': 'Maksimalno 1500 karaktera',
+            'activities': 'Maksimalno 1500 karaktera',
+            'results': 'Maksimalno 1500 karaktera',
+            'total_budget': 'Unesite iznos u dinarima (npr. 1000000)',
         }
 
-    def clean_naslov(self):
-        """Validate naslov field - max 150 characters."""
-        naslov = self.cleaned_data.get('naslov', '')
-        if len(naslov) > 150:
+    def clean_title(self):
+        """Validate title field - max 150 characters."""
+        title = self.cleaned_data.get('title', '')
+        if len(title) > 150:
             raise ValidationError('Naslov ne može biti duži od 150 karaktera.')
-        return naslov
+        return title
 
-    def clean_opis(self):
-        """Validate opis field - max 500 characters."""
-        opis = self.cleaned_data.get('opis', '')
-        if len(opis) > 500:
+    def clean_short_description(self):
+        """Validate short_description field - max 500 characters."""
+        short_description = self.cleaned_data.get('short_description', '')
+        if len(short_description) > 500:
             raise ValidationError('Opis ne može biti duži od 500 karaktera.')
-        return opis
+        return short_description
 
     def clean_problem(self):
         """Validate problem field - max 2000 characters."""
@@ -180,47 +166,47 @@ class COAFormSectionII(forms.ModelForm):
             raise ValidationError('Problem ne može biti duži od 2000 karaktera.')
         return problem
 
-    def clean_cilj(self):
-        """Validate cilj field - max 1000 characters."""
-        cilj = self.cleaned_data.get('cilj', '')
-        if len(cilj) > 1000:
+    def clean_main_goal(self):
+        """Validate main_goal field - max 1000 characters."""
+        main_goal = self.cleaned_data.get('main_goal', '')
+        if len(main_goal) > 1000:
             raise ValidationError('Glavni cilj ne može biti duži od 1000 karaktera.')
-        return cilj
+        return main_goal
 
-    def clean_specifični_ciljevi(self):
-        """Validate specifični_ciljevi field - max 1000 characters."""
-        specifični_ciljevi = self.cleaned_data.get('specifični_ciljevi', '')
-        if len(specifični_ciljevi) > 1000:
+    def clean_specific_goals(self):
+        """Validate specific_goals field - max 1000 characters."""
+        specific_goals = self.cleaned_data.get('specific_goals', '')
+        if len(specific_goals) > 1000:
             raise ValidationError('Specifični ciljevi ne mogu biti duži od 1000 karaktera.')
-        return specifični_ciljevi
+        return specific_goals
 
-    def clean_ciljne_grupe(self):
-        """Validate ciljne_grupe field - max 1500 characters."""
-        ciljne_grupe = self.cleaned_data.get('ciljne_grupe', '')
-        if len(ciljne_grupe) > 1500:
+    def clean_target_groups(self):
+        """Validate target_groups field - max 1500 characters."""
+        target_groups = self.cleaned_data.get('target_groups', '')
+        if len(target_groups) > 1500:
             raise ValidationError('Ciljne grupe ne mogu biti duže od 1500 karaktera.')
-        return ciljne_grupe
+        return target_groups
 
-    def clean_aktivnosti(self):
-        """Validate aktivnosti field - max 1500 characters."""
-        aktivnosti = self.cleaned_data.get('aktivnosti', '')
-        if len(aktivnosti) > 1500:
+    def clean_activities(self):
+        """Validate activities field - max 1500 characters."""
+        activities = self.cleaned_data.get('activities', '')
+        if len(activities) > 1500:
             raise ValidationError('Aktivnosti ne mogu biti duže od 1500 karaktera.')
-        return aktivnosti
+        return activities
 
-    def clean_rezultati(self):
-        """Validate rezultati field - max 1500 characters."""
-        rezultati = self.cleaned_data.get('rezultati', '')
-        if len(rezultati) > 1500:
+    def clean_results(self):
+        """Validate results field - max 1500 characters."""
+        results = self.cleaned_data.get('results', '')
+        if len(results) > 1500:
             raise ValidationError('Rezultati ne mogu biti duži od 1500 karaktera.')
-        return rezultati
+        return results
 
-    def clean_budžet(self):
-        """Validate budžet field - positive number only."""
-        budžet = self.cleaned_data.get('budžet')
-        if budžet is not None and budžet < 0:
+    def clean_total_budget(self):
+        """Validate total_budget field - positive number only."""
+        total_budget = self.cleaned_data.get('total_budget')
+        if total_budget is not None and total_budget < 0:
             raise ValidationError('Budžet mora biti pozitivan broj.')
-        return budžet
+        return total_budget
 
 
 class FileUploadForm(forms.Form):
