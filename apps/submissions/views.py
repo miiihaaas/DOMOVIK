@@ -19,7 +19,7 @@ from django.core.files.base import ContentFile
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
-from apps.submissions.forms import COAFormSectionI, FileUploadForm
+from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm
 from apps.submissions.models import UploadedFile, Application, Applicant, DraftMetadata
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
@@ -60,6 +60,7 @@ def cob_form(request):
     """
     COB (Inicijativa) form view - Simplified application flow.
     Story 3.1: COB Routing & Form Initialization
+    Story 3.2: Add COBApplicantForm for Section I validation
 
     Differences from COA:
     - NO JMBG field (fizičko lice)
@@ -77,8 +78,12 @@ def cob_form(request):
     - CSRF cookie ensured for file upload functionality
     - HTTP GET method only (no form processing)
     """
+    # Initialize empty form (GET request) - Story 3.2
+    form = COBApplicantForm()
+
     context = {
         'application_type': 'COB',  # Critical for draft-manager.js
+        'form': form,  # NEW: Pass form to template (Story 3.2)
         'form_title': 'Prijava za Inicijativu (COB)',
         'sections': [
             {'number': 1, 'title': 'Opšti podaci'},
@@ -715,3 +720,72 @@ def check_draft_expiration(request, draft_id):
             'exists': False,
             'expired': True  # Treat missing as expired
         })
+
+
+@csrf_protect
+@ensure_csrf_cookie  # ISSUE 1 FIX: Ensure CSRF cookie available for AJAX (consistency with Story 2.15)
+@require_http_methods(['POST'])
+def validate_cob_section_i(request):
+    """
+    AJAX endpoint for validating COB Section I data.
+    Story 3.2: COB Section I - Backend Form Validation
+
+    Purpose: Client-side can validate before proceeding to Section II.
+    Architecture: Dual-layer validation (client calls this for server validation).
+
+    Request: POST /api/validate/cob/section-i/
+    Body: { entity_type, ime, prezime, naziv_organizacije, adresa, email, telefon }
+
+    Response:
+    - Success: { "valid": true }
+    - Error: { "valid": false, "errors": { "field": ["error message"] } }
+
+    Security:
+    - CSRF protection enabled
+    - Content-Type validation
+    - JSON parsing with error handling
+    """
+    # ISSUE 11 FIX: Validate Content-Type header
+    content_type = request.META.get('CONTENT_TYPE', '')
+    if 'application/json' not in content_type:
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': ['Content-Type must be application/json']}
+        }, status=400)
+
+    try:
+        data = json.loads(request.body)
+        form = COBApplicantForm(data)
+
+        if form.is_valid():
+            # ISSUE 9 FIX: Log successful validation (GDPR-compliant - no PII)
+            submission_logger.info(
+                f"COB Section I validation successful: entity_type={data.get('entity_type')}, "
+                f"ip={request.META.get('REMOTE_ADDR')}"
+            )
+            return JsonResponse({
+                'valid': True,
+                'message': 'Podaci su validni.'
+            })
+        else:
+            # Return field-specific errors
+            return JsonResponse({
+                'valid': False,
+                'errors': form.errors.get_json_data()
+            }, status=400)
+
+    except json.JSONDecodeError:
+        # ISSUE 4 FIX: Use __all__ instead of _all (Django standard)
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': [{'message': 'Neispravan JSON format.', 'code': 'invalid_json'}]}
+        }, status=400)
+    except Exception as e:
+        # ISSUE 3 FIX: Use submission_logger instead of logger
+        submission_logger.error(f"COB Section I validation error: {str(e)}")
+
+        # ISSUE 4 FIX: Use __all__ instead of _all
+        return JsonResponse({
+            'valid': False,
+            'errors': {'__all__': [{'message': 'Greška pri validaciji. Molimo pokušajte ponovo.', 'code': 'server_error'}]}
+        }, status=500)

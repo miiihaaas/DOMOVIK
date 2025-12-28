@@ -4,15 +4,18 @@ Django Forms for COA/COB application submission.
 Story 2.2: COAFormSectionI - Section I (General Data Entry)
 Story 2.8: FileUploadForm - File Upload with Validation
 Story 2.11: Updated for ProjectData model separation
+Story 3.2: COBApplicantForm - Simplified applicant validation (no JMBG/matični broj)
 """
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from apps.submissions.models import Applicant, Application, ProjectData
 from apps.submissions.validators import (
     validate_file_extension,
     validate_file_size,
     validate_mime_type
 )
+import re
 
 
 class COAFormSectionI(forms.ModelForm):
@@ -269,3 +272,187 @@ class FileUploadForm(forms.Form):
                 raise ValidationError(str(e))
 
         return file
+
+
+class COBApplicantForm(forms.Form):
+    """
+    COB (Inicijativa) Section I - Simplified applicant validation.
+
+    Differences from COA:
+    - NO jmbg field (fizičko lice)
+    - NO maticni_broj field (pravno lice)
+
+    Architecture: Dual-layer validation (client-side + server-side)
+    GDPR: Validation only, does NOT persist draft data
+    """
+
+    # Entity Type
+    entity_type = forms.ChoiceField(
+        choices=[
+            ('fizicko', 'Fizičko lice'),
+            ('pravno', 'Pravno lice'),
+        ],
+        required=True,
+        label='Tip entiteta',  # ISSUE 6 FIX: Add label attribute
+        error_messages={
+            'required': 'Tip entiteta je obavezan (fizičko ili pravno lice).',
+            'invalid_choice': 'Nevalidan tip entiteta. Izaberite fizičko ili pravno lice.',
+        }
+    )
+
+    # Fizičko lice fields
+    ime = forms.CharField(
+        max_length=100,
+        required=False,  # Conditional based on entity_type
+        label='Ime',  # ISSUE 6 FIX: Add label attribute
+        error_messages={
+            'max_length': 'Ime ne može biti duže od 100 karaktera.',
+        },
+        widget=forms.TextInput(attrs={'autocomplete': 'given-name'})
+    )
+
+    prezime = forms.CharField(
+        max_length=100,
+        required=False,  # Conditional based on entity_type
+        label='Prezime',  # ISSUE 6 FIX: Add label attribute
+        error_messages={
+            'max_length': 'Prezime ne može biti duže od 100 karaktera.',
+        },
+        widget=forms.TextInput(attrs={'autocomplete': 'family-name'})
+    )
+
+    # NO jmbg field - COB simplification
+
+    # Pravno lice fields
+    naziv_organizacije = forms.CharField(
+        max_length=200,
+        required=False,  # Conditional based on entity_type
+        label='Naziv organizacije',  # ISSUE 6 FIX: Add label attribute
+        error_messages={
+            'max_length': 'Naziv organizacije ne može biti duži od 200 karaktera.',
+        },
+        widget=forms.TextInput(attrs={'autocomplete': 'organization'})
+    )
+
+    # NO maticni_broj field - COB simplification
+
+    # Common fields
+    adresa = forms.CharField(
+        max_length=300,
+        required=True,
+        label='Adresa',  # ISSUE 6 FIX: Add label attribute
+        error_messages={
+            'required': 'Adresa je obavezna.',
+            'max_length': 'Adresa ne može biti duža od 300 karaktera.',
+        },
+        widget=forms.TextInput(attrs={'autocomplete': 'street-address'})
+    )
+
+    email = forms.EmailField(
+        required=True,
+        label='Email adresa',  # ISSUE 6 FIX: Add label attribute
+        error_messages={
+            'required': 'Email adresa je obavezna.',
+            'invalid': 'Neispravan format email adrese. Koristite format: ime@domen.com',
+        },
+        widget=forms.EmailInput(attrs={'autocomplete': 'email'})
+    )
+
+    telefon = forms.CharField(
+        max_length=20,
+        required=True,
+        label='Telefon',  # ISSUE 6 FIX: Add label attribute
+        validators=[
+            RegexValidator(
+                # ISSUE 2 FIX: Serbian mobile numbers are EXACTLY 8 digits after 6
+                # Format: 06XXXXXXXX (9 digits total) or +3816XXXXXXXX (13 digits total)
+                regex=r'^(\+381|0)6[0-9]{8}$',
+                message='Neispravan format telefona. Koristite format: 06XXXXXXXX ili +3816XXXXXXXX',
+            )
+        ],
+        error_messages={
+            'required': 'Telefon je obavezan.',
+        },
+        widget=forms.TextInput(attrs={'autocomplete': 'tel'})
+    )
+
+    def clean(self):
+        """
+        Custom validation: Entity type conditional logic.
+
+        - If fizičko: ime + prezime required
+        - If pravno: naziv_organizacije required
+        """
+        cleaned_data = super().clean()
+        entity_type = cleaned_data.get('entity_type')
+
+        if entity_type == 'fizicko':
+            # ISSUE 12 FIX: Validate fizičko lice fields with strip() to catch whitespace-only strings
+            ime = cleaned_data.get('ime', '').strip()
+            prezime = cleaned_data.get('prezime', '').strip()
+
+            if not ime:
+                self.add_error('ime', 'Ime je obavezno za fizička lica.')
+            if not prezime:
+                self.add_error('prezime', 'Prezime je obavezno za fizička lica.')
+
+            # Update cleaned_data with stripped values
+            cleaned_data['ime'] = ime
+            cleaned_data['prezime'] = prezime
+
+        elif entity_type == 'pravno':
+            # ISSUE 12 FIX: Validate pravno lice fields with strip()
+            naziv_organizacije = cleaned_data.get('naziv_organizacije', '').strip()
+
+            if not naziv_organizacije:
+                self.add_error('naziv_organizacije', 'Naziv organizacije je obavezan za pravna lica.')
+
+            # Update cleaned_data with stripped value
+            cleaned_data['naziv_organizacije'] = naziv_organizacije
+
+        return cleaned_data
+
+    def clean_email(self):
+        """
+        Additional email validation: prevent disposable email domains.
+
+        ISSUE 8 FIX: Proper docstring style (was inline comment).
+        Currently uses Django's built-in EmailField validation only.
+        Future enhancement: Block disposable domains (10minutemail, guerrillamail, etc.)
+        """
+        email = self.cleaned_data.get('email')
+        if email:
+            # Optional: Block disposable email domains (10minutemail, guerrillamail, etc.)
+            # For now, just Django's built-in EmailField validation
+            pass
+        return email
+
+    def clean_telefon(self):
+        """
+        Normalize phone number format.
+
+        Input: +381651234567 or 0651234567
+        Output: +381651234567 (normalized)
+
+        ISSUE 5 FIX: Proper validation when telefon is None/empty.
+        ISSUE 7 FIX: Re-validate normalized phone against regex.
+        """
+        telefon = self.cleaned_data.get('telefon')
+
+        # ISSUE 5 FIX: Return early if telefon is None or empty (required validation handles this)
+        if not telefon:
+            return telefon
+
+        # Normalize: 06X → +3816X
+        if telefon.startswith('06'):
+            telefon = '+381' + telefon[1:]  # Remove leading 0
+
+        # ISSUE 7 FIX: Re-validate normalized format against regex
+        # This ensures +3816X formats still match the pattern after normalization
+        import re
+        phone_pattern = r'^\+3816[0-9]{8}$'
+        if not re.match(phone_pattern, telefon):
+            raise ValidationError('Neispravan format telefona nakon normalizacije.')
+
+        # Store normalized format
+        return telefon
