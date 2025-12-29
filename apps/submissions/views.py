@@ -23,7 +23,7 @@ from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicant
 from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
-from apps.submissions.tasks import send_confirmation_email
+from apps.submissions.tasks import send_confirmation_email, send_admin_notification
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, Http404
 
@@ -418,12 +418,16 @@ def submit_application(request):
             )
             uploaded_files.update(application=application_obj)
 
-            # Trigger async email task (Story 2.14)
+            # Trigger async email tasks (Story 2.14 + Story 3.6)
             # SECURITY: Don't log email addresses (GDPR compliance)
             submission_logger.info(
-                f"Triggering email confirmation task for {result['reference_number']}"
+                f"Triggering email tasks for {result['reference_number']}"
             )
+            # Story 2.14: User confirmation email
             send_confirmation_email.delay(application_obj.id)
+
+            # Story 3.6: Admin notification email (CRITICAL FIX: Code Review - COA also sends admin notifications)
+            send_admin_notification.delay(application_obj.id, 'COA')
 
             logger.info(
                 f"Submission completed successfully: {result['reference_number']}, "
@@ -748,19 +752,26 @@ def submit_cob(request):
             # Store application ID for email task (after transaction commits)
             application_id_for_email = application.id
 
-        # FIX #4: Trigger async email task AFTER transaction commits (Story 2.14)
-        # This prevents email queue failures from rolling back the submission
+        # FIX #4: Trigger async email tasks AFTER transaction commits (Story 2.14, Story 3.6)
+        # CRITICAL FIX (Code Review): Use transaction.on_commit() to ensure emails only send if transaction succeeds
+        # This prevents email sending if database transaction rolls back after this point
         if application_id_for_email:
             try:
+                # Story 2.14: Send confirmation email to user (AFTER transaction commits)
+                transaction.on_commit(lambda: send_confirmation_email.delay(application_id_for_email))
+
+                # Story 3.6: Send admin notification email (AFTER transaction commits)
+                transaction.on_commit(lambda: send_admin_notification.delay(application_id_for_email, 'COB'))
+
                 submission_logger.info(
-                    f"Triggering email confirmation task for {reference_number}"
+                    f"Email tasks queued for {reference_number} (will execute after transaction commit)"
                 )
-                send_confirmation_email.delay(application_id_for_email)
             except Exception as email_error:
                 # Log email queue failure but don't fail the submission
                 submission_logger.error(
-                    f"Failed to queue confirmation email for {reference_number}: {email_error}",
-                    exc_info=True
+                    f"Failed to queue email tasks for {reference_number}: {email_error}",
+                    exc_info=True,
+                    extra={'reference_number': reference_number, 'email_error_type': type(email_error).__name__}
                 )
                 # Submission still succeeds - email can be resent manually
 

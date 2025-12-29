@@ -3,6 +3,7 @@
 Celery tasks for submission-related background processing.
 Story 2.14: Email Confirmation with Celery
 Story 2.15: Draft Auto-Deletion Background Task
+Story 3.6: Admin Notification Email
 
 This module provides async email sending tasks with retry logic
 and periodic draft deletion for GDPR compliance.
@@ -21,7 +22,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
-from apps.submissions.models import Application, DraftMetadata
+from apps.submissions.models import Application, DraftMetadata, InitiativeData
 
 logger = logging.getLogger(__name__)
 
@@ -240,3 +241,170 @@ def delete_old_drafts(self):
         logger.error(f"Draft deletion task failed: {exc}")
         # Don't retry - will run again tomorrow at 2am
         return 0
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60, acks_late=True, reject_on_worker_lost=True)
+def send_admin_notification(self, application_id, app_type):
+    """
+    Send email notification to administrator about new application (COA or COB).
+    Story 3.6: COB Success Screen & Email Notification
+
+    Purpose: Notify admin when a new application is submitted (especially for COB).
+    This helps administrators stay informed about incoming applications for review.
+
+    Args:
+        application_id (int): Application primary key
+        app_type (str): "COA" or "COB"
+
+    Retry strategy:
+        - max_retries: 3 retries (4 total attempts: initial + 3 retries)
+        - retry_delay: Exponential backoff (60s, 120s, 240s)
+        - retry on: Exception during email sending
+        - acks_late: Task acknowledged after completion (idempotency protection)
+        - reject_on_worker_lost: Re-queue if worker crashes
+
+    Returns:
+        bool: True if email sent successfully, False otherwise
+
+    Example:
+        >>> send_admin_notification.delay(123, 'COB')  # Async call
+        <AsyncResult: task-id>
+
+    Logging:
+        - INFO: Successful email sending
+        - WARNING: Retry attempts
+        - ERROR: Max retries exceeded or application not found
+
+    Architecture: GDPR-compliant (minimal PII in email - reference number, applicant name, initiative title)
+    """
+    try:
+        # Fetch application from database with related data
+        application = Application.objects.select_related(
+            'applicant'
+        ).get(id=application_id)
+
+        # Determine application type-specific details
+        if app_type == 'COB':
+            # COB: Get InitiativeData
+            try:
+                initiative_data = application.initiative_data
+                title = initiative_data.naslov
+                description = initiative_data.kratak_opis
+                app_type_label = 'Inicijativa'
+            except InitiativeData.DoesNotExist:
+                logger.error(f"InitiativeData not found for application {application_id}")
+                return False
+        else:  # COA
+            # COA: Get ProjectData
+            try:
+                project_data = application.project_data
+                title = project_data.title
+                description = project_data.short_description
+                app_type_label = 'Projekat'
+            except Exception:
+                logger.error(f"ProjectData not found for application {application_id}")
+                return False
+
+        # Determine applicant name based on entity type
+        if application.applicant.entity_type == 'fizicko':
+            applicant_name = f"{application.applicant.first_name} {application.applicant.last_name}"
+        else:  # pravno
+            applicant_name = application.applicant.organization_name
+
+        # Determine entity type display text
+        entity_type_display = 'Fizičko lice' if application.applicant.entity_type == 'fizicko' else 'Pravno lice'
+
+        logger.info(
+            f"Sending admin notification for {application.reference_number} ({app_type})"
+        )
+
+        # Prepare email context
+        context = {
+            'reference_number': application.reference_number,
+            'app_type': app_type,
+            'app_type_label': app_type_label,
+            'applicant_name': applicant_name,
+            'entity_type': entity_type_display,
+            'title': title,
+            'description': description[:200] + '...' if len(description) > 200 else description,
+            'submitted_at': application.submitted_at.strftime('%d.%m.%Y %H:%M'),
+            'admin_url': f'{settings.SITE_URL}/admin/submissions/application/{application.id}/change/',
+            'organization_name': settings.ORGANIZATION_NAME  # CODE REVIEW FIX: Configurable organization name
+        }
+
+        # Render email HTML from template
+        email_html = render_to_string('emails/admin_notification.html', context)
+
+        # Generate plain text fallback
+        plain_text = f"""
+Nova {app_type_label} Primljena
+{'=' * 50}
+
+Referentni broj: {application.reference_number}
+
+Tip prijave: {app_type_label} ({app_type})
+Podnosilac: {applicant_name} ({entity_type_display})
+Naslov: {title}
+
+Kratak opis:
+{context['description']}
+
+Datum podnošenja: {context['submitted_at']}
+
+Pregledajte prijavu u Admin panelu:
+{context['admin_url']}
+
+---
+Ovo je automatska notifikacija sa DOMOVIK sistema.
+Ne odgovarajte na ovaj email.
+        """.strip()
+
+        # Send email to admin with proper UTF-8 encoding for Serbian characters
+        email = EmailMultiAlternatives(
+            subject=f'Nova {app_type_label.lower()} primljena - {application.reference_number}',
+            body=plain_text,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[settings.ADMIN_EMAIL],
+        )
+        email.attach_alternative(email_html, "text/html")
+        email.send(fail_silently=False)
+
+        logger.info(
+            f"Admin notification sent successfully for {application.reference_number} ({app_type})"
+        )
+        return True
+
+    except Application.DoesNotExist:
+        logger.error(f"Application with ID {application_id} not found for admin notification")
+        return False
+
+    except Exception as exc:
+        # Fix: Correct retry count - max_retries=3 means 4 total attempts (initial + 3 retries)
+        retry_attempt = self.request.retries + 1
+        total_attempts = self.max_retries + 1  # 4 total attempts
+
+        logger.warning(
+            f"Admin notification failed for application {application_id}. "
+            f"Retry attempt {retry_attempt}/{self.max_retries}. Error: {exc}"
+        )
+
+        # Exponential backoff: 60s, 120s, 240s
+        retry_delay = (2 ** self.request.retries) * 60
+
+        # Retry with exponential backoff
+        try:
+            raise self.retry(exc=exc, countdown=retry_delay)
+        except self.MaxRetriesExceededError:
+            # Get application for logging (if exists)
+            try:
+                application = Application.objects.get(id=application_id)
+                logger.error(
+                    f"Admin notification failed after {total_attempts} attempts for "
+                    f"{application.reference_number}. Giving up."
+                )
+            except Application.DoesNotExist:
+                logger.error(
+                    f"Admin notification failed after {total_attempts} attempts for "
+                    f"application_id={application_id}. Giving up."
+                )
+            return False

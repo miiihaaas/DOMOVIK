@@ -121,25 +121,41 @@ else:
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+# Story 4.1: Admin Authentication - Password Complexity (NFR22)
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,  # NFR22: Minimum 8 characters
+        }
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
 ]
 
 
 # Security Settings
 # HTTPS enforcement for production (NFR8 - TLS 1.2+ required)
+# Story 4.1: Admin Authentication - Session & CSRF Security
+
+# Session configuration (NFR21: 30 minute timeout)
+SESSION_COOKIE_AGE = 1800  # 30 minutes in seconds
+SESSION_SAVE_EVERY_REQUEST = True  # Extend session on each request (activity-based timeout)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Force login after browser close
+SESSION_COOKIE_HTTPONLY = True  # JavaScript cannot access session cookie
+
+# CSRF protection
+CSRF_COOKIE_HTTPONLY = True  # JavaScript cannot access CSRF token
+
+# HTTPS enforcement for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
     SESSION_COOKIE_SECURE = True  # HTTPS-only session cookies
@@ -147,6 +163,13 @@ if not DEBUG:
 else:
     # Development: Allow HTTP for local testing
     SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+
+# Login/logout URLs (Story 4.1: Admin Authentication)
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_REDIRECT_URL = '/'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -240,6 +263,15 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='info@domovik.org')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Admin notification email (Story 3.6: COB Success Screen & Email Notification)
+ADMIN_EMAIL = config('ADMIN_EMAIL', default='admin@domovik.org')
+
+# Site URL for admin panel links in emails (Story 3.6)
+SITE_URL = config('SITE_URL', default='http://localhost:8000')
+
+# Organization name for email footers (CODE REVIEW FIX: Configurable org name)
+ORGANIZATION_NAME = config('ORGANIZATION_NAME', default='DOMOVIK - Udruženje za podršku građanskih inicijativa')
 
 # Logging configuration (Story 2.8: File Upload Infrastructure, Story 2.14: Email Tasks)
 LOGGING = {

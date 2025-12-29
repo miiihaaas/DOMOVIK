@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova {{ app_type_label }} - {{ reference_number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #2C3E50;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #0EA5E9;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .reference {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FF7A59;
+            margin: 20px 0;
+            text-align: center;
+            padding: 15px;
+            background-color: #F5F5F0;
+            border-radius: 5px;
+        }
+        .detail {
+            margin: 15px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail:last-child {
+            border-bottom: none;
+        }
+        .detail strong {
+            color: #2C3E50;
+            display: inline-block;
+            min-width: 120px;
+        }
+        .description-box {
+            background-color: #F5F5F0;
+            padding: 15px;
+            border-left: 4px solid #0EA5E9;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #FF7A59;
+            color: white;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 25px 0;
+            font-weight: 600;
+            text-align: center;
+        }
+        .cta-button:hover {
+            background-color: #e06847;
+        }
+        .cta-container {
+            text-align: center;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-cob {
+            background-color: #0EA5E9;
+            color: white;
+        }
+        .badge-coa {
+            background-color: #FF7A59;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Nova {{ app_type_label }} Primljena</h1>
+        </div>
+
+        <div class="content">
+            <p class="reference">{{ reference_number }}</p>
+
+            <div class="detail">
+                <strong>Tip prijave:</strong>
+                {{ app_type_label }}
+                <span class="badge {% if app_type == 'COB' %}badge-cob{% else %}badge-coa{% endif %}">
+                    {{ app_type }}
+                </span>
+            </div>
+
+            <div class="detail">
+                <strong>Podnosilac:</strong>
+                {{ applicant_name }} ({{ entity_type }})
+            </div>
+
+            <div class="detail">
+                <strong>Naslov:</strong>
+                {{ title }}
+            </div>
+
+            <div class="description-box">
+                <strong>Kratak opis:</strong><br>
+                {{ description }}
+            </div>
+
+            <div class="detail">
+                <strong>Datum podnošenja:</strong>
+                {{ submitted_at }}
+            </div>
+
+            <div class="cta-container">
+                <a href="{{ admin_url }}" class="cta-button">Pregledajte prijavu u Admin panelu</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>Ovo je automatska notifikacija sa DOMOVIK sistema.</strong></p>
+            <p>Ne odgovarajte na ovaj email.</p>
+            <p style="margin-top: 10px; font-size: 11px;">
+                {{ organization_name }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>
