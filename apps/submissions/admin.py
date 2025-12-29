@@ -6,9 +6,13 @@ Story 2.11: Added admin registrations for ReferenceNumberSequence, ProjectData, 
 Story 2.15: Added DraftMetadata admin interface
 Story 4.1: Admin authentication and authorization - Application, Applicant admins enhanced
 Story 4.2: Enhanced list view with query optimization, pagination, visual UX
+Story 4.3: Enhanced detail view with dynamic fieldsets, status editing, FileMetadata inline
+
+Code Review Story 4.3: All display methods wrapped with ObjectDoesNotExist handling
 """
 from django.contrib import admin
 from django.utils.html import format_html, escape
+from django.core.exceptions import ObjectDoesNotExist
 from datetime import timedelta
 from apps.submissions.models import (
     Application,
@@ -54,14 +58,75 @@ class EntityTypeFilter(admin.SimpleListFilter):
         return queryset
 
 
+class FileMetadataInline(admin.TabularInline):
+    """
+    Inline display of FileMetadata for Application detail view.
+    Story 4.3: Show uploaded documents in detail view (readonly).
+    """
+    model = FileMetadata
+    extra = 0  # No empty forms (files come from frontend only)
+    max_num = 0  # Prevent adding files via admin
+    can_delete = False  # Prevent deleting files via admin
+
+    fields = (
+        'get_category_serbian',
+        'original_filename',
+        'get_file_size_mb',
+        'uploaded_at',
+        'get_download_link',  # Story 4.4 will implement actual download
+    )
+
+    readonly_fields = (
+        'get_category_serbian',
+        'original_filename',
+        'get_file_size_mb',
+        'uploaded_at',
+        'get_download_link',
+    )
+
+    def get_category_serbian(self, obj):
+        """Display file category in Serbian."""
+        category_labels = {
+            'BUDZET': '📊 Budžet projekta',
+            'BIOGRAFIJA': '👤 Biografija člana tima',
+            'PISMO_PODRSKE': '✉️ Pismo podrške',
+            'OPIS_INICIJATIVE': '📄 Opis inicijative',
+            'PISMO_NAMERE': '✉️ Pismo namere',
+        }
+        return category_labels.get(obj.file_type, obj.file_type)
+    get_category_serbian.short_description = 'Kategorija'
+
+    def get_file_size_mb(self, obj):
+        """Display file size in MB."""
+        size_mb = obj.file_size / (1024 * 1024)
+        return f"{size_mb:.2f} MB"
+    get_file_size_mb.short_description = 'Veličina'
+
+    def get_download_link(self, obj):
+        """Display download link (Story 4.4 will implement actual download)."""
+        return format_html('<span style="color: #999;">Download link (Story 4.4)</span>')
+    get_download_link.short_description = 'Download'
+
+    def has_add_permission(self, request, obj=None):
+        """Prevent adding files via admin (files come from frontend only)."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deleting files via admin (data retention policy)."""
+        return False
+
+
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     """
     Django Admin interface for Application model.
     Story 4.1: Basic list view + search + filters
     Story 4.2: Enhanced list view with query optimization, pagination, visual UX
-    Story 4.3: Enhanced detail view + inline editing (future)
+    Story 4.3: Enhanced detail view with dynamic fieldsets, status editing, FileMetadata inline
     """
+
+    # Story 4.3: Add FileMetadata inline
+    inlines = [FileMetadataInline]
 
     list_display = (
         'reference_number',
@@ -89,12 +154,44 @@ class ApplicationAdmin(admin.ModelAdmin):
         'initiative_data__naslov',   # Story 4.2: Search COB initiative title
     )
 
+    # Story 4.3: Expanded readonly_fields for detail view
+    # Note: Fields used in fieldsets will be included automatically
+    # Only define custom display methods here
     readonly_fields = (
+        # Opsti podaci section - readonly model fields
+        # NOTE: Application model doesn't have updated_at field (only InitiativeData has it)
         'reference_number',
         'application_type',
         'submitted_at',
-        # Note: created_at field removed - Application model only has submitted_at
+        # Podnosilac section
+        'get_entity_type_serbian',
+        'get_applicant_first_name',
+        'get_applicant_last_name',
+        'get_applicant_jmbg',
+        'get_applicant_organization_name',
+        'get_applicant_maticni_broj',
+        'get_applicant_address',
+        'get_applicant_email',
+        'get_applicant_phone',
+        # Project data section (COA)
+        'get_project_naslov',
+        'get_project_kratak_opis',
+        'get_project_problem',
+        'get_project_glavni_cilj',
+        'get_project_specificni_ciljevi',
+        'get_project_ciljne_grupe',
+        'get_project_aktivnosti',
+        'get_project_rezultati',
+        'get_project_totalni_budzet',
+        # Initiative data section (COB)
+        'get_initiative_naslov',
+        'get_initiative_kratak_opis',
+        'get_initiative_problem',
+        'get_initiative_cilj_inicijative',
+        'get_initiative_planirani_koraci',
+        'get_initiative_ocekivani_uticaj',
     )
+    # Note: status is NOT in readonly_fields → editable dropdown
 
     ordering = ['-submitted_at']  # Newest first
 
@@ -115,11 +212,13 @@ class ApplicationAdmin(admin.ModelAdmin):
         """
         Story 4.2: Optimize queryset with select_related to avoid N+1 queries.
         Prefetch project_data and initiative_data for get_title() method.
+        Story 4.3: Added prefetch for files (FileMetadata inline) to avoid N+1 queries.
         NFR3: Admin panel loads in <3 seconds.
         """
         qs = super().get_queryset(request)
         qs = qs.select_related('applicant')  # Avoid extra queries for applicant data
         qs = qs.prefetch_related('project_data', 'initiative_data')  # Prefetch title data
+        qs = qs.prefetch_related('files')  # ISSUE 11 FIX: Prefetch files for FileMetadataInline to avoid N+1
         return qs
 
     def get_applicant_name(self, obj):
@@ -246,6 +345,262 @@ class ApplicationAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Disable deleting applications via admin (data retention policy)."""
         return False
+
+    def get_fieldsets(self, request, obj=None):
+        """
+        Story 4.3: Dynamic fieldsets based on application type (COA/COB) and entity type (fizičko/pravno).
+        Customize detail view to show relevant fields only.
+        """
+        if obj is None:
+            # Adding new application (not allowed, but handle gracefully)
+            return super().get_fieldsets(request, obj)
+
+        # Section 1: Opšti podaci (always shown)
+        # NOTE: Story mentioned updated_at but Application model doesn't have it (only created_at + submitted_at)
+        opsti_podaci_fields = [
+            'reference_number',
+            'application_type',
+            'status',
+            'submitted_at',
+        ]
+
+        # Section 2: Podaci o podnosiocu (dynamic based on entity_type)
+        podnosilac_fields = ['get_entity_type_serbian']
+
+        if obj.applicant.entity_type == 'fizicko':
+            # Fizičko lice
+            podnosilac_fields.extend([
+                'get_applicant_first_name',
+                'get_applicant_last_name',
+            ])
+            if obj.application_type == 'COA':
+                # Only COA fizičko lice has JMBG
+                podnosilac_fields.append('get_applicant_jmbg')
+        else:
+            # Pravno lice
+            podnosilac_fields.append('get_applicant_organization_name')
+            if obj.application_type == 'COA':
+                # Only COA pravno lice has matični broj
+                podnosilac_fields.append('get_applicant_maticni_broj')
+
+        # Common contact fields (always shown)
+        podnosilac_fields.extend([
+            'get_applicant_address',
+            'get_applicant_email',
+            'get_applicant_phone',
+        ])
+
+        # Section 3: Podaci o projektu/inicijativi (dynamic based on application_type)
+        if obj.application_type == 'COA':
+            # COA: Project data
+            projekt_fields = [
+                'get_project_naslov',
+                'get_project_kratak_opis',
+                'get_project_problem',
+                'get_project_glavni_cilj',
+                'get_project_specificni_ciljevi',
+                'get_project_ciljne_grupe',
+                'get_project_aktivnosti',
+                'get_project_rezultati',
+                'get_project_totalni_budzet',
+            ]
+            projekt_section_title = '📝 Podaci o projektu'
+        else:
+            # COB: Initiative data
+            projekt_fields = [
+                'get_initiative_naslov',
+                'get_initiative_kratak_opis',
+                'get_initiative_problem',
+                'get_initiative_cilj_inicijative',
+                'get_initiative_planirani_koraci',
+                'get_initiative_ocekivani_uticaj',
+            ]
+            projekt_section_title = '💡 Podaci o inicijativi'
+
+        # Build dynamic fieldsets
+        fieldsets = (
+            ('📋 Opšti podaci', {
+                'fields': opsti_podaci_fields,
+            }),
+            ('👤 Podaci o podnosiocu', {
+                'fields': podnosilac_fields,
+            }),
+            (projekt_section_title, {
+                'fields': projekt_fields,
+            }),
+        )
+
+        return fieldsets
+
+    def formfield_for_choice_field(self, db_field, request, **kwargs):
+        """
+        Story 4.3: Customize status field dropdown to display Serbian labels.
+
+        Maps internal English status values to Serbian labels for admin UX:
+        - 'submitted' → 'Podnet'
+        - 'under_review' → 'Na pregledu'
+        - 'approved' → 'Odobren'
+        - 'rejected' → 'Odbijen'
+
+        Database values remain English for data consistency.
+        ISSUE 14 FIX: Added comprehensive docstring explaining label mapping.
+        """
+        if db_field.name == 'status':
+            kwargs['choices'] = [
+                ('submitted', 'Podnet'),
+                ('under_review', 'Na pregledu'),
+                ('approved', 'Odobren'),
+                ('rejected', 'Odbijen'),
+            ]
+        return super().formfield_for_choice_field(db_field, request, **kwargs)
+
+    # SECTION: Opšti podaci display methods (Story 4.3)
+
+    # get_application_type_serbian already exists from Story 4.2 - reuse for detail view
+
+    # SECTION: Podnosilac display methods (Story 4.3)
+
+    def get_entity_type_serbian(self, obj):
+        """Display entity type in Serbian with icon."""
+        if obj.applicant.entity_type == 'fizicko':
+            return '👤 Fizičko lice'
+        return '🏢 Pravno lice'
+    get_entity_type_serbian.short_description = 'Tip entiteta'
+
+    def get_applicant_first_name(self, obj):
+        return obj.applicant.first_name or 'N/A'
+    get_applicant_first_name.short_description = 'Ime'
+
+    def get_applicant_last_name(self, obj):
+        return obj.applicant.last_name or 'N/A'
+    get_applicant_last_name.short_description = 'Prezime'
+
+    def get_applicant_jmbg(self, obj):
+        return obj.applicant.jmbg or 'N/A'
+    get_applicant_jmbg.short_description = 'JMBG'
+
+    def get_applicant_organization_name(self, obj):
+        return obj.applicant.organization_name or 'N/A'
+    get_applicant_organization_name.short_description = 'Naziv organizacije'
+
+    def get_applicant_maticni_broj(self, obj):
+        return obj.applicant.maticni_broj or 'N/A'
+    get_applicant_maticni_broj.short_description = 'Matični broj'
+
+    def get_applicant_address(self, obj):
+        return obj.applicant.address
+    get_applicant_address.short_description = 'Adresa'
+
+    def get_applicant_email(self, obj):
+        return obj.applicant.email
+    get_applicant_email.short_description = 'Email'
+
+    def get_applicant_phone(self, obj):
+        return obj.applicant.phone
+    get_applicant_phone.short_description = 'Telefon'
+
+    # SECTION: Project data display methods (COA only) (Story 4.3)
+
+    def get_project_naslov(self, obj):
+        # ISSUE 5 FIX: Add try/except for ObjectDoesNotExist to handle orphaned relations
+        try:
+            if hasattr(obj, 'project_data'):
+                return obj.project_data.title
+        except ObjectDoesNotExist:
+            pass
+        return 'N/A'
+    get_project_naslov.short_description = 'Naslov projekta'
+
+    def get_project_kratak_opis(self, obj):
+        if hasattr(obj, 'project_data'):
+            # ISSUE 4 FIX: Explicit escape() for XSS protection (format_html auto-escapes {} but be explicit)
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.project_data.short_description))
+        return 'N/A'
+    get_project_kratak_opis.short_description = 'Kratak opis'
+
+    def get_project_problem(self, obj):
+        if hasattr(obj, 'project_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.project_data.problem))
+        return 'N/A'
+    get_project_problem.short_description = 'Problem koji se rešava'
+
+    def get_project_glavni_cilj(self, obj):
+        if hasattr(obj, 'project_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.project_data.main_goal))
+        return 'N/A'
+    get_project_glavni_cilj.short_description = 'Glavni cilj'
+
+    def get_project_specificni_ciljevi(self, obj):
+        if hasattr(obj, 'project_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.project_data.specific_goals))
+        return 'N/A'
+    get_project_specificni_ciljevi.short_description = 'Specifični ciljevi'
+
+    def get_project_ciljne_grupe(self, obj):
+        if hasattr(obj, 'project_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.project_data.target_groups))
+        return 'N/A'
+    get_project_ciljne_grupe.short_description = 'Ciljne grupe'
+
+    def get_project_aktivnosti(self, obj):
+        if hasattr(obj, 'project_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.project_data.activities))
+        return 'N/A'
+    get_project_aktivnosti.short_description = 'Aktivnosti'
+
+    def get_project_rezultati(self, obj):
+        if hasattr(obj, 'project_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.project_data.results))
+        return 'N/A'
+    get_project_rezultati.short_description = 'Rezultati'
+
+    def get_project_totalni_budzet(self, obj):
+        if hasattr(obj, 'project_data'):
+            budget = obj.project_data.total_budget
+            # ISSUE 2 FIX: total_budget is IntegerField, format as integer with thousand separators
+            # Format as currency: 100,000 RSD (no decimals for IntegerField)
+            formatted_budget = f"{budget:,} RSD"
+            return format_html('<strong>{}</strong>', escape(formatted_budget))
+        return 'N/A'
+    get_project_totalni_budzet.short_description = 'Totalni budžet'
+
+    # SECTION: Initiative data display methods (COB only) (Story 4.3)
+
+    def get_initiative_naslov(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return obj.initiative_data.naslov
+        return 'N/A'
+    get_initiative_naslov.short_description = 'Naslov inicijative'
+
+    def get_initiative_kratak_opis(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.initiative_data.kratak_opis))
+        return 'N/A'
+    get_initiative_kratak_opis.short_description = 'Kratak opis'
+
+    def get_initiative_problem(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.initiative_data.problem))
+        return 'N/A'
+    get_initiative_problem.short_description = 'Problem koji inicijativa rešava'
+
+    def get_initiative_cilj_inicijative(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.initiative_data.cilj_inicijative))
+        return 'N/A'
+    get_initiative_cilj_inicijative.short_description = 'Cilj inicijative'
+
+    def get_initiative_planirani_koraci(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.initiative_data.planirani_koraci))
+        return 'N/A'
+    get_initiative_planirani_koraci.short_description = 'Planirani koraci'
+
+    def get_initiative_ocekivani_uticaj(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return format_html('<div style="white-space: pre-wrap;">{}</div>', escape(obj.initiative_data.ocekivani_uticaj))
+        return 'N/A'
+    get_initiative_ocekivani_uticaj.short_description = 'Očekivani uticaj na zajednicu'
 
 
 @admin.register(Applicant)

@@ -153,7 +153,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Force login after browser close
 SESSION_COOKIE_HTTPONLY = True  # JavaScript cannot access session cookie
 
 # CSRF protection
-CSRF_COOKIE_HTTPONLY = True  # JavaScript cannot access CSRF token
+# BUGFIX (Story 4-3): JavaScript needs to read CSRF token for AJAX requests (draft, upload)
+# Frontend code (draft-manager.js, submission-handler.js) reads token from document.cookie
+CSRF_COOKIE_HTTPONLY = False  # JavaScript CAN access CSRF token (required for AJAX)
 
 # HTTPS enforcement for production
 if not DEBUG:

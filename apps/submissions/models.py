@@ -37,7 +37,7 @@ class ReferenceNumberSequence(models.Model):
     application_type = models.CharField(
         max_length=10,
         choices=ApplicationType.CHOICES,
-        verbose_name='Tip Prijave'
+        verbose_name='Tip prijave'
     )
 
     last_number = models.IntegerField(
@@ -87,7 +87,7 @@ class Application(models.Model):
         max_length=3,
         choices=ApplicationType.CHOICES,
         db_index=True,
-        verbose_name='Tip Prijave'
+        verbose_name='Tip prijave'
     )
 
     status = models.CharField(
