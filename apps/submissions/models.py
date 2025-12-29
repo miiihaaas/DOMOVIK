@@ -307,6 +307,51 @@ class ProjectData(models.Model):
         return f"ProjectData: {self.title[:50]}"
 
 
+class InitiativeData(models.Model):
+    """
+    COB (Inicijativa) - Initiative-specific data.
+
+    Differences from ProjectData (COA):
+    - NO budžet field
+    - NO ciljne_grupe, aktivnosti, rezultati fields
+    - HAS planirani_koraci and ocekivani_uticaj fields
+
+    Architecture: OneToOne with Application (type="COB")
+    Story 3.5: COB Submission Processing
+    """
+
+    application = models.OneToOneField(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='initiative_data',
+        verbose_name='Prijava'
+    )
+
+    # Initiative details (from Story 3-3, epics.md - Story 3.3)
+    naslov = models.CharField(max_length=150, verbose_name='Naslov inicijative')
+    kratak_opis = models.TextField(max_length=500, verbose_name='Kratak opis')
+    problem = models.TextField(max_length=1500, verbose_name='Problem koji inicijativa rešava')
+    cilj_inicijative = models.TextField(max_length=1500, verbose_name='Cilj inicijative')
+    planirani_koraci = models.TextField(max_length=1500, verbose_name='Planirani koraci')
+    ocekivani_uticaj = models.TextField(max_length=1500, verbose_name='Očekivani uticaj na zajednicu')
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Datum kreiranja')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Datum izmene')
+
+    class Meta:
+        db_table = 'submissions_initiative_data'
+        verbose_name = 'Podaci o inicijativi'
+        verbose_name_plural = 'Podaci o inicijativama'
+        indexes = [
+            models.Index(fields=['created_at']),
+            models.Index(fields=['naslov']),
+        ]
+
+    def __str__(self):
+        return f"Initiative: {self.naslov} ({self.application.reference_number})"
+
+
 class FileMetadata(models.Model):
     """
     Metadata for uploaded files linked to applications.

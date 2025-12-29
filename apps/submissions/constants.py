@@ -44,14 +44,21 @@ class EntityType:
 
 class FileType:
     """File type/category constants."""
+    # COA file types
     BUDGET = 'BUDGET'
     BIOGRAPHY = 'BIOGRAPHY'
     SUPPORT_LETTER = 'SUPPORT_LETTER'
+
+    # COB file types (Story 3-5)
+    OPIS_INICIJATIVE = 'OPIS_INICIJATIVE'
+    PISMO_NAMERE = 'PISMO_NAMERE'
 
     CHOICES = [
         (BUDGET, 'Budžet'),
         (BIOGRAPHY, 'Biografija'),
         (SUPPORT_LETTER, 'Pismo Podrške'),
+        (OPIS_INICIJATIVE, 'Opis Inicijative'),
+        (PISMO_NAMERE, 'Pismo Namere'),
     ]
 
 

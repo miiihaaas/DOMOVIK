@@ -20,7 +20,7 @@ from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm, COBInitiativeDataForm, COBSectionIIIForm, validate_cob_file_metadata
-from apps.submissions.models import UploadedFile, Application, Applicant, DraftMetadata
+from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
 from apps.submissions.tasks import send_confirmation_email
@@ -450,6 +450,341 @@ def submit_application(request):
         return JsonResponse({
             'success': False,
             'error': 'Došlo je do neočekivane greške. Molimo pokušajte ponovo ili kontaktirajte podršku.'
+        }, status=500)
+
+
+@csrf_protect
+@require_http_methods(['POST'])
+@ratelimit(key='ip', rate='10/h', method='POST', block=True)
+def submit_cob(request):
+    """
+    COB (Inicijativa) submission endpoint.
+    Story 3.5: COB Submission Processing - COB Reference Number
+    CODE REVIEW FIXES: Added validation, FileMetadata creation, duplicate prevention, email outside transaction
+
+    Purpose: Process complete COB submission, generate COB reference number, save to database.
+
+    Request: POST /api/submissions/submit-cob/
+    Body: {
+        applicant: {...},  # Section I data (NO JMBG/matični)
+        initiative: {...},  # Section II data (NO budžet)
+        files: [...],  # File metadata (2 files)
+        consent: {...}  # Section III consent
+    }
+
+    Response:
+    - Success: { "success": true, "reference_number": "COB-2025-001" }
+    - Error: { "success": false, "error": "error message" }
+
+    Architecture: Atomic transaction, GDPR-compliant logging, comprehensive validation
+    """
+    from django.db import transaction
+    from django.core.exceptions import ValidationError  # FIX: Missing import
+    from apps.submissions.services import ReferenceNumberService
+    from apps.submissions.constants import FileType
+    from apps.submissions.validators import validate_email, validate_phone
+    from apps.submissions.models import FileMetadata  # FIX: Missing import
+    from datetime import timedelta
+
+    try:
+        # Parse JSON request body
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            submission_logger.error(f"Invalid JSON in COB submission: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Neispravan JSON format.'
+            }, status=400)
+
+        # Extract sections
+        applicant_data = data.get('applicant', {})
+        initiative_data = data.get('initiative', {})
+        files_metadata = data.get('files', [])  # FIX #7: Renamed for consistency
+        consent_data = data.get('consent', {})
+
+        # Production logging: Monitor file count and consent for validation
+        submission_logger.info(f"COB submit - Files metadata count: {len(files_metadata)}")
+        submission_logger.info(f"COB submit - Consent data: {consent_data}")
+
+        # FIX #2: Validate required data presence
+        if not applicant_data or not initiative_data:
+            submission_logger.warning(
+                f"COB submission missing data: applicant={bool(applicant_data)}, initiative={bool(initiative_data)}, "
+                f"ip={request.META.get('REMOTE_ADDR')}"
+            )
+            return JsonResponse({
+                'success': False,
+                'error': 'Nedostaju podaci o podnosiocu ili inicijativi.'
+            }, status=400)
+
+        # FIX #2 & #9: Validate applicant fields
+        required_applicant_fields = ['entity_type', 'address', 'email', 'phone']
+        missing_applicant = [f for f in required_applicant_fields if not applicant_data.get(f)]
+        if missing_applicant:
+            submission_logger.warning(
+                f"COB submission missing applicant fields: {missing_applicant}, ip={request.META.get('REMOTE_ADDR')}"
+            )
+            return JsonResponse({
+                'success': False,
+                'error': f'Nedostaju obavezna polja podnosioca: {", ".join(missing_applicant)}.'
+            }, status=400)
+
+        # FIX #2: Validate entity-specific fields
+        entity_type = applicant_data.get('entity_type')
+        if entity_type == 'fizicko':
+            if not applicant_data.get('first_name') or not applicant_data.get('last_name'):
+                submission_logger.warning(f"COB submission missing name fields, ip={request.META.get('REMOTE_ADDR')}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Ime i prezime su obavezni za fizičko lice.'
+                }, status=400)
+        elif entity_type == 'pravno':
+            if not applicant_data.get('organization_name'):
+                submission_logger.warning(f"COB submission missing organization name, ip={request.META.get('REMOTE_ADDR')}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Naziv organizacije je obavezan za pravno lice.'
+                }, status=400)
+
+        # FIX #2: Validate email and phone format
+        try:
+            validate_email(applicant_data.get('email'))
+        except ValidationError as e:
+            submission_logger.warning(f"COB submission invalid email: {e}, ip={request.META.get('REMOTE_ADDR')}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Nevažeći email format: {e.message}'
+            }, status=400)
+
+        try:
+            validate_phone(applicant_data.get('phone'))
+        except ValidationError as e:
+            submission_logger.warning(f"COB submission invalid phone: {e}, ip={request.META.get('REMOTE_ADDR')}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Nevažeći telefon format: {e.message}'
+            }, status=400)
+
+        # FIX #9 & #11: Validate initiative fields (presence and length)
+        required_initiative_fields = {
+            'naslov': 150,
+            'kratak_opis': 500,
+            'problem': 1500,
+            'cilj_inicijative': 1500,
+            'planirani_koraci': 1500,
+            'ocekivani_uticaj': 1500
+        }
+
+        for field, max_length in required_initiative_fields.items():
+            value = initiative_data.get(field)
+            if not value or not value.strip():
+                submission_logger.warning(
+                    f"COB submission missing initiative field: {field}, ip={request.META.get('REMOTE_ADDR')}"
+                )
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Polje "{field}" je obavezno.'
+                }, status=400)
+
+            if len(value) > max_length:
+                submission_logger.warning(
+                    f"COB submission field too long: {field} ({len(value)} > {max_length}), ip={request.META.get('REMOTE_ADDR')}"
+                )
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Polje "{field}" predugo (maksimalno {max_length} karaktera).'
+                }, status=400)
+
+        # Validate consent (GDPR required - all 3 checkboxes must be checked)
+        # FIX: Field names match frontend (privacy, terms, accuracy) not saglasnost_gdpr
+        if not consent_data.get('privacy') or not consent_data.get('terms') or not consent_data.get('accuracy'):
+            submission_logger.warning(f"COB submission missing consent checkboxes, ip={request.META.get('REMOTE_ADDR')}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Sve saglasnosti (privatnost, uslovi, tačnost) su obavezne.'
+            }, status=400)
+
+        # Validate file metadata (exactly 2 files required)
+        if len(files_metadata) != 2:
+            submission_logger.warning(
+                f"COB submission wrong file count: {len(files_metadata)}, ip={request.META.get('REMOTE_ADDR')}"
+            )
+            return JsonResponse({
+                'success': False,
+                'error': f'Tačno 2 dokumenta su obavezna (primljeno: {len(files_metadata)}).'
+            }, status=400)
+
+        # FIX #10: Validate file categories with user-friendly error
+        file_categories = {f.get('file_type') for f in files_metadata}
+        required_categories = {FileType.OPIS_INICIJATIVE, FileType.PISMO_NAMERE}
+        if file_categories != required_categories:
+            # FIX #10: Human-readable Serbian error
+            missing = required_categories - file_categories
+            extra = file_categories - required_categories
+            error_parts = []
+            if missing:
+                missing_names = []
+                if FileType.OPIS_INICIJATIVE in missing:
+                    missing_names.append('Opis inicijative')
+                if FileType.PISMO_NAMERE in missing:
+                    missing_names.append('Pismo namere')
+                error_parts.append(f"Nedostaju: {', '.join(missing_names)}")
+            if extra:
+                error_parts.append(f"Suvišno: {', '.join(extra)}")
+
+            submission_logger.warning(
+                f"COB submission wrong file categories: missing={missing}, extra={extra}, ip={request.META.get('REMOTE_ADDR')}"
+            )
+            return JsonResponse({
+                'success': False,
+                'error': f'Nedostaju obavezni dokumenti. {"; ".join(error_parts)}.'
+            }, status=400)
+
+        # FIX #3: Duplicate submission prevention (same email + naslov in last 5 minutes)
+        applicant_email = applicant_data.get('email')
+        initiative_naslov = initiative_data.get('naslov')
+
+        if applicant_email and initiative_naslov:
+            five_minutes_ago = timezone.now() - timedelta(minutes=5)
+
+            # Query for recent COB submissions with same email and initiative title
+            recent_cob_submissions = Application.objects.filter(
+                application_type='COB',
+                applicant__email=applicant_email,
+                initiative_data__naslov=initiative_naslov,
+                submitted_at__gte=five_minutes_ago
+            ).exists()
+
+            if recent_cob_submissions:
+                submission_logger.warning(
+                    f"Duplicate COB submission blocked: email={applicant_email}, "
+                    f"naslov={initiative_naslov[:50]}, ip={request.META.get('REMOTE_ADDR')}"
+                )
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Već ste poslali istu inicijativu u poslednjih 5 minuta. Molimo sačekajte pre nego što pokušate ponovo.'
+                }, status=429)
+
+        # ATOMIC TRANSACTION - All-or-nothing
+        # FIX #4: Prepare to move email outside transaction
+        application_id_for_email = None
+
+        with transaction.atomic():
+            # 1. Generate COB reference number
+            reference_number = ReferenceNumberService.generate_reference_number("COB")
+
+            if not reference_number:
+                submission_logger.error("Failed to generate COB reference number")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Greška pri generisanju referentnog broja. Molimo pokušajte ponovo.'
+                }, status=500)
+
+            # 2. Create Application record (type="COB")
+            application = Application.objects.create(
+                reference_number=reference_number,
+                application_type='COB',
+                status='submitted',
+                submitted_at=timezone.now()
+            )
+
+            # 3. Create Applicant record (NO JMBG/matični for COB)
+            applicant = Applicant.objects.create(
+                application=application,
+                entity_type=applicant_data.get('entity_type'),
+                first_name=applicant_data.get('first_name', ''),
+                last_name=applicant_data.get('last_name', ''),
+                organization_name=applicant_data.get('organization_name', ''),
+                address=applicant_data.get('address'),
+                email=applicant_data.get('email'),
+                phone=applicant_data.get('phone'),
+                # NO JMBG, NO matični_broj for COB
+            )
+
+            # 4. Create InitiativeData record (COB-specific, NO budžet)
+            initiative = InitiativeData.objects.create(
+                application=application,
+                naslov=initiative_data.get('naslov'),
+                kratak_opis=initiative_data.get('kratak_opis'),
+                problem=initiative_data.get('problem'),
+                cilj_inicijative=initiative_data.get('cilj_inicijative'),
+                planirani_koraci=initiative_data.get('planirani_koraci'),
+                ocekivani_uticaj=initiative_data.get('ocekivani_uticaj')
+            )
+
+            # FIX #1: Create FileMetadata records (Story requirement)
+            for file_info in files_metadata:
+                FileMetadata.objects.create(
+                    application=application,
+                    file_type=file_info.get('file_type'),
+                    original_filename=file_info.get('name', file_info.get('original_filename', '')),
+                    stored_filename=file_info.get('stored_name', file_info.get('stored_filename', file_info.get('name', ''))),
+                    file_size=file_info.get('size', file_info.get('file_size', 0))
+                )
+
+            # 5. Link uploaded files from session to application
+            session_key = request.session.session_key
+            if session_key:
+                uploaded_files = UploadedFile.objects.filter(
+                    uploaded_by_session=session_key,
+                    is_deleted=False,
+                    application__isnull=True
+                )
+                uploaded_files.update(application=application)
+
+            # Success logging (GDPR-compliant, no PII)
+            submission_logger.info(
+                f'COB submission SUCCESS: {reference_number}',
+                extra={
+                    'reference_number': reference_number,
+                    'application_type': 'COB',
+                    'entity_type': applicant.entity_type,
+                    'file_count': len(files_metadata),
+                    'ip': request.META.get('REMOTE_ADDR')
+                }
+            )
+
+            # Store application ID for email task (after transaction commits)
+            application_id_for_email = application.id
+
+        # FIX #4: Trigger async email task AFTER transaction commits (Story 2.14)
+        # This prevents email queue failures from rolling back the submission
+        if application_id_for_email:
+            try:
+                submission_logger.info(
+                    f"Triggering email confirmation task for {reference_number}"
+                )
+                send_confirmation_email.delay(application_id_for_email)
+            except Exception as email_error:
+                # Log email queue failure but don't fail the submission
+                submission_logger.error(
+                    f"Failed to queue confirmation email for {reference_number}: {email_error}",
+                    exc_info=True
+                )
+                # Submission still succeeds - email can be resent manually
+
+        # Return success with reference number
+        return JsonResponse({
+            'success': True,
+            'reference_number': reference_number,
+            'message': 'Inicijativa uspešno podnesena.'
+        }, status=201)
+
+    except Exception as e:
+        # Log error for debugging
+        submission_logger.error(
+            f'COB submission FAILURE: {str(e)}',
+            extra={
+                'error': str(e),
+                'ip': request.META.get('REMOTE_ADDR')
+            },
+            exc_info=True
+        )
+
+        return JsonResponse({
+            'success': False,
+            'error': 'Greška pri čuvanju prijave. Molimo pokušajte ponovo.'
         }, status=500)
 
 

@@ -5,7 +5,7 @@
  * Features:
  * - Collects all form data (applicant + project)
  * - Validates required fields before submission
- * - Submits to backend API (/api/submissions/submit/)
+ * - Submits to backend API (/submit/ for COA, /submit-cob/ for COB)
  * - Handles success with reference number display
  * - Handles errors with user-friendly Serbian messages
  * - Integrates with DraftManager (clears draft on success)
@@ -40,8 +40,8 @@ class SubmissionHandler {
     // Submission state
     this.isSubmitting = false;
 
-    // API endpoint
-    this.submitUrl = '/api/submissions/submit/';
+    // API endpoint (will be set dynamically based on application type)
+    this.submitUrl = null;
 
     // Network timeout constant (10 seconds)
     this.NETWORK_TIMEOUT_MS = 10000;
@@ -54,10 +54,13 @@ class SubmissionHandler {
    * - Create ARIA live region
    */
   init() {
-    // Get form element (Section I form)
-    this.form = document.getElementById('coa-form-section-i');
+    // Get form element (detect COA vs COB form dynamically)
+    const applicationType = this.getApplicationType();
+    const formId = applicationType === 'COB' ? 'cob-form' : 'coa-form-section-i';
+
+    this.form = document.getElementById(formId);
     if (!this.form) {
-      console.error('SubmissionHandler: Form element not found');
+      console.error(`SubmissionHandler: Form element '${formId}' not found`);
       return;
     }
 
@@ -175,10 +178,13 @@ class SubmissionHandler {
   /**
    * Validate form data before submission
    * Story 2.11 - Task 9: Basic validation
+   * FIX #5 & #15: Application-type aware validation
    *
    * @returns {Object} { valid: boolean, error: string }
    */
   validateFormData() {
+    const applicationType = this.getApplicationType();
+
     // Check if consent checkboxes are all checked (via ConsentManager)
     if (window.consentManager && typeof window.consentManager.areAllCheckboxesChecked === 'function') {
       if (!window.consentManager.areAllCheckboxesChecked()) {
@@ -241,15 +247,29 @@ class SubmissionHandler {
       };
     }
 
-    // Check Section II project fields
-    const naslov = document.getElementById('id_naslov')?.value.trim();
-    const opis = document.getElementById('id_opis')?.value.trim();
+    // FIX #15: Application-type aware Section II validation
+    if (applicationType === 'COB') {
+      // COB: Initiative fields (WITH id_ prefix, same as COA)
+      const naslov = document.getElementById('id_naslov')?.value.trim();
+      const kratak_opis = document.getElementById('id_kratak_opis')?.value.trim();
 
-    if (!naslov || !opis) {
-      return {
-        valid: false,
-        error: 'Molimo unesite naslov i opis projekta.'
-      };
+      if (!naslov || !kratak_opis) {
+        return {
+          valid: false,
+          error: 'Molimo unesite naslov i kratak opis inicijative.'
+        };
+      }
+    } else {
+      // COA: Project fields (WITH id_ prefix)
+      const naslov = document.getElementById('id_naslov')?.value.trim();
+      const opis = document.getElementById('id_opis')?.value.trim();
+
+      if (!naslov || !opis) {
+        return {
+          valid: false,
+          error: 'Molimo unesite naslov i opis projekta.'
+        };
+      }
     }
 
     // All validation passed
@@ -257,24 +277,99 @@ class SubmissionHandler {
   }
 
   /**
+   * Get application type from body data attribute
+   * BUGFIX: Dynamic detection for COA vs COB
+   * @returns {string} 'COA' or 'COB'
+   */
+  getApplicationType() {
+    return document.body.dataset.applicationType || 'COA';
+  }
+
+  /**
+   * Get submit URL based on application type
+   * Story 3.5: COB submission endpoint
+   * BUGFIX: Correct URLs without /api/submissions/ prefix (routes are at root)
+   * @returns {string} Submit endpoint URL
+   */
+  getSubmitUrl() {
+    const appType = this.getApplicationType();
+    if (appType === 'COB') {
+      return '/submit-cob/';
+    } else {
+      return '/submit/';  // COA default (was /api/submissions/submit/)
+    }
+  }
+
+  /**
    * Collect all form data for submission
    * Story 2.11 - Task 8: Data collection
+   * Story 3.5: COB initiative data collection
+   * BUGFIX: Application-type aware data collection (COA vs COB)
    *
    * @returns {Object} Complete submission data
    */
   collectFormData() {
     const entityType = document.getElementById('id_entity_type')?.value || 'fizicko';
+    const applicationType = this.getApplicationType();
 
     // Build submission data object
     const submissionData = {
-      application_type: 'COA', // COA for project application
+      application_type: applicationType, // BUGFIX: Dynamic COA/COB detection
       applicant: {
         entity_type: entityType,
         address: document.getElementById('id_adresa')?.value || '',
         email: document.getElementById('id_email')?.value || '',
         phone: document.getElementById('id_telefon')?.value || ''
       },
-      project: {
+      consent: {}
+    };
+
+    // Add entity-specific fields
+    if (entityType === 'fizicko') {
+      submissionData.applicant.first_name = document.getElementById('id_ime')?.value || '';
+      submissionData.applicant.last_name = document.getElementById('id_prezime')?.value || '';
+
+      // JMBG only for COA (Story 3.5: COB has NO JMBG)
+      if (applicationType === 'COA') {
+        submissionData.applicant.jmbg = document.getElementById('id_jmbg')?.value || '';
+      }
+    } else if (entityType === 'pravno') {
+      submissionData.applicant.organization_name = document.getElementById('id_naziv_organizacije')?.value || '';
+
+      // Matični broj only for COA (Story 3.5: COB has NO matični)
+      if (applicationType === 'COA') {
+        submissionData.applicant.maticni_broj = document.getElementById('id_maticni_broj')?.value || '';
+      }
+    }
+
+    // Add application-specific data (COA vs COB)
+    if (applicationType === 'COB') {
+      // COB: Initiative data (NO budget, WITH id_ prefix same as COA)
+      submissionData.initiative = {
+        naslov: document.getElementById('id_naslov')?.value || '',
+        kratak_opis: document.getElementById('id_kratak_opis')?.value || '',
+        problem: document.getElementById('id_problem')?.value || '',
+        cilj_inicijative: document.getElementById('id_cilj')?.value || '',
+        planirani_koraci: document.getElementById('id_planirani_koraci')?.value || '',
+        ocekivani_uticaj: document.getElementById('id_ocekivani_uticaj')?.value || ''
+      };
+
+      // COB consent (3 checkboxes, same as COA)
+      submissionData.consent.privacy = document.getElementById('consent-privacy')?.checked || false;
+      submissionData.consent.terms = document.getElementById('consent-terms')?.checked || false;
+      submissionData.consent.accuracy = document.getElementById('consent-accuracy')?.checked || false;
+
+      // BUGFIX #2: Get files from global getUploadedFiles() function
+      if (typeof window.getUploadedFiles === 'function') {
+        // Use uploaded files from Story 2.8 FileUploadHandler (global registry)
+        submissionData.files = window.getUploadedFiles();
+      } else {
+        // Fallback: Collect file metadata from input elements
+        submissionData.files = this.collectFileMetadata();
+      }
+    } else {
+      // COA: Project data (WITH budget)
+      submissionData.project = {
         title: document.getElementById('id_naslov')?.value || '',
         short_description: document.getElementById('id_opis')?.value || '',
         problem: document.getElementById('id_problem')?.value || '',
@@ -284,37 +379,68 @@ class SubmissionHandler {
         activities: document.getElementById('id_aktivnosti')?.value || '',
         results: document.getElementById('id_rezultati')?.value || '',
         total_budget: parseInt(document.getElementById('id_budžet')?.value || '0', 10)
-      },
-      consent: {
-        privacy: document.getElementById('consent-privacy')?.checked || false,
-        terms: document.getElementById('consent-terms')?.checked || false,
-        accuracy: document.getElementById('consent-accuracy')?.checked || false
-      }
-    };
+      };
 
-    // Add entity-specific fields
-    if (entityType === 'fizicko') {
-      submissionData.applicant.first_name = document.getElementById('id_ime')?.value || '';
-      submissionData.applicant.last_name = document.getElementById('id_prezime')?.value || '';
-      submissionData.applicant.jmbg = document.getElementById('id_jmbg')?.value || '';
-    } else if (entityType === 'pravno') {
-      submissionData.applicant.organization_name = document.getElementById('id_naziv_organizacije')?.value || '';
-      submissionData.applicant.maticni_broj = document.getElementById('id_maticni_broj')?.value || '';
+      // COA consent (3 checkboxes)
+      submissionData.consent.privacy = document.getElementById('consent-privacy')?.checked || false;
+      submissionData.consent.terms = document.getElementById('consent-terms')?.checked || false;
+      submissionData.consent.accuracy = document.getElementById('consent-accuracy')?.checked || false;
+
+      // BUGFIX #2: COA also needs files from global registry
+      if (typeof window.getUploadedFiles === 'function') {
+        submissionData.files = window.getUploadedFiles();
+      }
     }
 
-    console.log('Collected submission data:', submissionData);
+    // FIX #17: Remove console.log in production (information disclosure)
+    // console.log('Collected submission data:', submissionData);
     return submissionData;
+  }
+
+  /**
+   * Collect file metadata for COB submissions
+   * Story 3.5: COB file metadata collection
+   * @returns {Array} File metadata array
+   */
+  collectFileMetadata() {
+    const files = [];
+
+    // Get file upload elements (COB has 2 files)
+    const opisFile = document.getElementById('opis_inicijative_file');
+    const pismoFile = document.getElementById('pismo_namere_file');
+
+    if (opisFile && opisFile.files.length > 0) {
+      files.push({
+        file_type: 'OPIS_INICIJATIVE',
+        name: opisFile.files[0].name,
+        size: opisFile.files[0].size
+      });
+    }
+
+    if (pismoFile && pismoFile.files.length > 0) {
+      files.push({
+        file_type: 'PISMO_NAMERE',
+        name: pismoFile.files[0].name,
+        size: pismoFile.files[0].size
+      });
+    }
+
+    return files;
   }
 
   /**
    * Send submission request to backend API
    * Story 2.11 - Task 8: AJAX submission
    * Story 2.12 - Task 4: Network timeout protection (10 seconds)
+   * Story 3.5: Dynamic URL based on application type
    *
    * @param {Object} submissionData - Complete submission data
    * @returns {Promise<Object>} Response from server
    */
   async sendSubmissionRequest(submissionData) {
+    // Get dynamic submit URL based on application type
+    const submitUrl = this.getSubmitUrl();
+
     // Get CSRF token
     const csrfToken = this.getCSRFToken();
 
@@ -359,7 +485,7 @@ class SubmissionHandler {
         fetchOptions.signal = controller.signal;
       }
 
-      const response = await fetch(this.submitUrl, fetchOptions);
+      const response = await fetch(submitUrl, fetchOptions);
 
       // Clear timeout on successful fetch
       if (timeoutId) {
@@ -420,20 +546,25 @@ class SubmissionHandler {
    * Handle successful submission
    * Story 2.11 - Task 7: Draft cleanup on success
    * Story 2.13 - Redirect to success screen
+   * Story 3.5: COB draft cleanup
    *
    * @param {Object} response - Success response with reference number
    */
   handleSubmissionSuccess(response) {
     const referenceNumber = response.reference_number;
+    const applicationType = this.getApplicationType();  // FIX: Removed duplicate declaration
 
-    console.log('Submission successful:', referenceNumber);
+    // FIX #17: Remove console.log in production
+    // console.log('Submission successful:', referenceNumber);
 
-    // Clear draft from localStorage (Story 2.11 - Task 7)
+    // Clear draft from localStorage (Story 2.11 - Task 7, Story 3.5)
     if (typeof localStorage !== 'undefined') {
       try {
-        const DRAFT_KEY = 'domovik_coa_draft';
+        // Dynamic draft key based on application type
+        const DRAFT_KEY = applicationType === 'COB' ? 'domovik_cob_draft' : 'domovik_coa_draft';
         localStorage.removeItem(DRAFT_KEY);
-        console.log('Draft cleared from localStorage');
+        // FIX #17: Remove console.log
+        // console.log(`Draft cleared from localStorage (${applicationType})`);
       } catch (e) {
         // localStorage.removeItem() can throw if storage is locked or quota exceeded
         console.warn('Failed to clear draft from localStorage:', e);
@@ -444,20 +575,18 @@ class SubmissionHandler {
     // Announce success to screen readers
     this.announceToScreenReader(`Prijava uspešno podnesena. Vaš referentni broj: ${referenceNumber}`);
 
-    // Story 2.13: Redirect to success screen
-    const applicationType = 'COA'; // Will be dynamic in Story 3.x for COB
-
     if (!referenceNumber) {
       console.error('Reference number missing from response');
       this.handleSubmissionError('Greška: Referentni broj nije primljen.');
       return;
     }
 
-    // BUGFIX: Correct success URL path (was /api/submissions/success/, should be /success/)
-    // URL pattern from urls.py: /api/submissions/success/<application_type>/<reference_number>/
-    const successUrl = `/api/submissions/success/${applicationType}/${referenceNumber}/`;
+    // BUGFIX: Correct success URL path (routes are at root, not under /api/submissions/)
+    // URL pattern from urls.py: success/<application_type>/<reference_number>/
+    const successUrl = `/success/${applicationType}/${referenceNumber}/`;
 
-    console.log(`Redirecting to success screen: ${successUrl}`);
+    // FIX #17: Remove console.log in production
+    // console.log(`Redirecting to success screen: ${successUrl}`);
     window.location.href = successUrl;
   }
 

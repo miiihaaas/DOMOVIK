@@ -24,8 +24,9 @@ urlpatterns = [
     path('upload/', views.upload_file, name='upload_file'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
 
-    # Submission endpoint (Story 2.11)
-    path('submit/', views.submit_application, name='submit_application'),
+    # Submission endpoints
+    path('submit/', views.submit_application, name='submit_application'),  # COA (Story 2.11)
+    path('submit-cob/', views.submit_cob, name='submit_cob'),  # COB (Story 3.5)
 
     # Success screen (Story 2.13)
     path('success/<str:application_type>/<str:reference_number>/',

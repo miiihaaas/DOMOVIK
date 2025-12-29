@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get CSRF token
             const csrfToken = getCSRFToken();
 
-            // Send resend request
-            fetch(`/api/submissions/resend-email/${referenceNumber}/`, {
+            // Send resend request (BUGFIX: Correct URL without /api/submissions/ prefix)
+            fetch(`/resend-email/${referenceNumber}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -12,6 +12,7 @@ from apps.submissions.models import (
     UploadedFile,
     ReferenceNumberSequence,
     ProjectData,
+    InitiativeData,
     FileMetadata,
     DraftMetadata
 )
@@ -49,6 +50,22 @@ class ProjectDataAdmin(admin.ModelAdmin):
         """Display truncated short description."""
         return obj.short_description[:100] + '...' if len(obj.short_description) > 100 else obj.short_description
     short_desc_preview.short_description = 'Kratak Opis'
+
+
+@admin.register(InitiativeData)
+class InitiativeDataAdmin(admin.ModelAdmin):
+    """
+    Admin interface for InitiativeData model.
+    Story 3.5: COB initiative data admin
+    """
+    list_display = ['naslov', 'application', 'kratak_opis_preview']
+    search_fields = ['naslov', 'kratak_opis']
+    readonly_fields = ['application', 'created_at', 'updated_at']
+
+    def kratak_opis_preview(self, obj):
+        """Display truncated short description."""
+        return obj.kratak_opis[:100] + '...' if len(obj.kratak_opis) > 100 else obj.kratak_opis
+    kratak_opis_preview.short_description = 'Kratak Opis'
 
 
 @admin.register(FileMetadata)

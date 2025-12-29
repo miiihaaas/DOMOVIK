@@ -15,10 +15,17 @@
  */
 
 // File category constants (Story 2.9 integration)
-const FILE_CATEGORIES = {
+// COA categories
+const FILE_CATEGORIES_COA = {
   BUDGET: 'BUDGET',
   BIOGRAPHY: 'BIOGRAPHY',
   SUPPORT_LETTER: 'SUPPORT_LETTER'
+};
+
+// COB categories (Story 3.4 - Simplified documentation)
+const FILE_CATEGORIES_COB = {
+  OPIS_INICIJATIVE: 'OPIS_INICIJATIVE',
+  PISMO_NAMERE: 'PISMO_NAMERE'
 };
 
 // Debounce delay for draft save (milliseconds)
@@ -168,45 +175,75 @@ class ConsentManager {
   }
 
   /**
+   * Get application type from body data attribute
+   * BUGFIX: Dynamic detection for COA vs COB
+   * @returns {string} 'COA' or 'COB'
+   */
+  getApplicationType() {
+    return document.body.dataset.applicationType || 'COA';
+  }
+
+  /**
    * Validate that required files are uploaded
    * Story 2.10 - Task 6: File upload validation before submit
+   * BUGFIX: Application-type aware validation (COA vs COB)
    *
-   * Required files:
+   * COA Required files:
    * - Budget: 1 Excel file (BUDGET category)
    * - Biografije: Minimum 1 PDF/DOC file (BIOGRAPHY category)
    *
-   * Optional files (not required for submit):
-   * - Pisma podrške: SUPPORT_LETTER category
+   * COB Required files:
+   * - Opis inicijative: 1 PDF/DOC file (OPIS_INICIJATIVE category)
+   * - Pismo namere: 1 PDF/DOC file (PISMO_NAMERE category)
    *
    * @returns {Object} { valid: boolean, missing: string[] }
    * @throws {TypeError} If uploadedFilesRegistry is not an array (Story 2.10 Code Review Fix #3)
    */
   validateRequiredFiles() {
     const missing = [];
+    const applicationType = this.getApplicationType();
 
     // Check if uploadedFilesRegistry exists and is an array (Story 2.10 Code Review Fix #3)
     if (!window.uploadedFilesRegistry || !Array.isArray(window.uploadedFilesRegistry)) {
       // Registry not found or invalid - assume no files uploaded
-      missing.push('Budžet projekta');
-      missing.push('Biografije članova tima');
+      if (applicationType === 'COB') {
+        missing.push('Opis inicijative');
+        missing.push('Pismo namere');
+      } else {
+        missing.push('Budžet projekta');
+        missing.push('Biografije članova tima');
+      }
       return { valid: false, missing: missing };
     }
 
-    // Count uploaded files by category (Story 2.10 Code Review Fix #4 - use constants)
-    const budgetFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES.BUDGET);
-    const biografijeFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES.BIOGRAPHY);
+    // COB validation (Story 3.4 - Only 2 files required)
+    if (applicationType === 'COB') {
+      const opisFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COB.OPIS_INICIJATIVE);
+      const pismoFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COB.PISMO_NAMERE);
 
-    // Budget file required (exactly 1)
-    if (budgetFiles.length === 0) {
-      missing.push('Budžet projekta');
+      if (opisFiles.length === 0) {
+        missing.push('Opis inicijative');
+      }
+      if (pismoFiles.length === 0) {
+        missing.push('Pismo namere');
+      }
+    } else {
+      // COA validation (Story 2.10 - Budget + Biografije)
+      const budgetFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COA.BUDGET);
+      const biografijeFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COA.BIOGRAPHY);
+
+      // Budget file required (exactly 1)
+      if (budgetFiles.length === 0) {
+        missing.push('Budžet projekta');
+      }
+
+      // At least one biografija required
+      if (biografijeFiles.length === 0) {
+        missing.push('Biografije članova tima');
+      }
+
+      // Pisma podrške are optional (not required for submit)
     }
-
-    // At least one biografija required
-    if (biografijeFiles.length === 0) {
-      missing.push('Biografije članova tima');
-    }
-
-    // Pisma podrške are optional (not required for submit)
 
     return {
       valid: missing.length === 0,

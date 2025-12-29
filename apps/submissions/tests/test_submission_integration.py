@@ -386,6 +386,98 @@ class SubmissionIntegrationTest(TestCase):
 
         print(f"[PASS] Test 5: Sequential reference numbers generated: {reference_numbers}")
 
+    def test_cob_submission_with_two_files(self):
+        """
+        Test 7: COB submission - Verify COB works with 2 files only
+        BUGFIX TEST: COB should only require OPIS_INICIJATIVE and PISMO_NAMERE
+
+        Verifies:
+        - COB submission succeeds with correct categories
+        - No ProjectData is created for COB (initiative data stored elsewhere)
+        - Reference number format is COB-YYYY-NNN
+        - File validation works correctly for COB categories
+        """
+        # Create uploaded files with COB categories
+        file1 = UploadedFile.objects.create(
+            original_filename='opis_inicijative.pdf',
+            stored_filename='unique_opis_123.pdf',
+            file_path='uploads/drafts/unique_opis_123.pdf',
+            file_size=50000,
+            file_type='pdf',
+            mime_type='application/pdf',
+            category='OPIS_INICIJATIVE',
+            uploaded_by_session=self.session_key,
+            application=None
+        )
+
+        file2 = UploadedFile.objects.create(
+            original_filename='pismo_namere.pdf',
+            stored_filename='unique_pismo_456.pdf',
+            file_path='uploads/drafts/unique_pismo_456.pdf',
+            file_size=75000,
+            file_type='pdf',
+            mime_type='application/pdf',
+            category='PISMO_NAMERE',
+            uploaded_by_session=self.session_key,
+            application=None
+        )
+
+        # Prepare COB submission data
+        submission_data = {
+            'application_type': 'COB',
+            'applicant': {
+                'entity_type': 'fizicko',
+                'first_name': 'Nikola',
+                'last_name': 'Nikolić',
+                'address': 'Studentski trg 1, Beograd',
+                'email': 'nikola@example.com',
+                'phone': '+381112345678'
+            },
+            'consent': {
+                'privacy': True,
+                'terms': True,
+                'accuracy': True
+            }
+            # NO PROJECT DATA - COB doesn't have project section
+        }
+
+        # Submit via API
+        response = self.client.post(
+            self.submit_url,
+            data=json.dumps(submission_data),
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN='test-csrf-token'
+        )
+
+        # Assert success
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertTrue(response_data['success'])
+
+        # Verify COB reference number format
+        reference_number = response_data['reference_number']
+        self.assertRegex(reference_number, r'^COB-\d{4}-\d{3}$')
+        self.assertTrue(reference_number.startswith('COB-'))
+
+        # Get created application
+        application = Application.objects.get(reference_number=reference_number)
+        self.assertEqual(application.application_type, 'COB')
+
+        # Verify NO ProjectData was created (COB doesn't have project section)
+        self.assertEqual(ProjectData.objects.filter(application=application).count(), 0)
+
+        # Verify files are linked
+        file1.refresh_from_db()
+        file2.refresh_from_db()
+        self.assertEqual(file1.application, application)
+        self.assertEqual(file2.application, application)
+
+        # Verify FileMetadata records
+        file_metadata_records = FileMetadata.objects.filter(application=application)
+        self.assertEqual(file_metadata_records.count(), 2)
+
+        print(f"[PASS] Test 7: COB submission successful with reference number {reference_number}")
+
     def test_missing_project_data_for_coa(self):
         """
         Test 6: Validation - COA requires project data

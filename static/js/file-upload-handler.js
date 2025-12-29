@@ -508,6 +508,25 @@ class FileUploadHandler {
 }
 
 /**
+ * Get all uploaded files from global registry
+ * Formats files for backend submission
+ * @returns {Array} Array of file metadata objects
+ */
+function getUploadedFiles() {
+  return (window.uploadedFilesRegistry || []).map(file => ({
+    file_type: file.category,
+    name: file.filename,
+    size: file.size,
+    file_id: file.file_id,
+    original_filename: file.filename,
+    stored_filename: file.filename
+  }));
+}
+
+// Expose globally for submission-handler.js
+window.getUploadedFiles = getUploadedFiles;
+
+/**
  * Initialize file upload handlers on page load
  */
 document.addEventListener('DOMContentLoaded', function() {
