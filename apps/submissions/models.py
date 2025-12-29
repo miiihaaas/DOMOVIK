@@ -155,7 +155,8 @@ class Applicant(models.Model):
     entity_type = models.CharField(
         max_length=10,
         choices=EntityType.CHOICES,
-        verbose_name='Tip Podnosioca'
+        verbose_name='Tip Podnosioca',
+        db_index=True  # ISSUE 2 FIX: Index for EntityTypeFilter performance
     )
 
     # Fizičko lice fields

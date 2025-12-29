@@ -1,0 +1,71 @@
+/* Story 4.2: Custom Admin CSS for DOMOVIK Application List View */
+/* DOMOVIK Civic Tech Color Palette - Authoritative values from project-context.md */
+/* ISSUE 15 FIX: Colors verified against story file 4-2-applications-list-view-table-with-all-submissions.md */
+/* These are the official DOMOVIK civic tech colors defined in the story: */
+/* Primary tirkizna: #0EA5E9 */
+/* Accent koraljna: #FF7A59 */
+/* Neutral warm gray: #F5F5F0 */
+/* Text primary: #2C3E50 */
+
+/* Row hover effect for better UX */
+/* ISSUE 10 FIX: Removed !important to follow CSS best practices */
+#result_list tbody tr:hover {
+    background-color: #f0f8ff;  /* Light blue hover */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Make entire row clickable (not just reference number) */
+#result_list tbody tr {
+    cursor: pointer;
+}
+
+/* Highlight reference number column */
+#result_list th.column-reference_number,
+#result_list td.field-reference_number {
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+/* Reference number link styling - DOMOVIK tirkizna primary */
+#result_list td.field-reference_number a {
+    color: #0EA5E9;  /* Tirkizna primarna (DOMOVIK color palette) */
+    text-decoration: none;
+}
+
+#result_list td.field-reference_number a:hover {
+    color: #FF7A59;  /* Koraljna accent (DOMOVIK color palette) */
+    text-decoration: underline;
+}
+
+/* Improve table readability - DOMOVIK neutral warm gray */
+#result_list th {
+    background-color: #F5F5F0;  /* Neutral warm gray (DOMOVIK color palette) */
+    color: #2C3E50;  /* Text primary (DOMOVIK color palette) */
+    border-bottom: 2px solid #0EA5E9;  /* Tirkizna accent border */
+}
+
+/* Pagination styling */
+.paginator {
+    font-size: 14px;
+    padding: 10px 0;
+}
+
+/* Search box placeholder */
+#searchbar::placeholder {
+    color: #999;
+    font-style: italic;
+}
+
+/* Filter sidebar improvements - DOMOVIK tirkizna */
+#changelist-filter h2 {
+    background-color: #0EA5E9;  /* Tirkizna primarna */
+    color: white;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+#changelist-filter li.selected a {
+    color: #0EA5E9;  /* Tirkizna primarna */
+    font-weight: bold;
+}
