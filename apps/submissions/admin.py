@@ -85,7 +85,11 @@ class FileMetadataInline(admin.TabularInline):
     )
 
     def get_category_serbian(self, obj):
-        """Display file category in Serbian."""
+        """
+        Display file category in Serbian.
+        CODE REVIEW NOTE: Category labels remain in admin.py (display logic),
+        FILE_CATEGORY_FOLDERS moved to constants.py (storage paths).
+        """
         category_labels = {
             'BUDZET': '📊 Budžet projekta',
             'BIOGRAFIJA': '👤 Biografija člana tima',
@@ -103,8 +107,25 @@ class FileMetadataInline(admin.TabularInline):
     get_file_size_mb.short_description = 'Veličina'
 
     def get_download_link(self, obj):
-        """Display download link (Story 4.4 will implement actual download)."""
-        return format_html('<span style="color: #999;">Download link (Story 4.4)</span>')
+        """
+        Display download link for individual file.
+        Story 4.4: Implemented actual download functionality.
+        """
+        from django.urls import reverse
+
+        # Get application ID from obj.application
+        app_id = obj.application.id
+        file_id = obj.id
+
+        # Construct download URL
+        download_url = reverse('submissions:admin_download_file', args=[app_id, file_id])
+
+        # Return download link with icon
+        return format_html(
+            '<a href="{}" target="_blank" style="color: #0EA5E9; text-decoration: none;">'
+            '⬇️ Download</a>',
+            download_url
+        )
     get_download_link.short_description = 'Download'
 
     def has_add_permission(self, request, obj=None):
@@ -190,6 +211,8 @@ class ApplicationAdmin(admin.ModelAdmin):
         'get_initiative_cilj_inicijative',
         'get_initiative_planirani_koraci',
         'get_initiative_ocekivani_uticaj',
+        # Story 4.4: Download all documents button
+        'get_download_all_button',
     )
     # Note: status is NOT in readonly_fields → editable dropdown
 
@@ -346,9 +369,33 @@ class ApplicationAdmin(admin.ModelAdmin):
         """Disable deleting applications via admin (data retention policy)."""
         return False
 
+    def get_download_all_button(self, obj):
+        """
+        Display "Download All Documents" button.
+        Story 4.4: Bulk ZIP download functionality.
+        """
+        from django.urls import reverse
+
+        # Only show button if application has files
+        if not obj.files.exists():
+            return "Prijava nema upload-ovanih dokumenata."
+
+        # Construct download URL
+        download_url = reverse('submissions:admin_download_all', args=[obj.id])
+
+        # Return styled button
+        return format_html(
+            '<a href="{}" class="button" style="background-color: #0EA5E9; color: white; '
+            'padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">'
+            '📦 Download All Documents (ZIP)</a>',
+            download_url
+        )
+    get_download_all_button.short_description = 'Bulk Download'
+
     def get_fieldsets(self, request, obj=None):
         """
         Story 4.3: Dynamic fieldsets based on application type (COA/COB) and entity type (fizičko/pravno).
+        Story 4.4: Add "Download All Documents" button section if files exist.
         Customize detail view to show relevant fields only.
         """
         if obj is None:
@@ -417,8 +464,8 @@ class ApplicationAdmin(admin.ModelAdmin):
             ]
             projekt_section_title = '💡 Podaci o inicijativi'
 
-        # Build dynamic fieldsets
-        fieldsets = (
+        # Build dynamic fieldsets (list to conditionally add download section)
+        fieldsets = [
             ('📋 Opšti podaci', {
                 'fields': opsti_podaci_fields,
             }),
@@ -428,9 +475,18 @@ class ApplicationAdmin(admin.ModelAdmin):
             (projekt_section_title, {
                 'fields': projekt_fields,
             }),
-        )
+        ]
 
-        return fieldsets
+        # Story 4.4: Add download button section if application has files
+        if obj.files.exists():
+            fieldsets.append(
+                ('📦 Dokumentacija', {
+                    'fields': ('get_download_all_button',),
+                    'description': 'Download-ujte sve upload-ovane dokumente odjednom.',
+                })
+            )
+
+        return tuple(fieldsets)
 
     def formfield_for_choice_field(self, db_field, request, **kwargs):
         """

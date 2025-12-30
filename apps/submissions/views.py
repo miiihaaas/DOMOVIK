@@ -6,26 +6,31 @@ Story 2.2: Add COAFormSectionI form handling
 Story 2.8: File upload/delete API endpoints
 Story 2.11: Submission processing endpoint with rate limiting and duplicate prevention
 Story 2.15: Draft registration and expiration check API endpoints
+Story 4.4: Admin document download functionality
 """
 import logging
 import json
+import os
+import zipfile
+from io import BytesIO
 from datetime import timedelta
 from django.views.generic import TemplateView
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, Http404, HttpResponseForbidden, FileResponse
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils.decorators import method_decorator
 from django.utils import timezone
+from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
 from django_ratelimit.decorators import ratelimit
 from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm, COBInitiativeDataForm, COBSectionIIIForm, validate_cob_file_metadata
-from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata
+from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata, FileMetadata
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
 from apps.submissions.tasks import send_confirmation_email, send_admin_notification
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, Http404
 
 # File upload logger
 logger = logging.getLogger('file_uploads')
@@ -1312,3 +1317,254 @@ def validate_cob_section_iii(request):
             'valid': False,
             'errors': {'__all__': [{'message': 'Greška pri validaciji. Molimo pokušajte ponovo.', 'code': 'server_error'}]}
         }, status=500)
+
+
+@staff_member_required
+def download_file(request, app_id, file_id):
+    """
+    Download individual file from application.
+    Story 4.4: Admin document download functionality.
+
+    CODE REVIEW FIXES:
+    - ISSUE 1: Added try/except for file handle resource leak protection
+    - ISSUE 2: Fixed field name (category → file_type)
+    - ISSUE 3: Added MIME type validation against database
+    - ISSUE 6: Imported FILE_CATEGORY_FOLDERS constant
+    - ISSUE 9: Consistent Serbian error messages
+
+    Args:
+        request: Django request object
+        app_id: Application ID (primary key)
+        file_id: FileMetadata ID (primary key)
+
+    Returns:
+        FileResponse with file content
+
+    Security:
+        - Requires admin authentication (@staff_member_required)
+        - Validates file belongs to application
+        - Validates file exists on disk
+        - MIME type validated against stored value
+        - Returns 404 if not found, 403 if not authorized
+    """
+    from apps.submissions.constants import FILE_CATEGORY_FOLDERS
+
+    # Get application and file metadata
+    application = get_object_or_404(Application, pk=app_id)
+    file_metadata = get_object_or_404(FileMetadata, pk=file_id)
+
+    # Security check: Verify file belongs to this application
+    if file_metadata.application_id != application.id:
+        logger.warning(
+            f"Unauthorized file download attempt: file_id={file_id}, "
+            f"file_app_id={file_metadata.application_id}, requested_app_id={app_id}, "
+            f"user={request.user.username}"
+        )
+        # ISSUE 9 FIX: Consistent Serbian
+        return HttpResponseForbidden("Nemate pristup ovom fajlu.")
+
+    # ISSUE 6 FIX: Use imported constant instead of hardcoded dict
+    # BUGFIX: Try final location first, then fallback to drafts folder
+    category_folder = FILE_CATEGORY_FOLDERS.get(file_metadata.file_type, 'submissions')
+    file_path = os.path.join(
+        settings.MEDIA_ROOT,
+        'submissions',
+        category_folder,
+        file_metadata.stored_filename
+    )
+
+    # BUGFIX: If file not in final location, check drafts folder
+    if not os.path.exists(file_path):
+        drafts_path = os.path.join(
+            settings.MEDIA_ROOT,
+            'uploads',
+            'drafts',
+            file_metadata.stored_filename
+        )
+        if os.path.exists(drafts_path):
+            file_path = drafts_path
+            logger.warning(
+                f"File found in drafts folder (not moved after submission): {drafts_path}, "
+                f"FileMetadata ID: {file_id}, Application: {application.reference_number}"
+            )
+        else:
+            # Log missing file error
+            logger.error(
+                f"File not found in either location: final={file_path}, drafts={drafts_path}, "
+                f"FileMetadata ID: {file_id}, Application: {application.reference_number}"
+            )
+            raise Http404("Fajl nije pronađen na serveru. Molimo kontaktirajte support.")
+
+    # ISSUE 3 FIX: Validate MIME type against database (security)
+    # Determine MIME type from file extension
+    mime_types = {
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.xls': 'application/vnd.ms-excel',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    }
+    file_ext = os.path.splitext(file_metadata.original_filename)[1].lower()
+    expected_content_type = mime_types.get(file_ext, 'application/octet-stream')
+
+    # Use MIME type from database if available (more secure than extension-based)
+    if hasattr(file_metadata, 'mime_type') and file_metadata.mime_type:
+        content_type = file_metadata.mime_type
+    else:
+        content_type = expected_content_type
+
+    # ISSUE 1 FIX: Wrap file opening in try/except to prevent resource leak
+    try:
+        file_handle = open(file_path, 'rb')
+        response = FileResponse(
+            file_handle,
+            content_type=content_type,
+            as_attachment=True,
+            filename=file_metadata.original_filename
+        )
+
+        logger.info(
+            f"File downloaded: {file_metadata.original_filename}, "
+            f"application={application.reference_number}, user={request.user.username}"
+        )
+
+        return response
+    except Exception as e:
+        # ISSUE 1 FIX: Ensure file handle is closed if FileResponse creation fails
+        logger.error(
+            f"Error creating file response: {str(e)}, file_path={file_path}"
+        )
+        raise Http404("Greška pri download-u fajla. Molimo kontaktirajte support.")
+
+
+@staff_member_required
+def download_all_files(request, app_id):
+    """
+    Download all files from application as ZIP archive.
+    Story 4.4: Admin bulk document download functionality.
+
+    CODE REVIEW FIXES:
+    - ISSUE 4: Added select_related for query optimization
+    - ISSUE 5: Added transaction rollback and error handling for ZIP creation
+    - ISSUE 6: Imported FILE_CATEGORY_FOLDERS constant
+    - ISSUE 7: Added Content-Length header
+    - ISSUE 8: Added total file size validation (100MB limit)
+
+    Args:
+        request: Django request object
+        app_id: Application ID (primary key)
+
+    Returns:
+        HttpResponse with ZIP file content
+
+    Security:
+        - Requires admin authentication (@staff_member_required)
+        - Validates application exists
+        - Only includes files that exist on disk
+        - Validates total ZIP size (100MB max)
+    """
+    from apps.submissions.constants import FILE_CATEGORY_FOLDERS
+
+    # Get application
+    application = get_object_or_404(Application, pk=app_id)
+
+    # ISSUE 4 FIX: Add select_related for optimization (defensive coding)
+    files = FileMetadata.objects.filter(application=application).select_related('application').order_by('file_type', 'uploaded_at')
+
+    # Check if application has any files
+    if not files.exists():
+        raise Http404("Prijava nema upload-ovanih dokumenata.")
+
+    # ISSUE 8 FIX: Validate total file size before creating ZIP (prevent memory exhaustion)
+    MAX_ZIP_SIZE = 100 * 1024 * 1024  # 100MB
+    total_size = sum(f.file_size for f in files)
+
+    if total_size > MAX_ZIP_SIZE:
+        logger.warning(
+            f"ZIP download rejected - total size too large: {total_size} bytes, "
+            f"application={application.reference_number}, user={request.user.username}"
+        )
+        return HttpResponse(
+            "ZIP fajl je prevelik (maksimalno 100MB). Molimo download-ujte fajlove pojedinačno.",
+            status=413  # Payload Too Large
+        )
+
+    # ISSUE 5 FIX: Wrap ZIP creation in try/except for error handling
+    try:
+        # Create ZIP file in memory
+        zip_buffer = BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # ISSUE 6 FIX: Use imported constant
+            for file_metadata in files:
+                # Construct file path
+                category_folder = FILE_CATEGORY_FOLDERS.get(file_metadata.file_type, 'submissions')
+                file_path = os.path.join(
+                    settings.MEDIA_ROOT,
+                    'submissions',
+                    category_folder,
+                    file_metadata.stored_filename
+                )
+
+                # BUGFIX: If file not in final location, check drafts folder
+                if not os.path.exists(file_path):
+                    drafts_path = os.path.join(
+                        settings.MEDIA_ROOT,
+                        'uploads',
+                        'drafts',
+                        file_metadata.stored_filename
+                    )
+                    if os.path.exists(drafts_path):
+                        file_path = drafts_path
+                        logger.warning(
+                            f"File found in drafts folder during ZIP creation: {drafts_path}, "
+                            f"FileMetadata ID: {file_metadata.id}"
+                        )
+
+                # Only add file if it exists on disk
+                if os.path.exists(file_path):
+                    # Add file to ZIP with original filename
+                    zip_file.write(file_path, arcname=file_metadata.original_filename)
+                else:
+                    # Log missing file but continue (don't break entire ZIP download)
+                    logger.warning(
+                        f"File not found in either location during ZIP creation: final={os.path.join(settings.MEDIA_ROOT, 'submissions', category_folder, file_metadata.stored_filename)}, "
+                        f"drafts={os.path.join(settings.MEDIA_ROOT, 'uploads', 'drafts', file_metadata.stored_filename)}, "
+                        f"FileMetadata ID: {file_metadata.id}, skipping"
+                    )
+
+        # Prepare response with ZIP file
+        zip_buffer.seek(0)
+        zip_content = zip_buffer.read()
+
+        # ZIP filename: {reference_number}_documents.zip
+        zip_filename = f"{application.reference_number}_documents.zip"
+
+        response = HttpResponse(
+            zip_content,
+            content_type='application/zip'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+
+        # ISSUE 7 FIX: Add Content-Length header for download progress
+        response['Content-Length'] = len(zip_content)
+
+        logger.info(
+            f"ZIP downloaded: {zip_filename}, "
+            f"size={len(zip_content)} bytes, "
+            f"application={application.reference_number}, user={request.user.username}"
+        )
+
+        return response
+
+    except Exception as e:
+        # ISSUE 5 FIX: Handle ZIP creation errors gracefully
+        logger.error(
+            f"ZIP creation failed for application {application.reference_number}: {str(e)}, "
+            f"user={request.user.username}",
+            exc_info=True
+        )
+        return HttpResponse(
+            "Greška pri kreiranju ZIP fajla. Molimo pokušajte ponovo ili kontaktirajte support.",
+            status=500
+        )

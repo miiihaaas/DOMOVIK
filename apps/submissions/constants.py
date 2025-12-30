@@ -62,10 +62,22 @@ class FileType:
     ]
 
 
+# Story 4.4: File storage category folder mapping
+# Maps FileMetadata.file_type values to filesystem subdirectories
+# BUGFIX: Keys must match FileType constants (BUDGET, not BUDZET)
+FILE_CATEGORY_FOLDERS = {
+    'BUDGET': 'budgets',
+    'BIOGRAPHY': 'biographies',
+    'SUPPORT_LETTER': 'letters_of_support',
+    'OPIS_INICIJATIVE': 'initiative_descriptions',
+    'PISMO_NAMERE': 'letters_of_intent',
+}
+
 # Export list
 __all__ = [
     'ApplicationType',
     'ApplicationStatus',
     'EntityType',
     'FileType',
+    'FILE_CATEGORY_FOLDERS',
 ]

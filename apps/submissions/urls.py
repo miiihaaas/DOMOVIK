@@ -7,6 +7,7 @@ Story 2.13: Success screen, PDF download, email resend
 Story 2.15: Draft registration and expiration check API endpoints
 Story 3.1: COB routing and form initialization
 Story 3.2: COB Section I validation API endpoint
+Story 4.4: Admin document download functionality
 """
 from django.urls import path
 from apps.submissions import views
@@ -51,4 +52,15 @@ urlpatterns = [
     path('api/validate/cob/section-i/', views.validate_cob_section_i, name='validate_cob_section_i'),
     path('api/validate/cob/section-ii/', views.validate_cob_section_ii, name='validate_cob_section_ii'),
     path('api/validate/cob/section-iii/', views.validate_cob_section_iii, name='validate_cob_section_iii'),
+
+    # Admin document download (Story 4.4)
+    # NOTE: URLs use /api/admin/ prefix to avoid conflict with Django's /admin/ path
+    # Story spec shows /admin/application/ but that conflicts with Django admin routing
+    # Using /api/admin/application/ is the correct implementation
+    path('api/admin/application/<int:app_id>/download-file/<int:file_id>/',
+         views.download_file,
+         name='admin_download_file'),
+    path('api/admin/application/<int:app_id>/download-all/',
+         views.download_all_files,
+         name='admin_download_all'),
 ]
