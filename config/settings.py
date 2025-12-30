@@ -254,6 +254,14 @@ CELERY_BEAT_SCHEDULE = {
             'expires': 3600,  # Task expires after 1 hour if not executed
         },
     },
+    # Story 4.6: Cleanup old admin logs (monthly - 1st of month at 3am)
+    'cleanup-old-admin-logs-monthly': {
+        'task': 'submissions.cleanup_old_admin_logs',
+        'schedule': crontab(day_of_month='1', hour=3, minute=0),  # Monthly at 3:00 AM
+        'options': {
+            'expires': 7200,  # Task expires after 2 hours if not executed
+        },
+    },
 }
 
 # Email Configuration (Story 2.14: Email Confirmation with Celery)

@@ -22,7 +22,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
-from apps.submissions.models import Application, DraftMetadata, InitiativeData
+from apps.submissions.models import Application, DraftMetadata, InitiativeData, AdminLog
 
 logger = logging.getLogger(__name__)
 
@@ -408,3 +408,48 @@ Ne odgovarajte na ovaj email.
                     f"application_id={application_id}. Giving up."
                 )
             return False
+
+
+@shared_task(bind=True, name='submissions.cleanup_old_admin_logs', max_retries=0, time_limit=300)
+def cleanup_old_admin_logs(self):
+    """
+    Delete admin logs older than 365 days (1 year retention).
+    Story 4.6: Admin Activity Logging - 1-year retention policy.
+
+    Runs: Monthly (1st of month at 3:00 AM Europe/Belgrade timezone)
+    Retention: 365 days (1 year) from log creation
+
+    Privacy: GDPR-compliant retention - logs automatically deleted after 1 year.
+
+    Idempotency: Task is idempotent - safe to run multiple times.
+    No retries (max_retries=0) to prevent duplicate execution on failure.
+
+    Returns:
+        int: Number of logs deleted
+    """
+    try:
+        task_id = self.request.id
+        logger.info(f"Admin log cleanup task started (task_id={task_id})")
+
+        # Calculate cutoff date (365 days ago = 1 year)
+        cutoff_date = timezone.now() - timedelta(days=365)
+
+        logger.info(f"Deleting admin logs older than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        # Delete old logs
+        deleted_count, _ = AdminLog.objects.filter(timestamp__lt=cutoff_date).delete()
+
+        if deleted_count == 0:
+            logger.info("No expired admin logs found. All logs within 1-year retention window.")
+        else:
+            logger.info(
+                f"Successfully deleted {deleted_count} admin logs older than 1 year "
+                f"(before {cutoff_date.date()}, compliance requirement, task_id={task_id})"
+            )
+
+        return deleted_count
+
+    except Exception as exc:
+        logger.error(f"Admin log cleanup task failed: {exc}", exc_info=True)
+        # Don't retry - will run again next month
+        return 0

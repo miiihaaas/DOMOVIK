@@ -495,9 +495,92 @@ class PDFGenerationService:
         return buffer
 
 
+def log_admin_action(user, action, application=None, old_value=None, new_value=None, request=None):
+    """
+    Log an admin action to the AdminLog table.
+    Story 4.6: Admin Activity Logging.
+
+    Args:
+        user: Admin user performing the action (User instance)
+        action: Action type constant (e.g., ADMIN_ACTION_VIEWED)
+        application: Application being acted upon (Application instance, optional)
+        old_value: Previous value for changes (str, optional)
+        new_value: New value for changes (str, optional)
+        request: HTTP request object to extract IP and user agent (HttpRequest, optional)
+
+    Returns:
+        AdminLog: Created AdminLog instance
+
+    Example:
+        >>> from apps.submissions.constants import ADMIN_ACTION_STATUS_CHANGE
+        >>> log_admin_action(
+        ...     user=request.user,
+        ...     action=ADMIN_ACTION_STATUS_CHANGE,
+        ...     application=application,
+        ...     old_value='submitted',
+        ...     new_value='approved',
+        ...     request=request
+        ... )
+        <AdminLog: 2025-12-30 12:00:00 - admin - changed_status - COA-2025-001>
+    """
+    from apps.submissions.models import AdminLog
+
+    # Extract IP address from request
+    ip_address = None
+    if request:
+        # Check for X-Forwarded-For header (proxy support)
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            # X-Forwarded-For can contain multiple IPs (client, proxy1, proxy2...)
+            # First IP is the original client
+            ip_address = x_forwarded_for.split(',')[0].strip()
+        else:
+            # Fall back to REMOTE_ADDR (direct connection)
+            ip_address = request.META.get('REMOTE_ADDR')
+
+    # Extract user agent from request
+    user_agent = None
+    if request:
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        # Truncate to 500 chars to prevent excessively long strings
+        if len(user_agent) > 500:
+            user_agent = user_agent[:500]
+
+    # Create log entry
+    try:
+        log_entry = AdminLog.objects.create(
+            user=user,
+            action=action,
+            application=application,
+            old_value=old_value,
+            new_value=new_value,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        # Also log to Python logger for debugging
+        if application:
+            logger.info(
+                f"Admin action logged: {action} by {user.username} on {application.reference_number}"
+            )
+        else:
+            logger.info(
+                f"Admin action logged: {action} by {user.username}"
+            )
+
+        return log_entry
+
+    except Exception as e:
+        # Log error but don't fail the request
+        logger.error(f"Failed to log admin action: {str(e)}", exc_info=True)
+        # Re-raise exception so caller knows logging failed
+        raise
+
+
 # Export list for module
 __all__ = [
     'ReferenceNumberService',
     'process_submission',
     'PDFGenerationService',
+    'log_admin_action',
 ]

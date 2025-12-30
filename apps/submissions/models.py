@@ -590,3 +590,121 @@ class DraftMetadata(models.Model):
             return True  # Treat drafts without created_at as expired
         expiry_date = timezone.now() - timedelta(days=7)
         return self.created_at < expiry_date
+
+
+class AdminLog(models.Model):
+    """
+    Audit trail for admin panel and API actions.
+    Story 4.6: Admin Activity Logging.
+
+    Tracks all admin actions (views, downloads, status changes) for compliance
+    and troubleshooting. Logs are read-only and retained for minimum 90 days
+    (automatic cleanup via Celery periodic task).
+
+    Fields:
+        timestamp: When action occurred (auto-generated)
+        user: Admin user who performed action
+        action: Action type constant (e.g., 'viewed_application', 'changed_status')
+        application: Application this action was performed on (optional)
+        old_value: Previous value for changes (optional, e.g., old status)
+        new_value: New value for changes (optional, e.g., new status)
+        ip_address: IP address of admin user (supports IPv4 and IPv6)
+        user_agent: Browser user agent string (truncated to 500 chars)
+
+    Examples:
+        >>> AdminLog.objects.create(
+        ...     user=admin_user,
+        ...     action='viewed_application',
+        ...     application=app,
+        ...     ip_address='192.168.1.1'
+        ... )
+        >>> AdminLog.objects.create(
+        ...     user=admin_user,
+        ...     action='changed_status',
+        ...     application=app,
+        ...     old_value='submitted',
+        ...     new_value='approved'
+        ... )
+    """
+
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        verbose_name='Vreme',
+        help_text='When action was performed'
+    )
+
+    user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='admin_logs',
+        db_index=True,
+        verbose_name='Korisnik',
+        help_text='Admin user who performed the action'
+    )
+
+    action = models.CharField(
+        max_length=50,
+        db_index=True,
+        verbose_name='Akcija',
+        help_text="Action type (e.g., 'viewed_application', 'changed_status')"
+    )
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_logs',
+        verbose_name='Prijava',
+        help_text='Application this action was performed on (if applicable)'
+    )
+
+    old_value = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='Stara Vrednost',
+        help_text='Previous value for changes (e.g., old status)'
+    )
+
+    new_value = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='Nova Vrednost',
+        help_text='New value for changes (e.g., new status)'
+    )
+
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name='IP Adresa',
+        help_text='IP address of admin user (IPv4 or IPv6)'
+    )
+
+    user_agent = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='User Agent',
+        help_text='Browser user agent string'
+    )
+
+    class Meta:
+        db_table = 'admin_logs'
+        ordering = ['-timestamp']
+        verbose_name = 'Admin Log'
+        verbose_name_plural = 'Admin Logs'
+        indexes = [
+            models.Index(fields=['-timestamp']),
+            models.Index(fields=['user']),
+            models.Index(fields=['action']),
+            models.Index(fields=['application']),
+            # Performance optimization: Composite index for filtering by action + date
+            # Enables efficient queries like: AdminLog.objects.filter(action='changed_status').order_by('-timestamp')
+            models.Index(fields=['action', '-timestamp'], name='admin_logs_action_time_idx'),
+        ]
+
+    def __str__(self):
+        """Return string representation of admin log entry."""
+        if self.application:
+            return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.username} - {self.action} - {self.application.reference_number}"
+        return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.username} - {self.action}"

@@ -22,7 +22,13 @@ from apps.submissions.models import (
     ProjectData,
     InitiativeData,
     FileMetadata,
-    DraftMetadata
+    DraftMetadata,
+    AdminLog
+)
+from apps.submissions.services import log_admin_action
+from apps.submissions.constants import (
+    ADMIN_ACTION_VIEWED,
+    ADMIN_ACTION_STATUS_CHANGE,
 )
 
 # ISSUE 9 FIX: Constants for admin display configuration
@@ -510,6 +516,57 @@ class ApplicationAdmin(admin.ModelAdmin):
             ]
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        """
+        Override change_view to log when admin views an application.
+        Story 4.6: Admin Activity Logging.
+        """
+        # Call parent change_view first to render page
+        response = super().change_view(request, object_id, form_url, extra_context)
+
+        # Log "viewed application" action (only on GET, not on POST saves)
+        if request.method == 'GET':
+            try:
+                application = Application.objects.get(pk=object_id)
+                log_admin_action(
+                    user=request.user,
+                    action=ADMIN_ACTION_VIEWED,
+                    application=application,
+                    request=request,
+                )
+            except Application.DoesNotExist:
+                pass  # Application not found, skip logging
+
+        return response
+
+    def save_model(self, request, obj, form, change):
+        """
+        Override save_model to log status changes.
+        Story 4.6: Admin Activity Logging.
+        """
+        # Capture old status before saving (if editing existing application)
+        old_status = None
+        if change and obj.pk:
+            try:
+                old_application = Application.objects.get(pk=obj.pk)
+                old_status = old_application.status
+            except Application.DoesNotExist:
+                pass
+
+        # Save the model (parent call)
+        super().save_model(request, obj, form, change)
+
+        # Log status change if status was modified
+        if change and old_status and old_status != obj.status:
+            log_admin_action(
+                user=request.user,
+                action=ADMIN_ACTION_STATUS_CHANGE,
+                application=obj,
+                old_value=old_status,
+                new_value=obj.status,
+                request=request,
+            )
+
     # SECTION: Opšti podaci display methods (Story 4.3)
 
     # get_application_type_serbian already exists from Story 4.2 - reuse for detail view
@@ -907,6 +964,83 @@ class DraftMetadataAdmin(admin.ModelAdmin):
         if obj:
             return self.readonly_fields
         return []
+
+
+@admin.register(AdminLog)
+class AdminLogAdmin(admin.ModelAdmin):
+    """
+    Django Admin interface for viewing admin activity logs.
+    Story 4.6: Admin Activity Logging.
+
+    Logs are read-only (cannot be added, edited, or deleted) for audit trail integrity.
+    """
+
+    list_display = [
+        'timestamp',
+        'user',
+        'action',
+        'get_application_reference',
+        'old_value',
+        'new_value',
+        'ip_address',
+    ]
+
+    list_filter = [
+        'action',
+        'user',
+        ('timestamp', admin.DateFieldListFilter),
+    ]
+
+    search_fields = [
+        'application__reference_number',
+        'user__username',
+        'action',
+        'ip_address',
+    ]
+
+    readonly_fields = [
+        'timestamp',
+        'user',
+        'action',
+        'application',
+        'old_value',
+        'new_value',
+        'ip_address',
+        'user_agent',
+    ]
+
+    # date_hierarchy = 'timestamp'  # DISABLED: SQLite incompatible with timezone-aware datetime
+    # Use list_filter with DateFieldListFilter instead (line 991)
+
+    ordering = ['-timestamp']
+
+    # Disable add/delete (logs are read-only)
+    def has_add_permission(self, request):
+        """Prevent creating fake logs - logs are auto-generated only."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deleting audit trail - logs are permanent."""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Allow viewing but not editing logs."""
+        return True
+
+    def get_application_reference(self, obj):
+        """Display application reference number."""
+        if obj.application:
+            return obj.application.reference_number
+        return '-'
+    get_application_reference.short_description = 'Application'
+
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        """Make all fields read-only in detail view by hiding save buttons."""
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_and_continue'] = False
+        extra_context['show_save_and_add_another'] = False
+        return super().changeform_view(request, object_id, form_url, extra_context)
 
 
 # Customize Django Admin site (Story 4.1: Admin Authentication)

@@ -73,6 +73,24 @@ FILE_CATEGORY_FOLDERS = {
     'PISMO_NAMERE': 'letters_of_intent',
 }
 
+
+# ============================================================================
+# Admin Activity Logging - Action Types (Story 4.6)
+# ============================================================================
+
+# Django Admin actions
+ADMIN_ACTION_VIEWED = 'viewed_application'
+ADMIN_ACTION_DOWNLOADED_FILE = 'downloaded_file'
+ADMIN_ACTION_DOWNLOADED_ALL = 'downloaded_all_files'
+ADMIN_ACTION_STATUS_CHANGE = 'changed_status'
+
+# API actions
+ADMIN_ACTION_API_VIEWED = 'viewed_application_api'
+ADMIN_ACTION_API_STATUS_CHANGE = 'changed_status_api'
+ADMIN_ACTION_API_DOWNLOADED_FILE = 'downloaded_file_api'
+ADMIN_ACTION_API_DOWNLOADED_ALL = 'downloaded_all_files_api'
+
+
 # Export list
 __all__ = [
     'ApplicationType',
@@ -80,4 +98,12 @@ __all__ = [
     'EntityType',
     'FileType',
     'FILE_CATEGORY_FOLDERS',
+    'ADMIN_ACTION_VIEWED',
+    'ADMIN_ACTION_DOWNLOADED_FILE',
+    'ADMIN_ACTION_DOWNLOADED_ALL',
+    'ADMIN_ACTION_STATUS_CHANGE',
+    'ADMIN_ACTION_API_VIEWED',
+    'ADMIN_ACTION_API_STATUS_CHANGE',
+    'ADMIN_ACTION_API_DOWNLOADED_FILE',
+    'ADMIN_ACTION_API_DOWNLOADED_ALL',
 ]

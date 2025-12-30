@@ -24,7 +24,7 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpRequest, Http404
 from django.core.paginator import Paginator
 
-from apps.submissions.models import Application
+from apps.submissions.models import Application, FileMetadata
 
 # Configure logging for API
 logger = logging.getLogger(__name__)
@@ -36,6 +36,13 @@ from apps.submissions.schemas import (
     UpdateStatusResponseSchema,
 )
 from apps.submissions.views import download_file, download_all_files
+from apps.submissions.services import log_admin_action
+from apps.submissions.constants import (
+    ADMIN_ACTION_API_VIEWED,
+    ADMIN_ACTION_API_STATUS_CHANGE,
+    ADMIN_ACTION_API_DOWNLOADED_FILE,
+    ADMIN_ACTION_API_DOWNLOADED_ALL,
+)
 
 
 # ============================================================================
@@ -234,6 +241,14 @@ def get_application_detail(request: HttpRequest, reference_number: str):
             logger.warning(f"Application not found: {reference_number}")
             raise HttpError(404, f"Application with reference number '{reference_number}' not found")
 
+        # Log API view action (Story 4.6)
+        log_admin_action(
+            user=request.user,
+            action=ADMIN_ACTION_API_VIEWED,
+            application=application,
+            request=request,
+        )
+
         # Build response using Pydantic schema
         # Pydantic automatically handles ORM conversion with from_attributes=True
         logger.info(f"Retrieved application detail: {reference_number}")
@@ -287,6 +302,16 @@ def update_application_status(
         application.status = payload.status
         application.save(update_fields=['status'])  # Application has no updated_at field
 
+        # Log status change with old → new transition (Story 4.6)
+        log_admin_action(
+            user=request.user,
+            action=ADMIN_ACTION_API_STATUS_CHANGE,
+            application=application,
+            old_value=old_status,
+            new_value=payload.status,
+            request=request,
+        )
+
         logger.info(f"Status updated: {reference_number} from '{old_status}' to '{payload.status}' by user {request.user.username}")
 
         # Build response
@@ -336,6 +361,23 @@ def api_download_file(request: HttpRequest, reference_number: str, file_id: int)
             logger.warning(f"Application not found for file download: {reference_number}")
             raise HttpError(404, f"Application with reference number '{reference_number}' not found")
 
+        # Get file metadata for logging (Story 4.6)
+        try:
+            file_metadata = FileMetadata.objects.get(pk=file_id, application=application)
+        except FileMetadata.DoesNotExist:
+            logger.warning(f"File not found: file_id={file_id}, application={reference_number}")
+            raise HttpError(404, f"File with ID {file_id} not found for application {reference_number}")
+
+        # Log API download action BEFORE delegating to view (Story 4.6)
+        # This is the SINGLE logging point for all downloads (prevents double-logging)
+        log_admin_action(
+            user=request.user,
+            action=ADMIN_ACTION_API_DOWNLOADED_FILE,
+            application=application,
+            old_value=file_metadata.original_filename,  # Log which file was downloaded
+            request=request,
+        )
+
         # Delegate to existing download_file view from Story 4.4
         # This reuses all security checks and error handling
         logger.info(f"File download requested: file_id={file_id}, application={reference_number}, user={request.user.username}")
@@ -378,6 +420,19 @@ def api_download_all_files(request: HttpRequest, reference_number: str):
         except Application.DoesNotExist:
             logger.warning(f"Application not found for bulk download: {reference_number}")
             raise HttpError(404, f"Application with reference number '{reference_number}' not found")
+
+        # Count files for logging (Story 4.6)
+        file_count = application.files.count()
+
+        # Log API download all action BEFORE delegating to view (Story 4.6)
+        # This is the SINGLE logging point for all downloads (prevents double-logging)
+        log_admin_action(
+            user=request.user,
+            action=ADMIN_ACTION_API_DOWNLOADED_ALL,
+            application=application,
+            old_value=f"{file_count} files",  # Log how many files were downloaded
+            request=request,
+        )
 
         # Delegate to existing download_all_files view from Story 4.4
         logger.info(f"Bulk file download requested: application={reference_number}, user={request.user.username}")

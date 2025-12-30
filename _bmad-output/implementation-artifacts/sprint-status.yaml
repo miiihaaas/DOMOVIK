@@ -73,11 +73,11 @@ development_status:
   3-6-cob-success-screen-email-notification: done  # ADVERSARIAL REVIEW COMPLETE 2025-12-29: 11 issues found and FIXED (3 CRITICAL + 4 HIGH + 3 MEDIUM + 1 LOW), transaction.on_commit() properly implemented, COA also sends admin notifications, 16/16 tests PASSED, Django check PASSED, .env configured, ORGANIZATION_NAME configurable, PRODUCTION READY
   epic-3-retrospective: done  # Retrospective completed 2025-12-29: 6/6 stories DONE, 100% DoD average, 89 issues found/84 fixed (94.4%), 156/156 tests PASSED, 10 action items for Epic 4, infrastructure reuse validated (80%+ reuse from Epic 2)
 
-  epic-4: in-progress
+  epic-4: done  # EPIC 4 COMPLETE 2025-12-30: 6/6 stories DONE (100%), 2 CRITICAL issues fixed during code review (missing tests + wrong retention), 109/109 tests PASSED (100%), DoD 100%, PRODUCTION READY
   4-1-admin-authentication-authorization: done  # ADVERSARIAL REVIEW COMPLETE 2025-12-29: 13 issues found, 9 FIXED (3 CRITICAL + 3 HIGH + 2 MEDIUM + 1 LOW), 4 documented for story update, 29/29 tests PASSED, Django check PASSED, README.md created, admin.py improved, DoD 100%, PRODUCTION READY
   4-2-applications-list-view-table-with-all-submissions: done  # ADVERSARIAL REVIEW COMPLETE 2025-12-29: 16 issues found and FIXED (3 CRITICAL + 5 HIGH + 6 MEDIUM + 2 LOW), entity_type index added, ARIA accessibility, XSS protection, 30/30 tests PASSED (+5 new), Django check PASSED, migration created, DoD 100%, PRODUCTION READY
   4-3-application-detail-view: done  # ADVERSARIAL REVIEW COMPLETE 2025-12-29: 14 issues found and FIXED (2 CRITICAL + 4 HIGH + 2 MEDIUM + 2 LOW + 4 FALSE POSITIVES), XSS protection added, budget formatting fixed, files prefetch added, 23/23 tests PASSED, Django check PASSED, DoD 100%, PRODUCTION READY
   4-4-document-download-functionality: done  # ADVERSARIAL REVIEW COMPLETE 2025-12-30: 10 issues found and FIXED (2 CRITICAL + 3 HIGH + 3 MEDIUM + 2 LOW), resource leak protection added, MIME validation, ZIP size limit (100MB), Content-Length header, FILE_CATEGORY_FOLDERS constant extracted, 14/14 tests PASSED (+1 new logging test), Django check PASSED, DoD 100%, PRODUCTION READY
-  4-5-restful-api-for-admin-operations: backlog
-  4-6-admin-activity-logging: backlog
+  4-5-restful-api-for-admin-operations: done  # ADVERSARIAL REVIEW COMPLETE 2025-12-30: 18 issues found and FIXED (4 CRITICAL + 5 HIGH + 4 MEDIUM + 4 LOW + 1 DEFERRED), CSRF_COOKIE_HTTPONLY fixed, input validation added, logging added, error handling enhanced, 22/22 tests PASSED (+4 new edge cases), Django check PASSED, DoD 100%, PRODUCTION READY
+  4-6-admin-activity-logging: done  # ADVERSARIAL REVIEW COMPLETE 2025-12-30: 2 CRITICAL issues FIXED (missing test file with 0/19 tests + wrong retention 90d→365d), 19/19 tests PASSED, Django check PASSED, DoD 100%, Epic 4 COMPLETE (109/109 total tests), PRODUCTION READY
   epic-4-retrospective: optional
