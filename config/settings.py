@@ -155,7 +155,7 @@ SESSION_COOKIE_HTTPONLY = True  # JavaScript cannot access session cookie
 # CSRF protection
 # BUGFIX (Story 4-3): JavaScript needs to read CSRF token for AJAX requests (draft, upload)
 # Frontend code (draft-manager.js, submission-handler.js) reads token from document.cookie
-CSRF_COOKIE_HTTPONLY = False  # JavaScript CAN access CSRF token (required for AJAX)
+CSRF_COOKIE_HTTPONLY = True  # JavaScript CANNOT access CSRF token (NFR10 security requirement)
 
 # HTTPS enforcement for production
 if not DEBUG:

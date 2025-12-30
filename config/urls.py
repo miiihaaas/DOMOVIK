@@ -16,10 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from apps.submissions.api import api  # Story 4.5: Django Ninja API
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.landing.urls')),  # Root → landing page
     # Story 3.1: COA and COB routes moved to submissions app URLs
     path('', include('apps.submissions.urls')),  # COA/COB forms and submission endpoints
+    # Story 4.5: RESTful API for admin operations
+    path('api/admin/', api.urls),  # Django Ninja API
 ]

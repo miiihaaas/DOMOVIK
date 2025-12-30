@@ -19,3 +19,6 @@ reportlab==4.0.7
 # Task Queue & Email (Story 2.14: Email Confirmation with Celery)
 celery==5.3.0
 redis==5.0.1
+
+# RESTful API Framework (Story 4.5: RESTful API for Admin Operations)
+django-ninja==1.3.0
