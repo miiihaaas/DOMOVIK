@@ -24,10 +24,10 @@
 // Edge cases (consecutive dots, leading/trailing dots) may differ from server validation
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-// Serbian phone validation (10 digits total: 06 + 8 more digits)
-// Format: 0611234567 or 0641234567
-// Accepts: 06[0-9]{8} (no separators in validation - normalize input first)
-const PHONE_REGEX = /^06[0-9]{8}$/;
+// Serbian phone validation (9 or 10 digits total: 06 + 7-8 more digits)
+// Format: 061234567 (9 digits) or 0611234567 (10 digits)
+// Accepts: 06[0-9]{7,8} (no separators in validation - normalize input first)
+const PHONE_REGEX = /^06[0-9]{7,8}$/;
 
 // JMBG validation (exactly 13 digits)
 const JMBG_REGEX = /^[0-9]{13}$/;
@@ -40,7 +40,7 @@ const MATICNI_REGEX = /^[0-9]{8}$/;
 // Serbian error messages (UTF-8 encoded)
 const ERROR_MESSAGES = {
   email: "Neispravan email format. Primer: marko@example.com",
-  telefon: "Neispravan broj telefona. Primer: 0611234567",
+  telefon: "Neispravan broj telefona. Primer: 061234567 ili 0611234567",
   jmbg: "JMBG mora imati tačno 13 cifara",
   maticni_broj: "Matični broj mora imati tačno 8 cifara"
 };

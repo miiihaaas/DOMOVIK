@@ -34,6 +34,27 @@ class COAFormSectionI(forms.ModelForm):
     Leverages Applicant model validation for conditional requirements.
     """
 
+    # Override phone field to add validation (consistent with COB form)
+    phone = forms.CharField(
+        max_length=20,
+        required=True,
+        label='Broj telefona',
+        validators=[
+            RegexValidator(
+                # Serbian mobile numbers: 7 OR 8 digits after 6
+                # Format: 06XXXXXXX (9 digits) or 06XXXXXXXX (10 digits)
+                # Format: +3816XXXXXXX (12 digits) or +3816XXXXXXXX (13 digits)
+                regex=r'^(\+381|0)6[0-9]{7,8}$',
+                message='Neispravan format telefona. Koristite format: 06XXXXXXX, 06XXXXXXXX ili +3816XXXXXXX, +3816XXXXXXXX',
+            )
+        ],
+        error_messages={
+            'required': 'Telefon je obavezan.',
+        },
+        help_text='npr. 06xxxxxxx ili 06xxxxxxxx',
+        widget=forms.TextInput(attrs={'autocomplete': 'tel'})
+    )
+
     class Meta:
         model = Applicant
         fields = [
@@ -64,9 +85,9 @@ class COAFormSectionI(forms.ModelForm):
         }
 
         help_texts = {
-            'jmbg': '13 cifara (npr. 1234567890123)',
+            'jmbg': '13 cifara (npr. 1802986890123)',
             'email': 'npr. marko@example.com',
-            'phone': 'npr. 0611234567',
+            'phone': 'npr. 06xxxxxxx ili 06xxxxxxxx',
         }
 
     def clean(self):
@@ -377,10 +398,11 @@ class COBApplicantForm(forms.Form):
         label='Telefon',  # ISSUE 6 FIX: Add label attribute
         validators=[
             RegexValidator(
-                # ISSUE 2 FIX: Serbian mobile numbers are EXACTLY 8 digits after 6
-                # Format: 06XXXXXXXX (9 digits total) or +3816XXXXXXXX (13 digits total)
-                regex=r'^(\+381|0)6[0-9]{8}$',
-                message='Neispravan format telefona. Koristite format: 06XXXXXXXX ili +3816XXXXXXXX',
+                # Serbian mobile numbers: 7 OR 8 digits after 6
+                # Format: 06XXXXXXX (9 digits) or 06XXXXXXXX (10 digits)
+                # Format: +3816XXXXXXX (12 digits) or +3816XXXXXXXX (13 digits)
+                regex=r'^(\+381|0)6[0-9]{7,8}$',
+                message='Neispravan format telefona. Koristite format: 06XXXXXXX, 06XXXXXXXX ili +3816XXXXXXX, +3816XXXXXXXX',
             )
         ],
         error_messages={
@@ -444,8 +466,9 @@ class COBApplicantForm(forms.Form):
         """
         Normalize phone number format.
 
-        Input: +381651234567 or 0651234567
-        Output: +381651234567 (normalized)
+        Input: +38165123456 (9 digits) or +381651234567 (10 digits)
+        Input: 065123456 (9 digits) or 0651234567 (10 digits)
+        Output: +38165123456 or +381651234567 (normalized)
 
         ISSUE 5 FIX: Proper validation when telefon is None/empty.
         ISSUE 7 FIX: Re-validate normalized phone against regex.
@@ -462,8 +485,9 @@ class COBApplicantForm(forms.Form):
 
         # ISSUE 7 FIX: Re-validate normalized format against regex
         # This ensures +3816X formats still match the pattern after normalization
+        # Now accepts 7 OR 8 digits after +3816
         import re
-        phone_pattern = r'^\+3816[0-9]{8}$'
+        phone_pattern = r'^\+3816[0-9]{7,8}$'
         if not re.match(phone_pattern, telefon):
             raise ValidationError('Neispravan format telefona nakon normalizacije.')
 

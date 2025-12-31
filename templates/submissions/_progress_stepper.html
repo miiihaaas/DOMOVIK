@@ -21,7 +21,7 @@ CODE REVIEW FIX (MEDIUM #5): Use BEM classes only, removed legacy classes
       <span class="step-number">2</span>
       <span class="step-checkmark" aria-label="Completed">✓</span>
     </div>
-    <div class="progress-stepper__label">Podaci o projektu</div>
+    <div class="progress-stepper__label" id="section-2-label">Podaci o projektu</div>
   </div>
 
   <div class="progress-stepper__connector"></div>
@@ -39,3 +39,22 @@ CODE REVIEW FIX (MEDIUM #5): Use BEM classes only, removed legacy classes
   <strong>Sekcija 1 od 3</strong>
   <span class="sr-only">Nalazite se u sekciji 1 od 3</span>
 </div>
+
+<script>
+// Dynamic Section 2 label based on application type (COA vs COB)
+(function() {
+  const applicationType = document.body.dataset.applicationType;
+  const section2Label = document.getElementById('section-2-label');
+  const section2Step = document.querySelector('[data-step="2"]');
+
+  if (applicationType === 'COB') {
+    const newLabel = 'Podaci o inicijativi';
+    section2Label.textContent = newLabel;
+    section2Step.setAttribute('aria-label', 'Sekcija 2: ' + newLabel);
+  } else if (applicationType === 'COA') {
+    const newLabel = 'Podaci o projektu';
+    section2Label.textContent = newLabel;
+    section2Step.setAttribute('aria-label', 'Sekcija 2: ' + newLabel);
+  }
+})();
+</script>

@@ -20,7 +20,6 @@
 {% block content %}
 <main class="container">
   <h1 class="form-title">{{ form_title }}</h1>
-  <p class="form-subtitle">Pojednostavljen proces prijave inicijativa</p>
 
   <!-- Auto-Save Indicator (Story 2.4 - Reused) -->
   <div id="autosave-indicator" class="autosave-indicator" aria-live="polite" aria-atomic="true">
@@ -106,7 +105,7 @@
         <div class="form-group">
           <label for="id_telefon">Telefon *</label>
           <input type="tel" name="telefon" id="id_telefon" autocomplete="tel" aria-invalid="false" aria-describedby="id_telefon_error" required>
-          <small class="help-text">Format: 06XXXXXXX ili +3816XXXXXXX</small>
+          <small class="help-text">npr: 06xxxxxxx ili 06xxxxxxxx</small>
           <div id="id_telefon_error" class="validation-error" aria-live="polite" style="display: none;"></div>
         </div>
       </div>

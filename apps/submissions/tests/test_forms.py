@@ -20,7 +20,7 @@ class COBApplicantFormTests(TestCase):
             'prezime': 'Petrović',
             'adresa': 'Beograd, Kneza Miloša 10',
             'email': 'marko@example.com',
-            'telefon': '0651234568',  # ISSUE 2 FIX: 8 digits after 6 (was 7)
+            'telefon': '0651234568',  # 10 digits total (8 digits after 6)
         })
         self.assertTrue(form.is_valid())
 
@@ -99,18 +99,31 @@ class COBApplicantFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('telefon', form.errors)
 
-    def test_phone_normalization(self):
-        """Test phone number normalization (06X → +3816X)."""
+    def test_phone_normalization_10_digits(self):
+        """Test phone number normalization for 10-digit phones (06X → +3816X)."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
             'adresa': 'Beograd',
             'email': 'marko@example.com',
-            'telefon': '0651234568',
+            'telefon': '0651234568',  # 10 digits
         })
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['telefon'], '+381651234568')  # ISSUE 2 FIX: 8 digits
+        self.assertEqual(form.cleaned_data['telefon'], '+381651234568')
+
+    def test_phone_normalization_9_digits(self):
+        """Test phone number normalization for 9-digit phones (06X → +3816X)."""
+        form = COBApplicantForm({
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'adresa': 'Beograd',
+            'email': 'marko@example.com',
+            'telefon': '065123456',  # 9 digits
+        })
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data['telefon'], '+38165123456')
 
     def test_serbian_characters(self):
         """Test Serbian characters (č, ć, š, đ, ž) are accepted."""
@@ -249,18 +262,57 @@ class COBApplicantFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('telefon', form.errors)
 
-    def test_phone_normalization_already_normalized(self):
-        """Test phone number already in +381 format remains unchanged."""
+    def test_phone_normalization_already_normalized_10_digits(self):
+        """Test 10-digit phone already in +381 format remains unchanged."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
             'adresa': 'Beograd',
             'email': 'marko@example.com',
-            'telefon': '+381651234568',
+            'telefon': '+381651234568',  # 10 digits
         })
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['telefon'], '+381651234568')  # ISSUE 2 FIX: 8 digits
+        self.assertEqual(form.cleaned_data['telefon'], '+381651234568')
+
+    def test_phone_normalization_already_normalized_9_digits(self):
+        """Test 9-digit phone already in +381 format remains unchanged."""
+        form = COBApplicantForm({
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'adresa': 'Beograd',
+            'email': 'marko@example.com',
+            'telefon': '+38165123456',  # 9 digits
+        })
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data['telefon'], '+38165123456')
+
+    def test_phone_too_short_8_digits(self):
+        """Test 8-digit phone (too short) fails validation."""
+        form = COBApplicantForm({
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'adresa': 'Beograd',
+            'email': 'marko@example.com',
+            'telefon': '06512345',  # Only 8 digits (too short)
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('telefon', form.errors)
+
+    def test_phone_too_long_11_digits(self):
+        """Test 11-digit phone (too long) fails validation."""
+        form = COBApplicantForm({
+            'entity_type': 'fizicko',
+            'ime': 'Marko',
+            'prezime': 'Petrović',
+            'adresa': 'Beograd',
+            'email': 'marko@example.com',
+            'telefon': '06512345678',  # 11 digits (too long)
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('telefon', form.errors)
 
     def test_whitespace_only_ime(self):
         """Test whitespace-only ime fails validation (ISSUE 12 FIX)."""
