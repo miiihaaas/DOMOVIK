@@ -153,9 +153,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Force login after browser close
 SESSION_COOKIE_HTTPONLY = True  # JavaScript cannot access session cookie
 
 # CSRF protection
-# BUGFIX (Story 4-3): JavaScript needs to read CSRF token for AJAX requests (draft, upload)
-# Frontend code (draft-manager.js, submission-handler.js) reads token from document.cookie
-CSRF_COOKIE_HTTPONLY = True  # JavaScript CANNOT access CSRF token (NFR10 security requirement)
+# Story 4-5 SECURITY FIX: CSRF_COOKIE_HTTPONLY = True (prevents XSS attacks from stealing CSRF token)
+# IMPLEMENTATION: JavaScript reads CSRF token from DOM meta tag, NOT from cookie
+# Templates (coa_form.html, cob_form.html) include: <meta name="csrf-token" content="{{ csrf_token }}">
+# Frontend code (draft-manager.js) reads from meta tag first, falls back to cookie
+CSRF_COOKIE_HTTPONLY = True  # SECURITY: Prevents JavaScript from accessing CSRF cookie (XSS protection)
 
 # HTTPS enforcement for production
 if not DEBUG:

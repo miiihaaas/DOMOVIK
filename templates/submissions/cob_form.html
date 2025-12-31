@@ -5,6 +5,10 @@
 
 {% block meta_description %}Podnesi brzu prijavu za inicijativu kroz DOMOVIK platformu. Bez potrebe za detaljnim budžetom ili velikim timom.{% endblock %}
 
+{% block extra_meta %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/forms.css' %}">
 <link rel="stylesheet" href="{% static 'css/file-upload.css' %}">

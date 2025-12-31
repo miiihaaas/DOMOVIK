@@ -70,10 +70,29 @@ function getOrCreateDraftId() {
 }
 
 /**
- * Get CSRF token from cookie (Story 2.15)
- * @returns {string} CSRF token
+ * Get CSRF token from DOM meta tag or cookie (Story 2.15, Bugfix: CSRF_COOKIE_HTTPONLY=True)
+ *
+ * CRITICAL BUGFIX (Story 4-5 aftermath):
+ * - CSRF_COOKIE_HTTPONLY was changed to True for security (prevents XSS attacks)
+ * - This blocks JavaScript from reading document.cookie
+ * - Solution: Read CSRF token from DOM meta tag FIRST (Django best practice)
+ * - Fallback to cookie for backwards compatibility (if HTTPONLY is disabled)
+ *
+ * Implementation:
+ * 1. Try to read from <meta name="csrf-token" content="{{ csrf_token }}"> in template
+ * 2. Fallback to document.cookie if meta tag not found (backwards compatibility)
+ * 3. Return null if both methods fail (will trigger CSRF 403 error)
+ *
+ * @returns {string|null} CSRF token or null if not found
  */
 function getCSRFToken() {
+  // FIRST: Try to read from DOM meta tag (CSRF_COOKIE_HTTPONLY=True compatible)
+  const metaTag = document.querySelector('meta[name="csrf-token"]');
+  if (metaTag && metaTag.content) {
+    return metaTag.content;
+  }
+
+  // FALLBACK: Try to read from cookie (for backwards compatibility)
   const name = 'csrftoken';
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
@@ -86,6 +105,12 @@ function getCSRFToken() {
       }
     }
   }
+
+  // FINAL: Log warning if both methods failed
+  if (!cookieValue) {
+    console.warn('CSRF token not found in DOM meta tag or cookie. Ensure <meta name="csrf-token"> exists in template.');
+  }
+
   return cookieValue;
 }
 
@@ -171,14 +196,21 @@ async function checkDraftExpiration() {
 
     const data = await response.json();
 
-    // If server says draft doesn't exist or is expired
-    if (!data.exists || data.expired) {
+    // BUGFIX: Only delete draft if it EXISTS on server AND is expired
+    // If server doesn't have the draft (!data.exists), keep localStorage draft
+    // This handles cases where registerDraftOnServer() failed (network, timeout, etc)
+    if (data.exists && data.expired) {
       console.log('Draft expired on server. Deleting from localStorage.');
       localStorage.removeItem(getDraftKey());
       return true; // Expired
     }
 
-    return false; // Still valid
+    // If draft doesn't exist on server, log warning but keep localStorage draft
+    if (!data.exists) {
+      console.warn('Draft not registered on server - keeping localStorage draft for recovery');
+    }
+
+    return false; // Still valid (or not on server, but valid in localStorage)
 
   } catch (error) {
     console.error('Draft expiration check error:', error);

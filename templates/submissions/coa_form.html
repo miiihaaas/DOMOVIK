@@ -5,6 +5,12 @@
 
 {% block meta_description %}Podnesi prijavu za projekat kroz DOMOVIK platformu. Detaljni projekat sa budžetom, timom i kompletnom dokumentacijom.{% endblock %}
 
+{% block extra_meta %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block body_attrs %} data-application-type="COA"{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/forms.css' %}">
 <link rel="stylesheet" href="{% static 'css/file-upload.css' %}">
