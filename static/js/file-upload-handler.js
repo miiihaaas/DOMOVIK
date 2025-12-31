@@ -378,10 +378,14 @@ class FileUploadHandler {
   }
 
   /**
-   * Get CSRF token from cookie for Django CSRF protection
+   * Get CSRF token for Django CSRF protection
    *
-   * Reads the 'csrftoken' cookie set by Django's CSRF middleware
-   * and returns its value for inclusion in POST requests.
+   * PRIMARY: Reads from DOM meta tag (CSRF_COOKIE_HTTPONLY=True compatible)
+   * FALLBACK: Reads from 'csrftoken' cookie (backwards compatibility)
+   *
+   * Story 4-5 Security Fix: Django's CSRF_COOKIE_HTTPONLY=True blocks JavaScript
+   * access to csrftoken cookie. Templates now render token in meta tag:
+   * <meta name="csrf-token" content="{{ csrf_token }}">
    *
    * Security Note: This token MUST be included in all POST requests
    * to /upload/ and /delete/<id>/ to prevent
@@ -394,17 +398,32 @@ class FileUploadHandler {
    * formData.append('csrfmiddlewaretoken', csrfToken);
    */
   getCsrfToken() {
-    const name = 'csrftoken';
-    const cookies = document.cookie.split(';');
+    // FIRST: Try to read from DOM meta tag (CSRF_COOKIE_HTTPONLY=True compatible)
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag && metaTag.content) {
+      return metaTag.content;
+    }
 
-    for (let cookie of cookies) {
-      const [key, value] = cookie.trim().split('=');
-      if (key === name) {
-        return decodeURIComponent(value);
+    // FALLBACK: Try to read from cookie (for backwards compatibility)
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
       }
     }
 
-    return '';
+    // FINAL: Log warning if both methods failed
+    if (!cookieValue) {
+      console.warn('CSRF token not found in DOM meta tag or cookie. Ensure <meta name="csrf-token"> exists in template.');
+    }
+
+    return cookieValue;
   }
 
   /**

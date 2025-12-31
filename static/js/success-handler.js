@@ -288,12 +288,24 @@ function createConfettiPiece(container, colors, duration) {
 }
 
 /**
- * Get CSRF token from cookie
+ * Get CSRF token from DOM meta tag or cookie
+ * Django CSRF protection
+ *
+ * Story 4-5: Updated to read from DOM meta tag (primary) due to CSRF_COOKIE_HTTPONLY=True
+ * Falls back to cookie for backwards compatibility
+ *
+ * @returns {string} CSRF token or empty string if not found
  */
 function getCSRFToken() {
+    // FIRST: Try to read from DOM meta tag (CSRF_COOKIE_HTTPONLY=True compatible)
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag && metaTag.content) {
+        return metaTag.content;
+    }
+
+    // FALLBACK: Try to read from cookie (for backwards compatibility)
     const name = 'csrftoken';
     let cookieValue = null;
-
     if (document.cookie && document.cookie !== '') {
         const cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
@@ -303,6 +315,11 @@ function getCSRFToken() {
                 break;
             }
         }
+    }
+
+    // FINAL: Log warning if both methods failed
+    if (!cookieValue) {
+        console.warn('CSRF token not found in DOM meta tag or cookie. Ensure <meta name="csrf-token"> exists in template.');
     }
 
     return cookieValue || '';

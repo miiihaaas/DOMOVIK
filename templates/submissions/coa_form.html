@@ -39,103 +39,108 @@
   <form method="post" action="{% url 'submissions:coa_form' %}" class="coa-form" id="coa-form-section-i">
     {% csrf_token %}
 
-    <!-- Entity Type Switcher -->
-    <div class="entity-type-switcher">
-      <label class="switcher-label">Tip podnosioca:</label>
-      <div class="switcher-buttons">
-        <button type="button" class="switcher-btn active" data-entity="fizicko">
-          Fizičko lice
-        </button>
-        <button type="button" class="switcher-btn" data-entity="pravno">
-          Pravno lice
-        </button>
-      </div>
-      <input type="hidden" name="entity_type" id="id_entity_type" value="fizicko">
-    </div>
+    <!-- SECTION I: Opšti podaci -->
+    <div id="section-i" class="section-i">
+      <h2 class="section-title">Sekcija I: Opšti podaci</h2>
 
-    <!-- Fizičko lice fields -->
-    <div id="fizicko-fields" class="entity-fields active">
-      <h2 class="section-subtitle">Podaci o fizičkom licu</h2>
-
-      <div class="form-group">
-        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }} *</label>
-        <input type="text" name="ime" id="id_ime" {% if form.first_name.errors %}aria-describedby="id_ime_error"{% endif %} value="{{ form.first_name.value|default:'' }}">
-        {% if form.first_name.errors %}
-          <div id="id_ime_error" class="error-message" aria-live="polite">{{ form.first_name.errors.0 }}</div>
-        {% endif %}
+      <!-- Entity Type Switcher -->
+      <div class="entity-type-switcher">
+        <label class="switcher-label">Tip podnosioca:</label>
+        <div class="switcher-buttons">
+          <button type="button" class="switcher-btn active" data-entity="fizicko">
+            Fizičko lice
+          </button>
+          <button type="button" class="switcher-btn" data-entity="pravno">
+            Pravno lice
+          </button>
+        </div>
+        <input type="hidden" name="entity_type" id="id_entity_type" value="fizicko">
       </div>
 
-      <div class="form-group">
-        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }} *</label>
-        <input type="text" name="prezime" id="id_prezime" {% if form.last_name.errors %}aria-describedby="id_prezime_error"{% endif %} value="{{ form.last_name.value|default:'' }}">
-        {% if form.last_name.errors %}
-          <div id="id_prezime_error" class="error-message" aria-live="polite">{{ form.last_name.errors.0 }}</div>
-        {% endif %}
+      <!-- Fizičko lice fields -->
+      <div id="fizicko-fields" class="entity-fields active">
+        <h2 class="section-subtitle">Podaci o fizičkom licu</h2>
+
+        <div class="form-group">
+          <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }} *</label>
+          <input type="text" name="ime" id="id_ime" {% if form.first_name.errors %}aria-describedby="id_ime_error"{% endif %} value="{{ form.first_name.value|default:'' }}">
+          {% if form.first_name.errors %}
+            <div id="id_ime_error" class="error-message" aria-live="polite">{{ form.first_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }} *</label>
+          <input type="text" name="prezime" id="id_prezime" {% if form.last_name.errors %}aria-describedby="id_prezime_error"{% endif %} value="{{ form.last_name.value|default:'' }}">
+          {% if form.last_name.errors %}
+            <div id="id_prezime_error" class="error-message" aria-live="polite">{{ form.last_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.jmbg.id_for_label }}">{{ form.jmbg.label }} *</label>
+          <input type="text" name="jmbg" id="id_jmbg" maxlength="13" aria-invalid="false" aria-describedby="id_jmbg_error id_jmbg_help" value="{{ form.jmbg.value|default:'' }}">
+          <small id="id_jmbg_help" class="help-text">{{ form.jmbg.help_text }}</small>
+          <div id="id_jmbg_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+          {% if form.jmbg.errors %}
+            <div class="error-message" aria-live="polite">{{ form.jmbg.errors.0 }}</div>
+          {% endif %}
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="{{ form.jmbg.id_for_label }}">{{ form.jmbg.label }} *</label>
-        <input type="text" name="jmbg" id="id_jmbg" maxlength="13" aria-invalid="false" aria-describedby="id_jmbg_error id_jmbg_help" value="{{ form.jmbg.value|default:'' }}">
-        <small id="id_jmbg_help" class="help-text">{{ form.jmbg.help_text }}</small>
-        <div id="id_jmbg_error" class="validation-error" aria-live="polite" style="display: none;"></div>
-        {% if form.jmbg.errors %}
-          <div class="error-message" aria-live="polite">{{ form.jmbg.errors.0 }}</div>
-        {% endif %}
-      </div>
-    </div>
+      <!-- Pravno lice fields -->
+      <div id="pravno-fields" class="entity-fields">
+        <h2 class="section-subtitle">Podaci o pravnom licu</h2>
 
-    <!-- Pravno lice fields -->
-    <div id="pravno-fields" class="entity-fields">
-      <h2 class="section-subtitle">Podaci o pravnom licu</h2>
+        <div class="form-group">
+          <label for="{{ form.organization_name.id_for_label }}">{{ form.organization_name.label }} *</label>
+          <input type="text" name="naziv_organizacije" id="id_naziv_organizacije" {% if form.organization_name.errors %}aria-describedby="id_naziv_organizacije_error"{% endif %} value="{{ form.organization_name.value|default:'' }}">
+          {% if form.organization_name.errors %}
+            <div id="id_naziv_organizacije_error" class="error-message" aria-live="polite">{{ form.organization_name.errors.0 }}</div>
+          {% endif %}
+        </div>
 
-      <div class="form-group">
-        <label for="{{ form.organization_name.id_for_label }}">{{ form.organization_name.label }} *</label>
-        <input type="text" name="naziv_organizacije" id="id_naziv_organizacije" {% if form.organization_name.errors %}aria-describedby="id_naziv_organizacije_error"{% endif %} value="{{ form.organization_name.value|default:'' }}">
-        {% if form.organization_name.errors %}
-          <div id="id_naziv_organizacije_error" class="error-message" aria-live="polite">{{ form.organization_name.errors.0 }}</div>
-        {% endif %}
-      </div>
-
-      <div class="form-group">
-        <label for="{{ form.maticni_broj.id_for_label }}">{{ form.maticni_broj.label }} *</label>
-        <input type="text" name="maticni_broj" id="id_maticni_broj" maxlength="20" aria-invalid="false" aria-describedby="id_maticni_broj_error" value="{{ form.maticni_broj.value|default:'' }}">
-        <div id="id_maticni_broj_error" class="validation-error" aria-live="polite" style="display: none;"></div>
-        {% if form.maticni_broj.errors %}
-          <div class="error-message" aria-live="polite">{{ form.maticni_broj.errors.0 }}</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Common fields (always visible) -->
-    <div class="common-fields">
-      <h2 class="section-subtitle">Kontakt informacije</h2>
-
-      <div class="form-group">
-        <label for="{{ form.address.id_for_label }}">{{ form.address.label }} *</label>
-        <textarea name="adresa" id="id_adresa" rows="3" {% if form.address.errors %}aria-describedby="id_adresa_error"{% endif %}>{{ form.address.value|default:'' }}</textarea>
-        {% if form.address.errors %}
-          <div id="id_adresa_error" class="error-message" aria-live="polite">{{ form.address.errors.0 }}</div>
-        {% endif %}
+        <div class="form-group">
+          <label for="{{ form.maticni_broj.id_for_label }}">{{ form.maticni_broj.label }} *</label>
+          <input type="text" name="maticni_broj" id="id_maticni_broj" maxlength="20" aria-invalid="false" aria-describedby="id_maticni_broj_error" value="{{ form.maticni_broj.value|default:'' }}">
+          <div id="id_maticni_broj_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+          {% if form.maticni_broj.errors %}
+            <div class="error-message" aria-live="polite">{{ form.maticni_broj.errors.0 }}</div>
+          {% endif %}
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="{{ form.email.id_for_label }}">{{ form.email.label }} *</label>
-        <input type="email" name="email" id="id_email" aria-invalid="false" aria-describedby="id_email_error id_email_help" value="{{ form.email.value|default:'' }}">
-        <small id="id_email_help" class="help-text">{{ form.email.help_text }}</small>
-        <div id="id_email_error" class="validation-error" aria-live="polite" style="display: none;"></div>
-        {% if form.email.errors %}
-          <div class="error-message" aria-live="polite">{{ form.email.errors.0 }}</div>
-        {% endif %}
-      </div>
+      <!-- Common fields (always visible) -->
+      <div class="common-fields">
+        <h2 class="section-subtitle">Kontakt informacije</h2>
 
-      <div class="form-group">
-        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} *</label>
-        <input type="tel" name="telefon" id="id_telefon" aria-invalid="false" aria-describedby="id_telefon_error id_telefon_help" value="{{ form.phone.value|default:'' }}">
-        <small id="id_telefon_help" class="help-text">{{ form.phone.help_text }}</small>
-        <div id="id_telefon_error" class="validation-error" aria-live="polite" style="display: none;"></div>
-        {% if form.phone.errors %}
-          <div class="error-message" aria-live="polite">{{ form.phone.errors.0 }}</div>
-        {% endif %}
+        <div class="form-group">
+          <label for="{{ form.address.id_for_label }}">{{ form.address.label }} *</label>
+          <textarea name="adresa" id="id_adresa" rows="3" {% if form.address.errors %}aria-describedby="id_adresa_error"{% endif %}>{{ form.address.value|default:'' }}</textarea>
+          {% if form.address.errors %}
+            <div id="id_adresa_error" class="error-message" aria-live="polite">{{ form.address.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.email.id_for_label }}">{{ form.email.label }} *</label>
+          <input type="email" name="email" id="id_email" aria-invalid="false" aria-describedby="id_email_error id_email_help" value="{{ form.email.value|default:'' }}">
+          <small id="id_email_help" class="help-text">{{ form.email.help_text }}</small>
+          <div id="id_email_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+          {% if form.email.errors %}
+            <div class="error-message" aria-live="polite">{{ form.email.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} *</label>
+          <input type="tel" name="telefon" id="id_telefon" aria-invalid="false" aria-describedby="id_telefon_error id_telefon_help" value="{{ form.phone.value|default:'' }}">
+          <small id="id_telefon_help" class="help-text">{{ form.phone.help_text }}</small>
+          <div id="id_telefon_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+          {% if form.phone.errors %}
+            <div class="error-message" aria-live="polite">{{ form.phone.errors.0 }}</div>
+          {% endif %}
+        </div>
       </div>
     </div>
 

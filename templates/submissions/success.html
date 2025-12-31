@@ -3,6 +3,10 @@
 
 {% block title %}Prijava uspešno podnesena - DOMOVIK{% endblock %}
 
+{% block extra_meta %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/success.css' %}">
 {% endblock %}

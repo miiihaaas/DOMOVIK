@@ -99,20 +99,20 @@ function showSection(sectionNumber) {
   const perfStart = performance.now();
 
   // Section elements
-  const entitySwitcher = document.querySelector('.entity-type-switcher');
+  const sectionI = document.getElementById('section-i');
   const sectionII = document.getElementById('section-ii');
   const sectionIII = document.getElementById('section-iii');
 
   // Hide all sections first
-  if (entitySwitcher) entitySwitcher.style.display = 'none';
+  if (sectionI) sectionI.style.display = 'none';
   if (sectionII) sectionII.style.display = 'none';
   if (sectionIII) sectionIII.style.display = 'none';
 
   // Show requested section
   if (sectionNumber === 1) {
-    // Show Section I (entity switcher + fields visible)
-    if (entitySwitcher) {
-      entitySwitcher.style.display = 'block';
+    // Show Section I
+    if (sectionI) {
+      sectionI.style.display = 'block';
     }
     // entity-type-switcher.js will handle which entity fields to show
   } else if (sectionNumber === 2) {
@@ -495,6 +495,47 @@ function displayValidationSummary(errors) {
 }
 
 /**
+ * Update navigation button labels and visibility based on current section
+ * @param {number} sectionNumber - Current section number (1, 2, or 3)
+ */
+function updateNavigationButtons(sectionNumber) {
+  const btnNext = document.querySelector('.form-navigation .btn-primary');
+  const btnPrev = document.querySelector('.form-navigation .btn-secondary');
+
+  if (!btnNext || !btnPrev) return;
+
+  if (sectionNumber === 1) {
+    // Section I: Previous button becomes "Home"
+    btnPrev.innerHTML = '<span aria-hidden="true">🏠</span> POČETNA';
+    btnPrev.setAttribute('aria-label', 'Povratak na početnu stranu');
+    btnPrev.disabled = false;
+
+    // Next button is visible
+    btnNext.style.display = 'inline-block';
+    btnNext.textContent = 'SLEDEĆA SEKCIJA';
+    btnNext.disabled = false;
+  } else if (sectionNumber === 2) {
+    // Section II: Previous button is normal
+    btnPrev.textContent = 'PRETHODNA SEKCIJA';
+    btnPrev.setAttribute('aria-label', 'Vrati se na prethodnu sekciju');
+    btnPrev.disabled = false;
+
+    // Next button is visible
+    btnNext.style.display = 'inline-block';
+    btnNext.textContent = 'SLEDEĆA SEKCIJA';
+    btnNext.disabled = false;
+  } else if (sectionNumber === 3) {
+    // Section III: Previous button is normal
+    btnPrev.textContent = 'PRETHODNA SEKCIJA';
+    btnPrev.setAttribute('aria-label', 'Vrati se na prethodnu sekciju');
+    btnPrev.disabled = false;
+
+    // Next button is HIDDEN (last section)
+    btnNext.style.display = 'none';
+  }
+}
+
+/**
  * Initialize section navigation (Task 8.1-8.13)
  * Attaches event listeners to navigation buttons
  * CODE REVIEW FIX (HIGH #2): Use specific selectors to avoid conflicts with other buttons
@@ -514,6 +555,9 @@ function initializeSectionNavigation() {
 
   btnPrev.disabled = false;
   btnPrev.textContent = 'PRETHODNA SEKCIJA';
+
+  // Set initial button states for Section I
+  updateNavigationButtons(1);
 
   // "SLEDEĆA SEKCIJA" button handler (Story 2.7 - Enhanced)
   btnNext.addEventListener('click', function(e) {
@@ -544,6 +588,9 @@ function initializeSectionNavigation() {
         setTimeout(() => {
           focusFirstField(2);
         }, 200);
+
+        // Update navigation buttons
+        updateNavigationButtons(2);
       } else {
         // Validation failed - show errors
         displayValidationSummary(validationResult.errors);
@@ -574,6 +621,9 @@ function initializeSectionNavigation() {
         setTimeout(() => {
           focusFirstField(3);
         }, 200);
+
+        // Update navigation buttons
+        updateNavigationButtons(3);
       } else {
         // Validation failed - show errors
         displayValidationSummary(validationResult.errors);
@@ -602,6 +652,13 @@ function initializeSectionNavigation() {
   btnPrev.addEventListener('click', function(e) {
     e.preventDefault();
 
+    // Check if button is "Home" button (in Section I)
+    if (currentSection === 1) {
+      // Navigate to landing page
+      window.location.href = '/';
+      return;
+    }
+
     // No validation required for backward navigation
     if (currentSection === 2) {
       // Return to Section I
@@ -619,6 +676,9 @@ function initializeSectionNavigation() {
       setTimeout(() => {
         focusFirstField(1);
       }, 200);
+
+      // Update navigation buttons
+      updateNavigationButtons(1);
     } else if (currentSection === 3) {
       // Return to Section II
       // Save draft before navigation
@@ -635,9 +695,9 @@ function initializeSectionNavigation() {
       setTimeout(() => {
         focusFirstField(2);
       }, 200);
-    } else if (currentSection === 1) {
-      // Already at first section, do nothing
-      console.log('Already at first section');
+
+      // Update navigation buttons
+      updateNavigationButtons(2);
     }
   });
 
