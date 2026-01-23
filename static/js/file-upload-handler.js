@@ -289,6 +289,15 @@ class FileUploadHandler {
       category: this.category
     };
 
+    // BUGFIX: For single-file categories, remove any existing file in the same category
+    // before adding the new one. This prevents duplicate files when replacing uploads.
+    const singleFileCategories = ['BUDGET', 'OPIS_INICIJATIVE', 'PISMO_NAMERE'];
+    if (singleFileCategories.includes(this.category)) {
+      window.uploadedFilesRegistry = window.uploadedFilesRegistry.filter(
+        file => file.category !== this.category
+      );
+    }
+
     // Add to global registry (for draft integration)
     window.uploadedFilesRegistry.push(fileData);
 
@@ -527,19 +536,31 @@ class FileUploadHandler {
 }
 
 /**
- * Get all uploaded files from global registry
+ * Get uploaded files from global registry filtered by application type
  * Formats files for backend submission
  * @returns {Array} Array of file metadata objects
  */
 function getUploadedFiles() {
-  return (window.uploadedFilesRegistry || []).map(file => ({
-    file_type: file.category,
-    name: file.filename,
-    size: file.size,
-    file_id: file.file_id,
-    original_filename: file.filename,
-    stored_filename: file.filename
-  }));
+  // Determine application type from body data attribute
+  const applicationType = document.body.dataset.applicationType || 'COA';
+
+  // Define valid file categories for each application type
+  const cobCategories = ['OPIS_INICIJATIVE', 'PISMO_NAMERE'];
+  const coaCategories = ['BUDGET', 'BIOGRAPHY', 'SUPPORT_LETTER'];
+
+  // Filter files by current application type to prevent cross-form contamination
+  const validCategories = applicationType === 'COB' ? cobCategories : coaCategories;
+
+  return (window.uploadedFilesRegistry || [])
+    .filter(file => validCategories.includes(file.category))
+    .map(file => ({
+      file_type: file.category,
+      name: file.filename,
+      size: file.size,
+      file_id: file.file_id,
+      original_filename: file.filename,
+      stored_filename: file.filename
+    }));
 }
 
 // Expose globally for submission-handler.js

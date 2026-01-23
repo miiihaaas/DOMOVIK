@@ -443,7 +443,7 @@ class Epic1RegressionTests(TestCase):
         """Test that COA banner on landing page still links to /projekat/."""
         response = self.client.get('/')
         self.assertContains(response, 'href="/projekat/"')
-        self.assertContains(response, 'Prijava za Projekat (COA)')
+        self.assertContains(response, 'Prijava za Projekat')
 
     def test_projekat_route_accessible_after_models(self):
         """Test that /projekat/ route is still accessible after database models added."""
@@ -1101,3 +1101,388 @@ class AutoSaveDraftPerformanceTests(TestCase):
                            "Should not query Application table for draft data")
             self.assertNotIn('submissions_applicant', sql,
                            "Should not query Applicant table for draft data")
+
+
+# ============================================================================
+# Story 5.1: Form Enhancements - ID broj, Team Members, Registration Number
+# ============================================================================
+
+class IDBrojValidationTests(TestCase):
+    """
+    Story 5.1 - Task 1.7: Unit tests for ID broj validation.
+
+    Tests cover:
+    - Valid ID broj formats (ID123456, ID1234567)
+    - Invalid ID broj formats (missing ID prefix, wrong characters, wrong length)
+    - Case insensitivity for ID prefix
+    """
+
+    def test_valid_id_broj_6_digits(self):
+        """Test that ID123456 (ID + 6 digits) is accepted."""
+        from apps.submissions.validators import validate_id_broj
+        # Should not raise any exception
+        validate_id_broj('ID123456')
+
+    def test_valid_id_broj_7_digits(self):
+        """Test that ID1234567 (ID + 7 digits) is accepted."""
+        from apps.submissions.validators import validate_id_broj
+        # Should not raise any exception
+        validate_id_broj('ID1234567')
+
+    def test_valid_id_broj_lowercase(self):
+        """Test that lowercase 'id' prefix is accepted (case-insensitive)."""
+        from apps.submissions.validators import validate_id_broj
+        # Should not raise any exception
+        validate_id_broj('id123456')
+        validate_id_broj('Id1234567')
+
+    def test_invalid_id_broj_missing_prefix(self):
+        """Test that 123456 (without ID prefix) is rejected."""
+        from apps.submissions.validators import validate_id_broj
+        with self.assertRaises(ValidationError) as context:
+            validate_id_broj('123456')
+        self.assertIn('IDxxxxxx', str(context.exception))
+
+    def test_invalid_id_broj_letters_after_id(self):
+        """Test that IDABCDEF (letters instead of digits) is rejected."""
+        from apps.submissions.validators import validate_id_broj
+        with self.assertRaises(ValidationError) as context:
+            validate_id_broj('IDABCDEF')
+        self.assertIn('IDxxxxxx', str(context.exception))
+
+    def test_invalid_id_broj_too_short(self):
+        """Test that ID12345 (5 digits - too short) is rejected."""
+        from apps.submissions.validators import validate_id_broj
+        with self.assertRaises(ValidationError) as context:
+            validate_id_broj('ID12345')
+        self.assertIn('6-7 cifara', str(context.exception))
+
+    def test_invalid_id_broj_too_long(self):
+        """Test that ID12345678 (8 digits - too long) is rejected."""
+        from apps.submissions.validators import validate_id_broj
+        with self.assertRaises(ValidationError) as context:
+            validate_id_broj('ID12345678')
+        self.assertIn('6-7 cifara', str(context.exception))
+
+    def test_id_broj_empty_returns_none(self):
+        """Test that empty/None ID broj is allowed (field may be optional)."""
+        from apps.submissions.validators import validate_id_broj
+        # Should not raise any exception
+        validate_id_broj('')
+        validate_id_broj(None)
+
+
+class RegistracioniBrojValidationTests(TestCase):
+    """
+    Story 5.1 - Task 1: Unit tests for Registracioni broj validation.
+
+    Tests cover:
+    - Valid alphanumeric formats
+    - Max length validation (50 chars)
+    - Invalid characters
+    """
+
+    def test_valid_registracioni_broj_alphanumeric(self):
+        """Test that REG-2024-ABC is accepted."""
+        from apps.submissions.validators import validate_registracioni_broj
+        validate_registracioni_broj('REG-2024-ABC')
+
+    def test_valid_registracioni_broj_numeric_only(self):
+        """Test that 123456789 is accepted."""
+        from apps.submissions.validators import validate_registracioni_broj
+        validate_registracioni_broj('123456789')
+
+    def test_valid_registracioni_broj_mixed(self):
+        """Test that AB-12345 is accepted."""
+        from apps.submissions.validators import validate_registracioni_broj
+        validate_registracioni_broj('AB-12345')
+
+    def test_valid_registracioni_broj_with_spaces(self):
+        """Test that 'REG 2024 ABC' (with spaces) is accepted."""
+        from apps.submissions.validators import validate_registracioni_broj
+        validate_registracioni_broj('REG 2024 ABC')
+
+    def test_invalid_registracioni_broj_too_long(self):
+        """Test that string > 50 chars is rejected."""
+        from apps.submissions.validators import validate_registracioni_broj
+        long_string = 'A' * 51
+        with self.assertRaises(ValidationError) as context:
+            validate_registracioni_broj(long_string)
+        self.assertIn('50 karaktera', str(context.exception))
+
+    def test_invalid_registracioni_broj_special_chars(self):
+        """Test that special characters (except dash/underscore) are rejected."""
+        from apps.submissions.validators import validate_registracioni_broj
+        with self.assertRaises(ValidationError):
+            validate_registracioni_broj('REG@2024#ABC')
+
+    def test_registracioni_broj_empty_returns_none(self):
+        """Test that empty/None is allowed (field may be optional)."""
+        from apps.submissions.validators import validate_registracioni_broj
+        validate_registracioni_broj('')
+        validate_registracioni_broj(None)
+
+
+class COAFormSectionIValidationTests(TestCase):
+    """
+    Story 5.1 - Task 1: Form validation tests for ID broj and Registracioni broj.
+
+    Tests the COAFormSectionI form with new field validations.
+    """
+
+    def test_form_valid_fizicko_lice_with_id_broj(self):
+        """Test form accepts valid fizičko lice with ID broj."""
+        from apps.submissions.forms import COAFormSectionI
+        form_data = {
+            'entity_type': 'fizicko',
+            'first_name': 'Petar',
+            'last_name': 'Petrović',
+            'jmbg': 'ID123456',
+            'address': 'Glavna ulica 1, Beograd',
+            'email': 'petar@example.com',
+            'phone': '0641234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_form_valid_pravno_lice_with_registracioni_broj(self):
+        """Test form accepts valid pravno lice with Registracioni broj."""
+        from apps.submissions.forms import COAFormSectionI
+        form_data = {
+            'entity_type': 'pravno',
+            'organization_name': 'Test DOO',
+            'maticni_broj': 'REG-2024-ABC',
+            'address': 'Glavna ulica 1, Beograd',
+            'email': 'office@test.com',
+            'phone': '0641234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_form_invalid_id_broj_format(self):
+        """Test form rejects invalid ID broj format."""
+        from apps.submissions.forms import COAFormSectionI
+        form_data = {
+            'entity_type': 'fizicko',
+            'first_name': 'Petar',
+            'last_name': 'Petrović',
+            'jmbg': '123456',  # Missing ID prefix
+            'address': 'Glavna ulica 1, Beograd',
+            'email': 'petar@example.com',
+            'phone': '0641234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('jmbg', form.errors)
+
+    def test_form_normalizes_id_broj_to_uppercase(self):
+        """Test form normalizes ID broj to uppercase."""
+        from apps.submissions.forms import COAFormSectionI
+        form_data = {
+            'entity_type': 'fizicko',
+            'first_name': 'Petar',
+            'last_name': 'Petrović',
+            'jmbg': 'id123456',  # lowercase
+            'address': 'Glavna ulica 1, Beograd',
+            'email': 'petar@example.com',
+            'phone': '0641234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['jmbg'], 'ID123456')
+
+    def test_form_fizicko_lice_requires_id_broj(self):
+        """Test fizičko lice requires ID broj."""
+        from apps.submissions.forms import COAFormSectionI
+        form_data = {
+            'entity_type': 'fizicko',
+            'first_name': 'Petar',
+            'last_name': 'Petrović',
+            # jmbg missing
+            'address': 'Glavna ulica 1, Beograd',
+            'email': 'petar@example.com',
+            'phone': '0641234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('jmbg', form.errors)
+        self.assertIn('obavezan', str(form.errors['jmbg']))
+
+    def test_form_pravno_lice_requires_registracioni_broj(self):
+        """Test pravno lice requires Registracioni broj."""
+        from apps.submissions.forms import COAFormSectionI
+        form_data = {
+            'entity_type': 'pravno',
+            'organization_name': 'Test DOO',
+            # maticni_broj missing
+            'address': 'Glavna ulica 1, Beograd',
+            'email': 'office@test.com',
+            'phone': '0641234567',
+        }
+        form = COAFormSectionI(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('maticni_broj', form.errors)
+        self.assertIn('obavezan', str(form.errors['maticni_broj']))
+
+
+class ClanTimaModelTests(TestCase):
+    """
+    Story 5.1 - Task 2: Unit tests for ClanTima model.
+
+    Tests cover:
+    - Model creation
+    - ForeignKey relationship with Application
+    - Optional fields (all blank=True)
+    """
+
+    def setUp(self):
+        """Create test application for team member tests."""
+        from apps.submissions.models import Application
+        self.application = Application.objects.create(
+            reference_number='COA-2025-TEST',
+            application_type='COA',
+            status='submitted'
+        )
+
+    def test_create_clan_tima_all_fields(self):
+        """Test creating a team member with all fields."""
+        from apps.submissions.models import ClanTima
+        clan = ClanTima.objects.create(
+            application=self.application,
+            ime_prezime='Marko Marković',
+            email='marko@example.com',
+            telefon='0641234567'
+        )
+        self.assertEqual(clan.ime_prezime, 'Marko Marković')
+        self.assertEqual(clan.email, 'marko@example.com')
+        self.assertEqual(clan.telefon, '0641234567')
+        self.assertEqual(clan.application, self.application)
+
+    def test_create_clan_tima_empty_fields(self):
+        """Test creating a team member with empty optional fields."""
+        from apps.submissions.models import ClanTima
+        clan = ClanTima.objects.create(
+            application=self.application,
+            ime_prezime='',
+            email='',
+            telefon=''
+        )
+        self.assertEqual(clan.ime_prezime, '')
+        self.assertEqual(clan.email, '')
+        self.assertEqual(clan.telefon, '')
+
+    def test_clan_tima_str_with_name(self):
+        """Test __str__ method with name."""
+        from apps.submissions.models import ClanTima
+        clan = ClanTima.objects.create(
+            application=self.application,
+            ime_prezime='Petar Petrović'
+        )
+        self.assertIn('Petar Petrović', str(clan))
+
+    def test_clan_tima_str_without_name(self):
+        """Test __str__ method without name."""
+        from apps.submissions.models import ClanTima
+        clan = ClanTima.objects.create(
+            application=self.application,
+            ime_prezime=''
+        )
+        self.assertIn('Član tima', str(clan))
+
+    def test_clan_tima_cascade_delete(self):
+        """Test that team members are deleted when application is deleted."""
+        from apps.submissions.models import ClanTima
+        ClanTima.objects.create(
+            application=self.application,
+            ime_prezime='Test Member'
+        )
+        self.assertEqual(ClanTima.objects.count(), 1)
+        self.application.delete()
+        self.assertEqual(ClanTima.objects.count(), 0)
+
+    def test_multiple_clanovi_per_application(self):
+        """Test that an application can have multiple team members."""
+        from apps.submissions.models import ClanTima
+        ClanTima.objects.create(application=self.application, ime_prezime='Member 1')
+        ClanTima.objects.create(application=self.application, ime_prezime='Member 2')
+        ClanTima.objects.create(application=self.application, ime_prezime='Member 3')
+        self.assertEqual(self.application.clanovi_tima.count(), 3)
+
+
+class ClanTimaFormSetTests(TestCase):
+    """
+    Story 5.1 - Task 2: Unit tests for ClanTimaFormSet.
+
+    Tests cover:
+    - Formset creation
+    - Empty forms validation
+    - Adding new team members
+    """
+
+    def setUp(self):
+        """Create test application for formset tests."""
+        from apps.submissions.models import Application
+        self.application = Application.objects.create(
+            reference_number='COA-2025-FORMSET',
+            application_type='COA',
+            status='submitted'
+        )
+
+    def test_formset_creation(self):
+        """Test ClanTimaFormSet can be instantiated."""
+        from apps.submissions.forms import ClanTimaFormSet
+        formset = ClanTimaFormSet(instance=self.application)
+        self.assertIsNotNone(formset)
+        # Should have at least 1 form (extra=1)
+        self.assertGreaterEqual(len(formset.forms), 1)
+
+    def test_formset_valid_empty_data(self):
+        """Test formset is valid with empty optional fields."""
+        from apps.submissions.forms import ClanTimaFormSet
+        data = {
+            'clanovi_tima-TOTAL_FORMS': '1',
+            'clanovi_tima-INITIAL_FORMS': '0',
+            'clanovi_tima-MIN_NUM_FORMS': '1',
+            'clanovi_tima-MAX_NUM_FORMS': '10',
+            'clanovi_tima-0-ime_prezime': '',
+            'clanovi_tima-0-email': '',
+            'clanovi_tima-0-telefon': '',
+        }
+        formset = ClanTimaFormSet(data=data, instance=self.application)
+        self.assertTrue(formset.is_valid(), formset.errors)
+
+    def test_formset_valid_with_data(self):
+        """Test formset is valid with filled data."""
+        from apps.submissions.forms import ClanTimaFormSet
+        data = {
+            'clanovi_tima-TOTAL_FORMS': '1',
+            'clanovi_tima-INITIAL_FORMS': '0',
+            'clanovi_tima-MIN_NUM_FORMS': '1',
+            'clanovi_tima-MAX_NUM_FORMS': '10',
+            'clanovi_tima-0-ime_prezime': 'Marko Marković',
+            'clanovi_tima-0-email': 'marko@example.com',
+            'clanovi_tima-0-telefon': '0641234567',
+        }
+        formset = ClanTimaFormSet(data=data, instance=self.application)
+        self.assertTrue(formset.is_valid(), formset.errors)
+
+    def test_formset_save(self):
+        """Test formset saves team members to database."""
+        from apps.submissions.forms import ClanTimaFormSet
+        from apps.submissions.models import ClanTima
+        data = {
+            'clanovi_tima-TOTAL_FORMS': '2',
+            'clanovi_tima-INITIAL_FORMS': '0',
+            'clanovi_tima-MIN_NUM_FORMS': '1',
+            'clanovi_tima-MAX_NUM_FORMS': '10',
+            'clanovi_tima-0-ime_prezime': 'Member 1',
+            'clanovi_tima-0-email': 'member1@test.com',
+            'clanovi_tima-0-telefon': '',
+            'clanovi_tima-1-ime_prezime': 'Member 2',
+            'clanovi_tima-1-email': '',
+            'clanovi_tima-1-telefon': '0651234567',
+        }
+        formset = ClanTimaFormSet(data=data, instance=self.application)
+        self.assertTrue(formset.is_valid(), formset.errors)
+        formset.save()
+        self.assertEqual(ClanTima.objects.filter(application=self.application).count(), 2)

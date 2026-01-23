@@ -226,7 +226,7 @@ class ProcessSubmissionTestCase(TestCase):
                 'address': 'Kneza Miloša 10, Beograd',
                 'email': 'marko@example.com',
                 'phone': '+381611234567',
-                'jmbg': '0101990123456'
+                'jmbg': 'ID1234567'  # Story 5.1: ID broj format (ID + 7 digits)
             },
             'project': {
                 'title': 'Test Projekat',
@@ -293,7 +293,7 @@ class ProcessSubmissionTestCase(TestCase):
                 'address': 'Adresa 1',
                 'email': 'org@example.com',
                 'phone': '+381111234567',
-                'maticni_broj': '12345678'
+                'maticni_broj': 'REG-123456'  # Story 5.1: Changed to registracioni broj format
             },
             'project': {
                 'title': 'Projekat',
@@ -386,7 +386,7 @@ class ProcessSubmissionTestCase(TestCase):
                 'address': 'Kralja Petra 5, Niš',
                 'email': 'djordje@example.com',
                 'phone': '+381651234567',
-                'jmbg': '0202985654321'
+                'jmbg': 'ID6543210'  # Story 5.1: ID broj format (ID + 7 digits)
             },
             'project': {
                 'title': 'Побољшање инфраструктуре',

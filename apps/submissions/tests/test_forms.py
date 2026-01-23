@@ -18,6 +18,7 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
+            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
             'adresa': 'Beograd, Kneza Miloša 10',
             'email': 'marko@example.com',
             'telefon': '0651234568',  # 10 digits total (8 digits after 6)
@@ -29,6 +30,7 @@ class COBApplicantFormTests(TestCase):
         form = COBApplicantForm({
             'entity_type': 'pravno',
             'naziv_organizacije': 'Udruženje građana Domovik',
+            'registracioni_broj': 'REG-2024-ABC',  # Story 5.1: Required for pravno lice
             'adresa': 'Novi Sad, Zmaj Jovina 5',
             'email': 'info@domovik.rs',
             'telefon': '+381651234568',  # ISSUE 2 FIX: 8 digits after 6 (was 7)
@@ -105,6 +107,7 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
+            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
             'adresa': 'Beograd',
             'email': 'marko@example.com',
             'telefon': '0651234568',  # 10 digits
@@ -118,6 +121,7 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
+            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
             'adresa': 'Beograd',
             'email': 'marko@example.com',
             'telefon': '065123456',  # 9 digits
@@ -131,6 +135,7 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Đorđe',
             'prezime': 'Đurić',
+            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
             'adresa': 'Niš, Šumadijska 25',
             'email': 'djordje@example.com',
             'telefon': '0651234568',
@@ -138,14 +143,24 @@ class COBApplicantFormTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_no_jmbg_field(self):
-        """Test COB form does NOT have JMBG field (simplification)."""
+        """Test COB form does NOT have JMBG field (uses id_broj instead - Story 5.1)."""
         form = COBApplicantForm()
         self.assertNotIn('jmbg', form.fields)
 
     def test_no_maticni_broj_field(self):
-        """Test COB form does NOT have matični broj field (simplification)."""
+        """Test COB form does NOT have matični broj field (uses registracioni_broj instead - Story 5.1)."""
         form = COBApplicantForm()
         self.assertNotIn('maticni_broj', form.fields)
+
+    def test_has_id_broj_field(self):
+        """Test COB form HAS id_broj field (Story 5.1)."""
+        form = COBApplicantForm()
+        self.assertIn('id_broj', form.fields)
+
+    def test_has_registracioni_broj_field(self):
+        """Test COB form HAS registracioni_broj field (Story 5.1)."""
+        form = COBApplicantForm()
+        self.assertIn('registracioni_broj', form.fields)
 
     def test_max_length_ime(self):
         """Test ime max length validation (100 chars)."""
@@ -268,6 +283,7 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
+            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
             'adresa': 'Beograd',
             'email': 'marko@example.com',
             'telefon': '+381651234568',  # 10 digits
@@ -281,6 +297,7 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
+            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
             'adresa': 'Beograd',
             'email': 'marko@example.com',
             'telefon': '+38165123456',  # 9 digits

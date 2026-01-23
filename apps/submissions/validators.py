@@ -327,6 +327,71 @@ def validate_phone(phone):
         raise ValidationError('Molimo unesite validan broj telefona (npr. +381XXXXXXXXX ili 06XXXXXXXX).')
 
 
+def validate_id_broj(value):
+    """
+    Validate ID broj (Broj lične karte / ID broj) format.
+
+    Story 5.1: Form Enhancements - ID broj validation
+
+    Format: IDxxxxxxx (prefix "ID" + exactly 7 digits)
+    - Must start with "ID" (case-insensitive)
+    - Followed by exactly 7 digits
+
+    Valid examples: ID1234567
+    Invalid examples: 123456, IDABCDEF, ID12345, ID123456
+
+    Args:
+        value (str): ID broj to validate
+
+    Raises:
+        ValidationError: If ID broj format is invalid
+    """
+    if not value:
+        return  # ID broj may be optional in some cases
+
+    # Regex: ID followed by exactly 7 digits (case-insensitive for ID prefix)
+    if not re.match(r'^ID\d{7}$', value, re.IGNORECASE):
+        raise ValidationError(
+            'Format mora biti IDxxxxxxx (ID + 7 cifara). '
+            'Primer: ID1234567'
+        )
+
+
+def validate_registracioni_broj(value):
+    """
+    Validate Registracioni broj (Registration Number) format.
+
+    Story 5.1: Form Enhancements - Registracioni broj validation
+
+    Format: Open alphanumeric format
+    - Max 50 characters
+    - Allows letters, numbers, dashes, spaces
+
+    Valid examples: REG-2024-ABC, 123456789, AB-12345
+    Invalid: Empty string (if required)
+
+    Args:
+        value (str): Registracioni broj to validate
+
+    Raises:
+        ValidationError: If format is invalid
+    """
+    if not value:
+        return  # May be optional in some cases
+
+    # Max 50 characters
+    if len(value) > 50:
+        raise ValidationError(
+            'Registracioni broj ne može biti duži od 50 karaktera.'
+        )
+
+    # Allow alphanumeric, spaces, dashes, underscores
+    if not re.match(r'^[a-zA-Z0-9\s\-_]+$', value):
+        raise ValidationError(
+            'Registracioni broj može sadržati samo slova, brojeve, razmake i crtice.'
+        )
+
+
 def validate_jmbg(jmbg):
     """
     Validate Serbian JMBG (Unique Master Citizen Number).
@@ -394,4 +459,6 @@ __all__ = [
     'validate_phone',
     'validate_jmbg',
     'validate_maticni_broj',
+    'validate_id_broj',
+    'validate_registracioni_broj',
 ]

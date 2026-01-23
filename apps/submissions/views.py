@@ -25,8 +25,11 @@ from django.utils import timezone
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django_ratelimit.decorators import ratelimit
-from apps.submissions.forms import COAFormSectionI, FileUploadForm, COBApplicantForm, COBInitiativeDataForm, COBSectionIIIForm, validate_cob_file_metadata
-from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata, FileMetadata
+from apps.submissions.forms import (
+    COAFormSectionI, FileUploadForm, COBApplicantForm, COBInitiativeDataForm,
+    COBSectionIIIForm, validate_cob_file_metadata, ClanTimaFormSet
+)
+from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata, FileMetadata, ClanTima
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
 from apps.submissions.tasks import send_confirmation_email, send_admin_notification
@@ -52,10 +55,14 @@ class ProjectApplicationView(TemplateView):
     template_name = 'submissions/coa_form.html'
 
     def get_context_data(self, **kwargs):
-        """Add COAFormSectionI form to context"""
+        """Add COAFormSectionI form and ClanTimaFormSet to context"""
         context = super().get_context_data(**kwargs)
         context['form'] = COAFormSectionI()
         context['current_section'] = 1  # Section I
+        # Story 5.1: Add ClanTimaFormSet for team members (empty formset for GET)
+        # Note: ClanTimaFormSet requires an Application instance, but for GET request
+        # we create an empty formset without instance (will be handled via JavaScript)
+        context['team_members_formset'] = None  # Handled dynamically via JS
         return context
 
 
@@ -89,7 +96,7 @@ def cob_form(request):
     context = {
         'application_type': 'COB',  # Critical for draft-manager.js
         'form': form,  # NEW: Pass form to template (Story 3.2)
-        'form_title': 'Prijava za Inicijativu (COB)',
+        'form_title': 'Prijava za Inicijativu',
         'sections': [
             {'number': 1, 'title': 'Opšti podaci'},
             {'number': 2, 'title': 'Podaci o inicijativi'},
@@ -423,6 +430,18 @@ def submit_application(request):
             )
             uploaded_files.update(application=application_obj)
 
+            # Story 5.1: Save team members (Ostali članovi tima)
+            team_members_data = submission_data.get('team_members', [])
+            for member in team_members_data:
+                # Only save if at least one field has data
+                if member.get('ime_prezime') or member.get('email') or member.get('telefon'):
+                    ClanTima.objects.create(
+                        application=application_obj,
+                        ime_prezime=member.get('ime_prezime', ''),
+                        email=member.get('email', ''),
+                        telefon=member.get('telefon', '')
+                    )
+
             # Trigger async email tasks (Story 2.14 + Story 3.6)
             # SECURITY: Don't log email addresses (GDPR compliance)
             submission_logger.info(
@@ -698,7 +717,8 @@ def submit_cob(request):
                 submitted_at=timezone.now()
             )
 
-            # 3. Create Applicant record (NO JMBG/matični for COB)
+            # 3. Create Applicant record
+            # Story 5.1: Added ID broj (jmbg field) and Registracioni broj (maticni_broj field)
             applicant = Applicant.objects.create(
                 application=application,
                 entity_type=applicant_data.get('entity_type'),
@@ -708,7 +728,10 @@ def submit_cob(request):
                 address=applicant_data.get('address'),
                 email=applicant_data.get('email'),
                 phone=applicant_data.get('phone'),
-                # NO JMBG, NO matični_broj for COB
+                # Story 5.1: ID broj stored in jmbg field (format: IDxxxxxx)
+                jmbg=applicant_data.get('id_broj', ''),
+                # Story 5.1: Registracioni broj stored in maticni_broj field (alphanumeric)
+                maticni_broj=applicant_data.get('registracioni_broj', ''),
             )
 
             # 4. Create InitiativeData record (COB-specific, NO budžet)
@@ -731,6 +754,18 @@ def submit_cob(request):
                     stored_filename=file_info.get('stored_name', file_info.get('stored_filename', file_info.get('name', ''))),
                     file_size=file_info.get('size', file_info.get('file_size', 0))
                 )
+
+            # Story 5.1: Save team members (Ostali članovi tima)
+            team_members_data = data.get('team_members', [])
+            for member in team_members_data:
+                # Only save if at least one field has data
+                if member.get('ime_prezime') or member.get('email') or member.get('telefon'):
+                    ClanTima.objects.create(
+                        application=application,
+                        ime_prezime=member.get('ime_prezime', ''),
+                        email=member.get('email', ''),
+                        telefon=member.get('telefon', '')
+                    )
 
             # 5. Link uploaded files from session to application
             session_key = request.session.session_key

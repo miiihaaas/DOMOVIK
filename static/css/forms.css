@@ -1233,3 +1233,181 @@
     height: 18px;
   }
 }
+
+/* ==========================================================================
+   Team Members Section - Story 5.1
+   ========================================================================== */
+
+.team-members-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: var(--neutral-warm-gray);
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.team-members-section h4 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+/* Team Members Container */
+#team-members-container {
+  margin-bottom: 0.75rem;
+}
+
+/* Team Member Row - Horizontal Flexbox Layout */
+.team-member-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  background-color: #ffffff;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s ease;
+}
+
+.team-member-row:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.team-member-row:last-of-type {
+  margin-bottom: 0.75rem;
+}
+
+/* Team Member Form Groups - Flex Children */
+.team-member-row .form-group {
+  flex: 1;
+  min-width: 150px;
+  margin-bottom: 0;
+}
+
+/* Actions column (delete button) - fixed width */
+.team-member-row .team-member-actions {
+  flex: 0 0 auto;
+  min-width: auto;
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Team Member Labels - Consistent with other form elements */
+.team-member-row label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.375rem;
+}
+
+/* Team Member Inputs - Match other form inputs */
+.team-member-row input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.team-member-row input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.team-member-row input::placeholder {
+  color: #9ca3af;
+}
+
+/* Delete Button */
+.delete-team-member {
+  min-height: 38px;
+  padding: 0.375rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.delete-team-member:not(.disabled):hover {
+  background-color: var(--error-red);
+  border-color: var(--error-red);
+  color: #ffffff;
+}
+
+.delete-team-member.disabled,
+.delete-team-member:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+/* Add Team Member Button */
+#add-team-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--success-green);
+  background-color: transparent;
+  border: 1px dashed var(--success-green);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#add-team-member:hover {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-style: solid;
+}
+
+#add-team-member:focus {
+  outline: 2px solid var(--success-green);
+  outline-offset: 2px;
+}
+
+/* Mobile Responsive - Team Members */
+@media (max-width: 768px) {
+  .team-member-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .team-member-row .form-group {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .team-member-row .team-member-actions {
+    flex: 1 1 100%;
+    margin-top: 0.5rem;
+  }
+
+  .delete-team-member {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+
+  #add-team-member {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+  }
+}

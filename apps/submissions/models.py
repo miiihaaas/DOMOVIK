@@ -172,12 +172,15 @@ class Applicant(models.Model):
         verbose_name='Prezime'
     )
 
+    # Story 5.1: Renamed from JMBG to "Broj lične karte / ID broj"
+    # Format: IDxxxxxx (ID + 6-7 digits)
+    # Field name kept as 'jmbg' for backward compatibility
     jmbg = models.CharField(
-        max_length=13,
+        max_length=9,  # ID + 7 digits max
         blank=True,
         null=True,
-        verbose_name='JMBG',
-        help_text='13 cifara'
+        verbose_name='Broj lične karte / ID broj',
+        help_text='Format: IDxxxxxx (npr. ID123456)'
     )
 
     # Pravno lice fields
@@ -187,12 +190,15 @@ class Applicant(models.Model):
         verbose_name='Naziv Organizacije'
     )
 
+    # Story 5.1: Renamed from "Matični broj" to "Registracioni broj"
+    # Format: Open alphanumeric (max 50 chars)
+    # Field name kept as 'maticni_broj' for backward compatibility
     maticni_broj = models.CharField(
-        max_length=8,
+        max_length=50,  # Increased from 8 to 50 for alphanumeric format
         blank=True,
         null=True,
-        verbose_name='Matični Broj',
-        help_text='8 cifara'
+        verbose_name='Registracioni broj',
+        help_text='Alfanumerički format (npr. REG-2024-ABC)'
     )
 
     # Common fields
@@ -708,3 +714,61 @@ class AdminLog(models.Model):
         if self.application:
             return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.username} - {self.action} - {self.application.reference_number}"
         return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {self.user.username} - {self.action}"
+
+
+class ClanTima(models.Model):
+    """
+    Team member model for COA/COB applications.
+
+    Story 5.1: Form Enhancements - Team Members
+
+    Stores additional team members for an application.
+    Each application can have multiple team members (minimum 1 row displayed).
+    All fields are optional (blank=True) per requirements.
+
+    Fields:
+        application: ForeignKey to Application (one application can have multiple team members)
+        ime_prezime: Full name (max 100 chars, optional)
+        email: Email address (optional)
+        telefon: Phone number (max 30 chars, optional)
+    """
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='clanovi_tima',
+        verbose_name='Prijava',
+        help_text='Application this team member belongs to'
+    )
+
+    ime_prezime = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='Ime i prezime',
+        help_text='Puno ime člana tima'
+    )
+
+    email = models.EmailField(
+        blank=True,
+        verbose_name='Email',
+        help_text='Email adresa člana tima'
+    )
+
+    telefon = models.CharField(
+        max_length=30,
+        blank=True,
+        verbose_name='Telefon',
+        help_text='Broj telefona člana tima'
+    )
+
+    class Meta:
+        db_table = 'submissions_clan_tima'
+        verbose_name = 'Član tima'
+        verbose_name_plural = 'Članovi tima'
+        ordering = ['id']
+
+    def __str__(self):
+        """Return string representation of team member."""
+        if self.ime_prezime:
+            return f"{self.ime_prezime} ({self.application.reference_number})"
+        return f"Član tima #{self.id} ({self.application.reference_number})"

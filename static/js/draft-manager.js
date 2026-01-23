@@ -242,14 +242,20 @@ function collectFormData() {
     fizicko: {
       ime: document.getElementById('id_ime')?.value || '',
       prezime: document.getElementById('id_prezime')?.value || '',
-      // COA has JMBG, COB does NOT (Story 3.1 simplification)
-      jmbg: document.getElementById('id_jmbg')?.value || ''
+      // COA uses id_jmbg, COB uses id_id_broj (Story 5.1 - both now have ID broj)
+      jmbg: document.getElementById('id_jmbg')?.value || '',
+      id_broj: document.getElementById('id_id_broj')?.value || ''
     },
     pravno: {
       naziv_organizacije: document.getElementById('id_naziv_organizacije')?.value || '',
-      // COA has matični_broj, COB does NOT (Story 3.1 simplification)
-      maticni_broj: document.getElementById('id_maticni_broj')?.value || ''
+      // COA uses id_maticni_broj, COB uses id_registracioni_broj (Story 5.1)
+      maticni_broj: document.getElementById('id_maticni_broj')?.value || '',
+      registracioni_broj: document.getElementById('id_registracioni_broj')?.value || ''
     },
+    // Story 5.1: Team members data (both COA and COB)
+    team_members: (typeof TeamMembersManager !== 'undefined' && TeamMembersManager.getTeamMembersData)
+      ? TeamMembersManager.getTeamMembersData()
+      : [],
     common: {
       adresa: document.getElementById('id_adresa')?.value || '',
       email: document.getElementById('id_email')?.value || '',
@@ -528,12 +534,23 @@ function loadDraft() {
       restoreFieldValue('id_ime', draftData.fizicko.ime);
       restoreFieldValue('id_prezime', draftData.fizicko.prezime);
       restoreFieldValue('id_jmbg', draftData.fizicko.jmbg);
+      // Story 5.1: COB uses id_id_broj
+      restoreFieldValue('id_id_broj', draftData.fizicko.id_broj);
     }
 
     // Restore pravno lice fields
     if (draftData.pravno) {
       restoreFieldValue('id_naziv_organizacije', draftData.pravno.naziv_organizacije);
       restoreFieldValue('id_maticni_broj', draftData.pravno.maticni_broj);
+      // Story 5.1: COB uses id_registracioni_broj
+      restoreFieldValue('id_registracioni_broj', draftData.pravno.registracioni_broj);
+    }
+
+    // Story 5.1: Restore team members data
+    if (draftData.team_members && draftData.team_members.length > 0) {
+      if (typeof TeamMembersManager !== 'undefined' && TeamMembersManager.loadFromData) {
+        TeamMembersManager.loadFromData(draftData.team_members);
+      }
     }
 
     // Restore common fields
@@ -758,7 +775,8 @@ function triggerCharacterCountersAfterDraftLoad() {
  * IMPORTANT: Only validates VISIBLE fields (Task 2.6: Don't validate hidden fields)
  */
 function triggerValidationAfterDraftLoad() {
-  const fieldsToValidate = ['id_email', 'id_telefon', 'id_jmbg', 'id_maticni_broj'];
+  // Story 5.1: Added id_id_broj and id_registracioni_broj for COB
+  const fieldsToValidate = ['id_email', 'id_telefon', 'id_jmbg', 'id_maticni_broj', 'id_id_broj', 'id_registracioni_broj'];
 
   fieldsToValidate.forEach(fieldId => {
     const field = document.getElementById(fieldId);

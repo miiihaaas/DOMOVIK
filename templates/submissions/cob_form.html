@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Prijava za Inicijativu (COB) - DOMOVIK{% endblock %}
+{% block title %}Prijava za Inicijativu - DOMOVIK{% endblock %}
 
 {% block meta_description %}Podnesi brzu prijavu za inicijativu kroz DOMOVIK platformu. Bez potrebe za detaljnim budžetom ili velikim timom.{% endblock %}
 
@@ -58,7 +58,7 @@
         <input type="hidden" name="entity_type" id="id_entity_type" value="fizicko">
       </div>
 
-      <!-- Fizičko lice fields (NO JMBG - COB simplification) -->
+      <!-- Fizičko lice fields -->
       <div id="fizicko-fields" class="entity-fields active">
         <h2 class="section-subtitle">Podaci o fizičkom licu</h2>
 
@@ -72,10 +72,30 @@
           <input type="text" name="prezime" id="id_prezime" autocomplete="family-name" required>
         </div>
 
-        <!-- NO JMBG FIELD - COB simplification -->
+        <!-- Story 5.1: Added ID broj field (was removed in COB simplification, now required) -->
+        <div class="form-group">
+          <label for="id_id_broj">Broj lične karte / ID broj *</label>
+          <input type="text" name="id_broj" id="id_id_broj" maxlength="9" placeholder="ID123456" autocomplete="off" required>
+          <small class="help-text">Format: IDxxxxxx (npr. ID123456)</small>
+          <div id="id_id_broj_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+        </div>
+
+        <!-- Story 5.1: Ostali članovi tima (Team Members) -->
+        <div class="team-members-section">
+          <h4>Ostali članovi tima</h4>
+          <p class="help-text small mb-3">Opciono: Dodajte ostale članove tima koji učestvuju u inicijativi.</p>
+
+          <div id="team-members-container">
+            <!-- Initial empty row will be added by JavaScript -->
+          </div>
+
+          <button type="button" id="add-team-member" class="btn-add-member">
+            <span>+</span> Dodaj člana tima
+          </button>
+        </div>
       </div>
 
-      <!-- Pravno lice fields (NO Matični broj - COB simplification) -->
+      <!-- Pravno lice fields -->
       <div id="pravno-fields" class="entity-fields">
         <h2 class="section-subtitle">Podaci o pravnom licu</h2>
 
@@ -84,7 +104,13 @@
           <input type="text" name="naziv_organizacije" id="id_naziv_organizacije" autocomplete="organization">
         </div>
 
-        <!-- NO MATIČNI BROJ FIELD - COB simplification -->
+        <!-- Story 5.1: Added Registracioni broj field (was removed in COB simplification, now required) -->
+        <div class="form-group">
+          <label for="id_registracioni_broj">Registracioni broj *</label>
+          <input type="text" name="registracioni_broj" id="id_registracioni_broj" maxlength="50" placeholder="REG-2024-ABC" autocomplete="off" required>
+          <small class="help-text">Alfanumerički format (npr. REG-2024-ABC)</small>
+          <div id="id_registracioni_broj_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+        </div>
       </div>
 
       <!-- Common fields (always visible) -->
@@ -313,6 +339,7 @@
 <script src="{% static 'js/draft-manager.js' %}"></script>
 <script src="{% static 'js/real-time-validator.js' %}"></script>
 <script src="{% static 'js/entity-type-switcher.js' %}"></script>
+<script src="{% static 'js/team-members.js' %}"></script>
 <script src="{% static 'js/character-counter.js' %}"></script>
 <script src="{% static 'js/cob-section-navigation.js' %}"></script>
 <script src="{% static 'js/file-upload-handler.js' %}"></script>

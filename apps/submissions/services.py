@@ -22,8 +22,8 @@ from apps.submissions.models import (
 from apps.submissions.validators import (
     validate_email,
     validate_phone,
-    validate_jmbg,
-    validate_maticni_broj
+    validate_id_broj,
+    validate_registracioni_broj
 )
 from apps.submissions.constants import ApplicationType, ApplicationStatus, EntityType
 import logging
@@ -180,13 +180,13 @@ def process_submission(submission_data):
         validate_email(applicant_data.get('email'))
         validate_phone(applicant_data.get('phone'))
 
-        # Validate JMBG for fizicko lice
+        # Story 5.1: Validate ID broj for fizicko lice (replaces JMBG validation)
         if applicant_data.get('entity_type') == EntityType.FIZICKO:
-            validate_jmbg(applicant_data.get('jmbg'))
+            validate_id_broj(applicant_data.get('jmbg'))  # Field name kept for backward compatibility
 
-        # Validate maticni_broj for pravno lice
+        # Story 5.1: Validate registracioni_broj for pravno lice (replaces maticni_broj validation)
         if applicant_data.get('entity_type') == EntityType.PRAVNO:
-            validate_maticni_broj(applicant_data.get('maticni_broj'))
+            validate_registracioni_broj(applicant_data.get('maticni_broj'))  # Field name kept for backward compatibility
 
         # Step 1: Generate reference number (thread-safe, sequential)
         reference_number = ReferenceNumberService.generate_reference_number(application_type)
