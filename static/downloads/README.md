@@ -8,7 +8,7 @@
 
 **Struktura tabele:**
 
-| Red | Kategorija Troškova | Opis | Jedinična Cena (RSD) | Količina | Ukupno (RSD) |
+| Red | Kategorija Troškova | Opis | Jedinična Cena (EUR) | Količina | Ukupno (EUR) |
 |-----|---------------------|------|----------------------|----------|--------------|
 | 1   | **Header**          |      |                      |          |              |
 | 2   | Plate i naknade     | (primer) | (korisnik unosi) | (korisnik unosi) | =C2*D2 |

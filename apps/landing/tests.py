@@ -67,7 +67,7 @@ class LandingPageViewTests(TestCase):
     def test_landing_page_contains_coa_banner(self):
         """Test AC4: COA (Projekat) banner exists with correct link"""
         response = self.client.get(self.url)
-        self.assertContains(response, 'Prijava za Projekat (COA)')
+        self.assertContains(response, 'Prijava za Projekat')
         self.assertContains(response, 'Detaljni projekat sa budžetom, timom, i kompletnom dokumentacijom')
         self.assertContains(response, 'Započni prijavu')
         self.assertContains(response, 'href="/projekat/"')
@@ -75,7 +75,7 @@ class LandingPageViewTests(TestCase):
     def test_landing_page_contains_cob_banner(self):
         """Test AC4: COB (Inicijativa) banner exists with correct link"""
         response = self.client.get(self.url)
-        self.assertContains(response, 'Prijava za Inicijativu (COB)')
+        self.assertContains(response, 'Prijava za Inicijativu')
         self.assertContains(response, 'Brza prijava za inicijativu')
         self.assertContains(response, 'Započni prijavu')
         self.assertContains(response, 'href="/inicijativa/"')
@@ -318,9 +318,9 @@ class ExcelTemplateDownloadTests(TestCase):
         expected_headers = [
             'Kategorija Troškova',
             'Opis',
-            'Jedinična Cena (RSD)',
+            'Jedinična Cena (EUR)',
             'Količina',
-            'Ukupno (RSD)'
+            'Ukupno (EUR)'
         ]
 
         actual_headers = [
@@ -453,13 +453,13 @@ class ApplicationTypeSelectionTests(TestCase):
     def test_landing_page_contains_coa_banner(self):
         """Test AC2: Landing page contains COA banner with description"""
         response = self.client.get(reverse('landing_home'))
-        self.assertContains(response, 'Prijava za Projekat (COA)')
+        self.assertContains(response, 'Prijava za Projekat')
         self.assertContains(response, 'href="/projekat/"')
 
     def test_landing_page_contains_cob_banner(self):
         """Test AC2: Landing page contains COB banner with description"""
         response = self.client.get(reverse('landing_home'))
-        self.assertContains(response, 'Prijava za Inicijativu (COB)')
+        self.assertContains(response, 'Prijava za Inicijativu')
         self.assertContains(response, 'href="/inicijativa/"')
 
     def test_banners_use_correct_css_classes(self):

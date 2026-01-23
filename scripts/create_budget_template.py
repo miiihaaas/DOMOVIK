@@ -31,7 +31,7 @@ def create_budget_template():
     header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     # Define headers
-    headers = ["Kategorija Troškova", "Opis", "Jedinična Cena (RSD)", "Količina", "Ukupno (RSD)"]
+    headers = ["Kategorija Troškova", "Opis", "Jedinična Cena (EUR)", "Količina", "Ukupno (EUR)"]
 
     # Write headers
     for col_num, header in enumerate(headers, 1):
@@ -117,9 +117,9 @@ def create_budget_template():
         "Kolone u tabeli:",
         "• Kategorija Troškova - Izaberite kategoriju (Plate, Materijalni troškovi, Usluge, Ostalo)",
         "• Opis - Detaljan opis troška (npr. 'Plata koordinatora projekta za 6 meseci')",
-        "• Jedinična Cena (RSD) - Cena po jedinici u dinarima",
+        "• Jedinična Cena (EUR) - Cena po jedinici u dinarima",
         "• Količina - Broj jedinica (npr. broj meseci, broj ljudi, itd.)",
-        "• Ukupno (RSD) - Automatski izračunato (ne menjajte formulu!)",
+        "• Ukupno (EUR) - Automatski izračunato (ne menjajte formulu!)",
         "",
         "VAŽNO:",
         "✓ Kolona 'Ukupno' se automatski računa - ne menjajte formule",

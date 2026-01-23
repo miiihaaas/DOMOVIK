@@ -59,9 +59,9 @@ def verify_and_enhance_excel_template():
     expected_headers = [
         "Kategorija Troškova",
         "Opis",
-        "Jedinična Cena (RSD)",
+        "Jedinična Cena (EUR)",
         "Količina",
-        "Ukupno (RSD)"
+        "Ukupno (EUR)"
     ]
 
     print("\n[*] Verifying column headers...")
@@ -136,7 +136,7 @@ def verify_and_enhance_excel_template():
         print(f"  [OK] SUM formula correct: {sum_formula}")
 
     # ========================================================================
-    # SECTION 5: Format Currency Columns (RSD)
+    # SECTION 5: Format Currency Columns (EUR)
     # ========================================================================
     print("\n[*] Formatting currency columns...")
     for row in ws_budget.iter_rows(min_row=2, max_row=9, min_col=3, max_col=5):
