@@ -21,6 +21,32 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
+  /**
+   * Toggle required attribute on form fields
+   * @param {HTMLElement} container - Parent element containing form fields
+   * @param {boolean} isRequired - Whether fields should be required
+   */
+  function toggleRequiredFields(container, isRequired) {
+    const inputs = container.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+      if (isRequired) {
+        input.setAttribute('required', 'required');
+      } else {
+        input.removeAttribute('required');
+      }
+    });
+  }
+
+  // Initialize required fields based on current entity type (fix for hidden required fields)
+  const initialEntityType = entityTypeInput.value || 'fizicko';
+  if (initialEntityType === 'fizicko') {
+    toggleRequiredFields(fizickoFields, true);
+    toggleRequiredFields(pravnoFields, false);
+  } else {
+    toggleRequiredFields(pravnoFields, true);
+    toggleRequiredFields(fizickoFields, false);
+  }
+
   switcherButtons.forEach(button => {
     button.addEventListener('click', function() {
       const entityType = this.dataset.entity;
@@ -81,20 +107,4 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
-
-  /**
-   * Toggle required attribute on form fields
-   * @param {HTMLElement} container - Parent element containing form fields
-   * @param {boolean} isRequired - Whether fields should be required
-   */
-  function toggleRequiredFields(container, isRequired) {
-    const inputs = container.querySelectorAll('input, textarea');
-    inputs.forEach(input => {
-      if (isRequired) {
-        input.setAttribute('required', 'required');
-      } else {
-        input.removeAttribute('required');
-      }
-    });
-  }
 });
