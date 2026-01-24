@@ -7,7 +7,7 @@ Tests:
 - COB reference number generation (COB-YYYY-NNN format)
 - InitiativeData model creation (6 fields, NO budget)
 - Applicant creation (NO JMBG/matični for COB)
-- File metadata (exactly 2 files: OPIS_INICIJATIVE + PISMO_NAMERE)
+- File metadata (exactly 2 files: BUDZET_INICIJATIVE + PISMO_PODRSKE)
 - Atomic transaction rollback on error
 - GDPR consent validation
 - Sequential numbering (001, 002, 003...)
@@ -63,12 +63,12 @@ class COBSubmissionTestCase(TestCase):
             },
             'files': [
                 {
-                    'file_type': FileType.OPIS_INICIJATIVE,
+                    'file_type': FileType.BUDZET_INICIJATIVE,
                     'name': 'opis_inicijative.pdf',
                     'size': 1024000
                 },
                 {
-                    'file_type': FileType.PISMO_NAMERE,
+                    'file_type': FileType.PISMO_PODRSKE,
                     'name': 'pismo_namere.pdf',
                     'size': 512000
                 }
@@ -232,7 +232,7 @@ class COBSubmissionTestCase(TestCase):
         self.assertFalse(applicant.maticni_broj)
 
     def test_file_metadata_2_files(self):
-        """Test 7: Verify exactly 2 FileMetadata records (OPIS_INICIJATIVE, PISMO_NAMERE)."""
+        """Test 7: Verify exactly 2 FileMetadata records (BUDZET_INICIJATIVE, PISMO_PODRSKE)."""
         # Note: This test validates the file metadata structure, not actual file uploads
         # File uploads are handled by Story 2.8 and Story 3.4
 
@@ -249,7 +249,7 @@ class COBSubmissionTestCase(TestCase):
 
         # Verify file categories in request
         file_types = {f['file_type'] for f in cob_data['files']}
-        self.assertEqual(file_types, {FileType.OPIS_INICIJATIVE, FileType.PISMO_NAMERE})
+        self.assertEqual(file_types, {FileType.BUDZET_INICIJATIVE, FileType.PISMO_PODRSKE})
 
     def test_atomic_transaction_rollback(self):
         """Test 8: Force error mid-transaction and verify no partial data."""
@@ -338,11 +338,11 @@ class COBSubmissionTestCase(TestCase):
         invalid_data = self.valid_cob_data.copy()
         invalid_data['files'] = [
             {
-                'file_type': FileType.OPIS_INICIJATIVE,
+                'file_type': FileType.BUDZET_INICIJATIVE,
                 'name': 'opis.pdf',
                 'size': 1024000
             }
-            # Missing PISMO_NAMERE
+            # Missing PISMO_PODRSKE
         ]
 
         response = self.client.post(
@@ -504,7 +504,7 @@ class COBSubmissionTestCase(TestCase):
 
         # Verify file types
         file_types = set(FileMetadata.objects.filter(application=application).values_list('file_type', flat=True))
-        self.assertEqual(file_types, {FileType.OPIS_INICIJATIVE, FileType.PISMO_NAMERE})
+        self.assertEqual(file_types, {FileType.BUDZET_INICIJATIVE, FileType.PISMO_PODRSKE})
 
 
 class COBReferenceNumberServiceTestCase(TestCase):

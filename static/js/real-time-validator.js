@@ -24,10 +24,10 @@
 // Edge cases (consecutive dots, leading/trailing dots) may differ from server validation
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-// Serbian phone validation (9 or 10 digits total: 06 + 7-8 more digits)
-// Format: 061234567 (9 digits) or 0611234567 (10 digits)
-// Accepts: 06[0-9]{7,8} (no separators in validation - normalize input first)
-const PHONE_REGEX = /^06[0-9]{7,8}$/;
+// Story 5.4+: Simplified phone validation - only digits, minimum 6 characters
+// No letters allowed, spaces/dashes/+ are stripped before validation
+const PHONE_MIN_DIGITS = 6;
+const PHONE_HAS_LETTERS_REGEX = /[a-zA-Z]/;
 
 // Story 5.1: ID broj validation (ID + exactly 7 digits)
 // Format: ID1234567 (case-insensitive)
@@ -40,7 +40,9 @@ const REGISTRACIONI_BROJ_REGEX = /^[a-zA-Z0-9\-_\s]{1,50}$/;
 // Serbian error messages (UTF-8 encoded)
 const ERROR_MESSAGES = {
   email: "Neispravan email format. Primer: marko@example.com",
-  telefon: "Neispravan broj telefona. Primer: 061234567 ili 0611234567",
+  telefon: "Telefon mora imati najmanje 6 cifara i ne sme sadržati slova.",
+  telefon_letters: "Telefon ne sme sadržati slova.",
+  telefon_short: "Telefon mora imati najmanje 6 cifara.",
   jmbg: "Format mora biti IDxxxxxxx (ID + 7 cifara). Primer: ID1234567",
   maticni_broj: "Registracioni broj može sadržati slova, brojeve i crtice (maks. 50 karaktera)"
 };
@@ -66,20 +68,50 @@ function validateEmail(email) {
 }
 
 /**
- * Validate Serbian phone number format
+ * Validate phone number format
+ * Story 5.4+: Simplified validation - only digits, minimum 6 characters, no letters
  * @param {string} phone - Phone number to validate
- * @returns {boolean} - True if valid, false otherwise
+ * @returns {object} - {valid: boolean, error: string|null}
  */
 function validatePhone(phone) {
   if (!phone || phone.trim() === '') {
-    return true; // Empty is valid (required validation is server-side)
+    return { valid: true, error: null }; // Empty is valid (required validation is server-side)
   }
   // Performance measurement (NFR5: <100ms validation)
   console.time('validatePhone');
-  const normalized = normalizePhone(phone);
-  const isValid = PHONE_REGEX.test(normalized);
+
+  // Check for letters first (not allowed)
+  if (PHONE_HAS_LETTERS_REGEX.test(phone)) {
+    console.timeEnd('validatePhone');
+    return { valid: false, error: ERROR_MESSAGES.telefon_letters };
+  }
+
+  // Remove spaces, dashes, and + prefix for digit count
+  const digitsOnly = phone.replace(/[\s\-\+]/g, '');
+
+  // Check minimum 6 digits
+  if (digitsOnly.length < PHONE_MIN_DIGITS) {
+    console.timeEnd('validatePhone');
+    return { valid: false, error: ERROR_MESSAGES.telefon_short };
+  }
+
+  // Check that remaining characters are all digits
+  if (!/^\d+$/.test(digitsOnly)) {
+    console.timeEnd('validatePhone');
+    return { valid: false, error: ERROR_MESSAGES.telefon };
+  }
+
   console.timeEnd('validatePhone');
-  return isValid;
+  return { valid: true, error: null };
+}
+
+/**
+ * Legacy wrapper for backward compatibility
+ * @param {string} phone - Phone number to validate
+ * @returns {boolean} - True if valid, false otherwise
+ */
+function validatePhoneLegacy(phone) {
+  return validatePhone(phone).valid;
 }
 
 /**
@@ -226,16 +258,18 @@ function handleEmailValidation(event) {
 
 /**
  * Validate phone field
+ * Story 5.4+: Updated to use new validation with specific error messages
  * @param {Event} event - Input or blur event
  */
 function handlePhoneValidation(event) {
   const field = event.target;
   const value = field.value;
 
-  if (validatePhone(value)) {
+  const result = validatePhone(value);
+  if (result.valid) {
     clearValidationError(field);
   } else {
-    showValidationError(field, ERROR_MESSAGES.telefon);
+    showValidationError(field, result.error);
   }
 }
 

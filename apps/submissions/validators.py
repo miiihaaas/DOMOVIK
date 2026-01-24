@@ -302,12 +302,8 @@ def validate_email(email):
 
 def validate_phone(phone):
     """
-    Validate Serbian phone number format.
-
-    Accepts formats:
-    - +381XXXXXXXXX (international)
-    - 06XXXXXXXX (mobile)
-    - 0XXXXXXXX (landline)
+    Validate phone number format.
+    Story 5.4+: Simplified validation - only digits, minimum 6 characters, no letters.
 
     Args:
         phone (str): Phone number to validate
@@ -316,15 +312,53 @@ def validate_phone(phone):
         ValidationError: If phone format is invalid
     """
     if not phone:
-        raise ValidationError('Broj telefona je obavezan.')
+        raise ValidationError('Telefon je obavezan.')
 
-    # Remove spaces and dashes
-    cleaned_phone = phone.replace(' ', '').replace('-', '')
+    # Remove spaces, dashes, and + prefix for validation
+    cleaned_phone = phone.replace(' ', '').replace('-', '').replace('+', '')
 
-    # Serbian phone pattern: +381 or 0, followed by 8-10 digits
-    phone_pattern = r'^(\+381|0)[0-9]{8,10}$'
-    if not re.match(phone_pattern, cleaned_phone):
-        raise ValidationError('Molimo unesite validan broj telefona (npr. +381XXXXXXXXX ili 06XXXXXXXX).')
+    # Check for letters (not allowed)
+    if re.search(r'[a-zA-Z]', cleaned_phone):
+        raise ValidationError('Telefon ne sme sadržati slova.')
+
+    # Check that it contains only digits
+    if not cleaned_phone.isdigit():
+        raise ValidationError('Telefon može sadržati samo cifre.')
+
+    # Minimum 6 digits required
+    if len(cleaned_phone) < 6:
+        raise ValidationError('Telefon mora imati najmanje 6 cifara.')
+
+
+def validate_phone_optional(phone):
+    """
+    Validate optional phone number format.
+    Story 5.4+: For team member phone fields - empty OR 6+ digits, no letters.
+
+    Args:
+        phone (str): Phone number to validate (can be empty)
+
+    Raises:
+        ValidationError: If phone format is invalid (when provided)
+    """
+    # Empty is OK for optional fields
+    if not phone or not phone.strip():
+        return
+
+    # Remove spaces, dashes, and + prefix for validation
+    cleaned_phone = phone.replace(' ', '').replace('-', '').replace('+', '')
+
+    # Check for letters (not allowed)
+    if re.search(r'[a-zA-Z]', cleaned_phone):
+        raise ValidationError('Telefon ne sme sadržati slova.')
+
+    # Check that it contains only digits
+    if not cleaned_phone.isdigit():
+        raise ValidationError('Telefon može sadržati samo cifre.')
+
+    # Minimum 6 digits required (when provided)
+    if len(cleaned_phone) < 6:
+        raise ValidationError('Telefon mora imati najmanje 6 cifara.')
 
 
 def validate_id_broj(value):
@@ -457,6 +491,7 @@ __all__ = [
     'generate_unique_filename',
     'validate_email',
     'validate_phone',
+    'validate_phone_optional',
     'validate_jmbg',
     'validate_maticni_broj',
     'validate_id_broj',

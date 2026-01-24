@@ -242,7 +242,7 @@ const TeamMembersManager = (function() {
                            id="team_member_${index}_telefon"
                            name="team_members[${index}][telefon]"
                            maxlength="30"
-                           placeholder="Broj telefona">
+                           placeholder="Samo cifre, min 6 (opciono)">
                 </div>
                 <div class="form-group team-member-actions">
                     <button type="button"

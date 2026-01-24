@@ -49,16 +49,16 @@ class FileType:
     BIOGRAPHY = 'BIOGRAPHY'
     SUPPORT_LETTER = 'SUPPORT_LETTER'
 
-    # COB file types (Story 3-5)
-    OPIS_INICIJATIVE = 'OPIS_INICIJATIVE'
-    PISMO_NAMERE = 'PISMO_NAMERE'
+    # COB file types (Story 3-5, Updated Story 5.4)
+    BUDZET_INICIJATIVE = 'BUDZET_INICIJATIVE'  # Story 5.4: Renamed from OPIS_INICIJATIVE
+    PISMO_PODRSKE = 'PISMO_PODRSKE'  # Story 5.4: Renamed from PISMO_NAMERE
 
     CHOICES = [
         (BUDGET, 'Budžet'),
         (BIOGRAPHY, 'Biografija'),
         (SUPPORT_LETTER, 'Pismo Podrške'),
-        (OPIS_INICIJATIVE, 'Opis Inicijative'),
-        (PISMO_NAMERE, 'Pismo Namere'),
+        (BUDZET_INICIJATIVE, 'Budžet Inicijative'),  # Story 5.4
+        (PISMO_PODRSKE, 'Pismo Podrške'),  # Story 5.4
     ]
 
 
@@ -69,8 +69,9 @@ FILE_CATEGORY_FOLDERS = {
     'BUDGET': 'budgets',
     'BIOGRAPHY': 'biographies',
     'SUPPORT_LETTER': 'letters_of_support',
-    'OPIS_INICIJATIVE': 'initiative_descriptions',
-    'PISMO_NAMERE': 'letters_of_intent',
+    # Story 5.4: Updated COB file categories
+    'BUDZET_INICIJATIVE': 'initiative_budgets',  # Was: initiative_descriptions
+    'PISMO_PODRSKE': 'letters_of_support_cob',  # Was: letters_of_intent
 }
 
 

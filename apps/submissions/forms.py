@@ -11,7 +11,6 @@ import re
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 from django.forms import inlineformset_factory
 from apps.submissions.models import Applicant, Application, ProjectData, ClanTima
 from apps.submissions.validators import (
@@ -20,12 +19,18 @@ from apps.submissions.validators import (
     validate_mime_type,
     validate_id_broj,
     validate_registracioni_broj,
+    validate_phone,
+    validate_phone_optional,
 )
 
 
 # ISSUE 10 FIX: Extract hardcoded category names to constants
-COB_FILE_CATEGORIES = ['OPIS_INICIJATIVE', 'PISMO_NAMERE']
+# Story 5.4: Updated COB categories - BUDZET_INICIJATIVE (required), PISMO_PODRSKE (optional)
+COB_FILE_CATEGORIES_REQUIRED = ['BUDZET_INICIJATIVE']  # Only budget is required
+COB_FILE_CATEGORIES_OPTIONAL = ['PISMO_PODRSKE']  # Support letter is optional
+COB_FILE_CATEGORIES = COB_FILE_CATEGORIES_REQUIRED + COB_FILE_CATEGORIES_OPTIONAL
 ALLOWED_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx']
+ALLOWED_EXCEL_EXTENSIONS = ['.xls', '.xlsx']  # Story 5.4: Excel for budget
 MAX_FILE_SIZE = 10485760  # 10MB in bytes
 
 
@@ -37,24 +42,16 @@ class COAFormSectionI(forms.ModelForm):
     Leverages Applicant model validation for conditional requirements.
     """
 
-    # Override phone field to add validation (consistent with COB form)
+    # Story 5.4+: Unified phone validation - only digits, 6+ chars, no letters
     phone = forms.CharField(
         max_length=20,
         required=True,
-        label='Broj telefona',
-        validators=[
-            RegexValidator(
-                # Serbian mobile numbers: 7 OR 8 digits after 6
-                # Format: 06XXXXXXX (9 digits) or 06XXXXXXXX (10 digits)
-                # Format: +3816XXXXXXX (12 digits) or +3816XXXXXXXX (13 digits)
-                regex=r'^(\+381|0)6[0-9]{7,8}$',
-                message='Neispravan format telefona. Koristite format: 06XXXXXXX, 06XXXXXXXX ili +3816XXXXXXX, +3816XXXXXXXX',
-            )
-        ],
+        label='Telefon',  # Unified label with COB form
+        validators=[validate_phone],
         error_messages={
             'required': 'Telefon je obavezan.',
         },
-        help_text='npr. 06xxxxxxx ili 06xxxxxxxx',
+        help_text='Samo cifre, najmanje 6 cifara',
         widget=forms.TextInput(attrs={'autocomplete': 'tel'})
     )
 
@@ -86,7 +83,7 @@ class COAFormSectionI(forms.ModelForm):
             'maticni_broj': 'Registracioni broj',
             'address': 'Adresa',
             'email': 'Email adresa',
-            'phone': 'Broj telefona',
+            'phone': 'Telefon',  # Story 5.4+: Unified label
         }
 
         help_texts = {
@@ -94,7 +91,7 @@ class COAFormSectionI(forms.ModelForm):
             'jmbg': 'Format: IDxxxxxx (npr. ID123456)',
             'maticni_broj': 'Alfanumerički format (npr. REG-2024-ABC)',
             'email': 'npr. marko@example.com',
-            'phone': 'npr. 06xxxxxxx ili 06xxxxxxxx',
+            'phone': 'Samo cifre, najmanje 6 cifara',  # Story 5.4+: Updated
         }
 
     def clean_jmbg(self):
@@ -184,7 +181,7 @@ class ClanTimaForm(forms.ModelForm):
             }),
             'telefon': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Broj telefona',
+                'placeholder': 'Samo cifre, min 6 (opciono)',
                 'maxlength': '30',
             }),
         }
@@ -193,6 +190,16 @@ class ClanTimaForm(forms.ModelForm):
             'email': 'Email',
             'telefon': 'Telefon',
         }
+
+    def clean_telefon(self):
+        """
+        Validate optional phone number for team members.
+        Story 5.4+: Empty OR 6+ digits, no letters.
+        """
+        telefon = self.cleaned_data.get('telefon')
+        if telefon:
+            validate_phone_optional(telefon)
+        return telefon
 
 
 # Create the inline formset factory
@@ -372,13 +379,13 @@ class FileUploadForm(forms.Form):
     """
     File Upload Form with comprehensive validation.
     Story 2.8: File Upload Infrastructure
-    Story 3.4: Added COB file categories (OPIS_INICIJATIVE, PISMO_NAMERE)
+    Story 5.4: Updated COB categories (BUDZET_INICIJATIVE, PISMO_PODRSKE)
 
     Validates:
     - File extension (PDF, DOC, DOCX, XLS, XLSX only)
     - File size (10MB max)
     - MIME type (prevents extension spoofing)
-    - File category (budget, biography, support letter, opis inicijative, pismo namere)
+    - File category (budget, biography, support letter, budzet inicijative, pismo podrske)
 
     Security Features:
     - Extension whitelist enforcement
@@ -392,9 +399,9 @@ class FileUploadForm(forms.Form):
         ('BUDGET', 'Budžet'),
         ('BIOGRAPHY', 'Biografija'),
         ('SUPPORT_LETTER', 'Pismo Podrške'),
-        # COB categories (Epic 3 - Story 3.4)
-        ('OPIS_INICIJATIVE', 'Opis Inicijative'),
-        ('PISMO_NAMERE', 'Pismo Namere'),
+        # COB categories (Epic 3, Story 5.4: Updated names)
+        ('BUDZET_INICIJATIVE', 'Budžet Inicijative'),
+        ('PISMO_PODRSKE', 'Pismo Podrške'),
     ]
 
     file = forms.FileField(
@@ -545,22 +552,16 @@ class COBApplicantForm(forms.Form):
         widget=forms.EmailInput(attrs={'autocomplete': 'email'})
     )
 
+    # Story 5.4+: Unified phone validation - only digits, 6+ chars, no letters
     telefon = forms.CharField(
         max_length=20,
         required=True,
-        label='Telefon',  # ISSUE 6 FIX: Add label attribute
-        validators=[
-            RegexValidator(
-                # Serbian mobile numbers: 7 OR 8 digits after 6
-                # Format: 06XXXXXXX (9 digits) or 06XXXXXXXX (10 digits)
-                # Format: +3816XXXXXXX (12 digits) or +3816XXXXXXXX (13 digits)
-                regex=r'^(\+381|0)6[0-9]{7,8}$',
-                message='Neispravan format telefona. Koristite format: 06XXXXXXX, 06XXXXXXXX ili +3816XXXXXXX, +3816XXXXXXXX',
-            )
-        ],
+        label='Telefon',
+        validators=[validate_phone],
         error_messages={
             'required': 'Telefon je obavezan.',
         },
+        help_text='Samo cifre, najmanje 6 cifara',
         widget=forms.TextInput(attrs={'autocomplete': 'tel'})
     )
 
@@ -653,37 +654,8 @@ class COBApplicantForm(forms.Form):
             pass
         return email
 
-    def clean_telefon(self):
-        """
-        Normalize phone number format.
-
-        Input: +38165123456 (9 digits) or +381651234567 (10 digits)
-        Input: 065123456 (9 digits) or 0651234567 (10 digits)
-        Output: +38165123456 or +381651234567 (normalized)
-
-        ISSUE 5 FIX: Proper validation when telefon is None/empty.
-        ISSUE 7 FIX: Re-validate normalized phone against regex.
-        """
-        telefon = self.cleaned_data.get('telefon')
-
-        # ISSUE 5 FIX: Return early if telefon is None or empty (required validation handles this)
-        if not telefon:
-            return telefon
-
-        # Normalize: 06X → +3816X
-        if telefon.startswith('06'):
-            telefon = '+381' + telefon[1:]  # Remove leading 0
-
-        # ISSUE 7 FIX: Re-validate normalized format against regex
-        # This ensures +3816X formats still match the pattern after normalization
-        # Now accepts 7 OR 8 digits after +3816
-        import re
-        phone_pattern = r'^\+3816[0-9]{7,8}$'
-        if not re.match(phone_pattern, telefon):
-            raise ValidationError('Neispravan format telefona nakon normalizacije.')
-
-        # Store normalized format
-        return telefon
+    # Story 5.4+: Removed clean_telefon() normalization method
+    # Phone validation now uses validate_phone from validators.py (6+ digits, no letters)
 
 
 class COBInitiativeDataForm(forms.Form):
@@ -923,11 +895,12 @@ class COBInitiativeDataForm(forms.Form):
 class COBSectionIIIForm(forms.Form):
     """
     COB (Inicijativa) Section III - Simplified documentation validation.
-    Story 3.4: COB Section III - Simplified Documentation (2 Files Only)
+    Story 3.4: COB Section III - Simplified Documentation
+    Story 5.4: Updated - BUDZET_INICIJATIVE required, PISMO_PODRSKE optional
 
     Differences from COA:
-    - Only 2 file categories: OPIS_INICIJATIVE, PISMO_NAMERE
-    - NO budget, biography, support letter categories
+    - BUDZET_INICIJATIVE: Required, XLS/XLSX only
+    - PISMO_PODRSKE: Optional, PDF/DOC/DOCX
     - Single checkbox: saglasnost_gdpr (required)
 
     Architecture: Backend validation only (files validated via metadata)
@@ -976,24 +949,25 @@ class COBSectionIIIForm(forms.Form):
 def validate_cob_file_metadata(file_metadata: Dict[str, Any]) -> Tuple[bool, Dict[str, List[Dict[str, str]]]]:
     """
     Validate COB file upload metadata structure.
-    Story 3.4: COB Section III - File metadata validation for 2 files only
+    Story 3.4: COB Section III - File metadata validation
+    Story 5.4: Updated - BUDZET_INICIJATIVE required (XLS/XLSX), PISMO_PODRSKE optional (PDF/DOC/DOCX)
 
     ISSUE 16 FIX: Added type hints
-    ISSUE 1 FIX: Added file extension validation (.pdf, .doc, .docx only)
+    ISSUE 1 FIX: Added file extension validation
     ISSUE 2 FIX: Added file size validation (max 10MB = 10485760 bytes)
     ISSUE 3 FIX: Return error objects with {'message': '...', 'code': '...'} format
     ISSUE 9 FIX: Removed redundant empty list check
 
     Expected structure:
     {
-        'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
-        'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}]
+        'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],  # Required, XLS/XLSX
+        'PISMO_PODRSKE': [{'name': 'pismo.pdf', 'size': 512000}]  # Optional, PDF/DOC/DOCX
     }
 
     Validation Rules:
-    - Exactly 2 categories required: OPIS_INICIJATIVE, PISMO_NAMERE
-    - Each category must have exactly 1 file (no more, no less)
-    - File extension must be .pdf, .doc, or .docx (case-insensitive)
+    - BUDZET_INICIJATIVE is required, must be XLS or XLSX
+    - PISMO_PODRSKE is optional, if present must be PDF/DOC/DOCX
+    - Each category allows only 1 file
     - File size must not exceed 10MB (10485760 bytes)
     - File metadata must include 'name' and 'size' fields
     - File name cannot be empty string
@@ -1010,68 +984,90 @@ def validate_cob_file_metadata(file_metadata: Dict[str, Any]) -> Tuple[bool, Dic
     if not isinstance(file_metadata, dict):
         return False, {'__all__': [{'message': 'Neispravan format metapodataka fajlova.', 'code': 'invalid_format'}]}
 
-    # ISSUE 10 FIX: Use constant instead of hardcoded list
-    required_categories = COB_FILE_CATEGORIES
-
-    for category in required_categories:
+    # Story 5.4: Validate required categories (only BUDZET_INICIJATIVE is required)
+    for category in COB_FILE_CATEGORIES_REQUIRED:
         if category not in file_metadata:
-            errors[category] = [{'message': f'{category.replace("_", " ").title()} je obavezan.', 'code': 'missing_category'}]
+            errors[category] = [{'message': 'Budžet inicijative je obavezan.', 'code': 'missing_category'}]
         elif not file_metadata[category]:
-            # Empty list
-            errors[category] = [{'message': f'{category.replace("_", " ").title()} je obavezan.', 'code': 'empty_list'}]
+            errors[category] = [{'message': 'Budžet inicijative je obavezan.', 'code': 'empty_list'}]
         elif not isinstance(file_metadata[category], list):
-            errors[category] = [{'message': f'Neispravan format za {category.replace("_", " ").lower()}.', 'code': 'invalid_type'}]
-        # ISSUE 9 FIX: Removed redundant "elif len(file_metadata[category]) == 0" check (already covered by "elif not file_metadata[category]")
+            errors[category] = [{'message': 'Neispravan format za budžet inicijative.', 'code': 'invalid_type'}]
         elif len(file_metadata[category]) > 1:
-            # COB allows only single file per category (vs COA's multiple files for some categories)
-            errors[category] = [{'message': f'{category.replace("_", " ").title()} dozvoljava samo 1 fajl.', 'code': 'too_many_files'}]
+            errors[category] = [{'message': 'Budžet inicijative dozvoljava samo 1 fajl.', 'code': 'too_many_files'}]
         else:
-            # Validate individual file metadata
+            # Validate the budget file (must be XLS/XLSX)
             file_obj = file_metadata[category][0]
+            error = _validate_file_object(file_obj, category, ALLOWED_EXCEL_EXTENSIONS)
+            if error:
+                errors[category] = [error]
 
-            # ISSUE 5 FIX (HIGH): Validate 'name' and 'size' fields exist
-            if not isinstance(file_obj, dict):
-                errors[category] = [{'message': f'Neispravan format metapodataka fajla za {category.replace("_", " ").lower()}.', 'code': 'invalid_file_object'}]
-                continue
-
-            if 'name' not in file_obj:
-                errors[category] = [{'message': f'Nedostaje ime fajla za {category.replace("_", " ").lower()}.', 'code': 'missing_name'}]
-                continue
-
-            if 'size' not in file_obj:
-                errors[category] = [{'message': f'Nedostaje veličina fajla za {category.replace("_", " ").lower()}.', 'code': 'missing_size'}]
-                continue
-
-            file_name = file_obj.get('name', '')
-            file_size = file_obj.get('size', 0)
-
-            # ISSUE 4 FIX (HIGH): Validate empty string file names
-            if not file_name or not file_name.strip():
-                errors[category] = [{'message': f'Ime fajla ne može biti prazno za {category.replace("_", " ").lower()}.', 'code': 'empty_filename'}]
-                continue
-
-            # ISSUE 1 FIX (CRITICAL): Validate file extension (.pdf, .doc, .docx only)
-            file_ext = '.' + file_name.split('.')[-1].lower() if '.' in file_name else ''
-            if file_ext not in ALLOWED_FILE_EXTENSIONS:
-                errors[category] = [{'message': f'Nedozvoljena ekstenzija fajla. Dozvoljene ekstenzije: {", ".join(ALLOWED_FILE_EXTENSIONS)}', 'code': 'invalid_extension'}]
-                continue
-
-            # ISSUE 2 FIX (CRITICAL): Validate file size (max 10MB)
-            try:
-                file_size_int = int(file_size)
-                if file_size_int > MAX_FILE_SIZE:
-                    errors[category] = [{'message': f'Fajl prelazi maksimalnu veličinu od 10MB (trenutna veličina: {file_size_int / 1048576:.2f}MB).', 'code': 'file_too_large'}]
-                    continue
-                elif file_size_int <= 0:
-                    errors[category] = [{'message': f'Veličina fajla mora biti veća od 0.', 'code': 'invalid_size'}]
-                    continue
-            except (ValueError, TypeError):
-                errors[category] = [{'message': f'Neispravan format veličine fajla za {category.replace("_", " ").lower()}.', 'code': 'invalid_size_format'}]
-                continue
+    # Story 5.4: Validate optional categories (PISMO_PODRSKE)
+    for category in COB_FILE_CATEGORIES_OPTIONAL:
+        if category in file_metadata and file_metadata[category]:
+            # Only validate if file is provided
+            if not isinstance(file_metadata[category], list):
+                errors[category] = [{'message': 'Neispravan format za pismo podrške.', 'code': 'invalid_type'}]
+            elif len(file_metadata[category]) > 1:
+                errors[category] = [{'message': 'Pismo podrške dozvoljava samo 1 fajl.', 'code': 'too_many_files'}]
+            else:
+                # Validate the support letter file (must be PDF/DOC/DOCX)
+                file_obj = file_metadata[category][0]
+                error = _validate_file_object(file_obj, category, ALLOWED_FILE_EXTENSIONS)
+                if error:
+                    errors[category] = [error]
 
     # Ensure NO other categories (COB should NOT have BUDGET, BIOGRAPHY, etc.)
-    invalid_categories = set(file_metadata.keys()) - set(required_categories)
+    invalid_categories = set(file_metadata.keys()) - set(COB_FILE_CATEGORIES)
     if invalid_categories:
         errors['__all__'] = [{'message': f'Neočekivane kategorije fajlova: {", ".join(invalid_categories)}', 'code': 'unexpected_categories'}]
 
     return len(errors) == 0, errors
+
+
+def _validate_file_object(file_obj: Any, category: str, allowed_extensions: List[str]) -> Dict[str, str] | None:
+    """
+    Validate individual file object metadata.
+    Story 5.4: Helper function for file validation
+
+    Args:
+        file_obj: File metadata object
+        category: File category name
+        allowed_extensions: List of allowed file extensions
+
+    Returns:
+        Error dict or None if valid
+    """
+    category_label = category.replace("_", " ").lower()
+
+    if not isinstance(file_obj, dict):
+        return {'message': f'Neispravan format metapodataka fajla za {category_label}.', 'code': 'invalid_file_object'}
+
+    if 'name' not in file_obj:
+        return {'message': f'Nedostaje ime fajla za {category_label}.', 'code': 'missing_name'}
+
+    if 'size' not in file_obj:
+        return {'message': f'Nedostaje veličina fajla za {category_label}.', 'code': 'missing_size'}
+
+    file_name = file_obj.get('name', '')
+    file_size = file_obj.get('size', 0)
+
+    if not file_name or not file_name.strip():
+        return {'message': f'Ime fajla ne može biti prazno za {category_label}.', 'code': 'empty_filename'}
+
+    # Validate file extension
+    file_ext = '.' + file_name.split('.')[-1].lower() if '.' in file_name else ''
+    if file_ext not in allowed_extensions:
+        ext_list = ', '.join(ext.upper().replace('.', '') for ext in allowed_extensions)
+        return {'message': f'Dozvoljeni formati: {ext_list}', 'code': 'invalid_extension'}
+
+    # Validate file size (max 10MB)
+    try:
+        file_size_int = int(file_size)
+        if file_size_int > MAX_FILE_SIZE:
+            return {'message': f'Fajl prelazi maksimalnu veličinu od 10MB (trenutna veličina: {file_size_int / 1048576:.2f}MB).', 'code': 'file_too_large'}
+        elif file_size_int <= 0:
+            return {'message': 'Veličina fajla mora biti veća od 0.', 'code': 'invalid_size'}
+    except (ValueError, TypeError):
+        return {'message': f'Neispravan format veličine fajla za {category_label}.', 'code': 'invalid_size_format'}
+
+    return None

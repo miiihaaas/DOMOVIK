@@ -22,10 +22,10 @@ const FILE_CATEGORIES_COA = {
   SUPPORT_LETTER: 'SUPPORT_LETTER'
 };
 
-// COB categories (Story 3.4 - Simplified documentation)
+// COB categories (Story 3.4 - Simplified documentation, Story 5.4 - Updated)
 const FILE_CATEGORIES_COB = {
-  OPIS_INICIJATIVE: 'OPIS_INICIJATIVE',
-  PISMO_NAMERE: 'PISMO_NAMERE'
+  BUDZET_INICIJATIVE: 'BUDZET_INICIJATIVE',  // Story 5.4: Required (was OPIS_INICIJATIVE)
+  PISMO_PODRSKE: 'PISMO_PODRSKE'  // Story 5.4: Optional (was PISMO_NAMERE)
 };
 
 // Debounce delay for draft save (milliseconds)
@@ -187,14 +187,15 @@ class ConsentManager {
    * Validate that required files are uploaded
    * Story 2.10 - Task 6: File upload validation before submit
    * BUGFIX: Application-type aware validation (COA vs COB)
+   * Story 5.4: Updated COB validation - only BUDZET_INICIJATIVE is required
    *
    * COA Required files:
    * - Budget: 1 Excel file (BUDGET category)
    * - Biografije: Minimum 1 PDF/DOC file (BIOGRAPHY category)
    *
    * COB Required files:
-   * - Opis inicijative: 1 PDF/DOC file (OPIS_INICIJATIVE category)
-   * - Pismo namere: 1 PDF/DOC file (PISMO_NAMERE category)
+   * - Budžet inicijative: 1 Excel file (BUDZET_INICIJATIVE category) - REQUIRED
+   * - Pismo podrške: 1 PDF/DOC file (PISMO_PODRSKE category) - OPTIONAL
    *
    * @returns {Object} { valid: boolean, missing: string[] }
    * @throws {TypeError} If uploadedFilesRegistry is not an array (Story 2.10 Code Review Fix #3)
@@ -207,8 +208,8 @@ class ConsentManager {
     if (!window.uploadedFilesRegistry || !Array.isArray(window.uploadedFilesRegistry)) {
       // Registry not found or invalid - assume no files uploaded
       if (applicationType === 'COB') {
-        missing.push('Opis inicijative');
-        missing.push('Pismo namere');
+        // Story 5.4: Only budget is required for COB
+        missing.push('Budžet inicijative');
       } else {
         missing.push('Budžet projekta');
         missing.push('Biografije članova tima');
@@ -216,17 +217,15 @@ class ConsentManager {
       return { valid: false, missing: missing };
     }
 
-    // COB validation (Story 3.4 - Only 2 files required)
+    // COB validation (Story 5.4: Only BUDZET_INICIJATIVE is required, PISMO_PODRSKE is optional)
     if (applicationType === 'COB') {
-      const opisFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COB.OPIS_INICIJATIVE);
-      const pismoFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COB.PISMO_NAMERE);
+      const budzetFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COB.BUDZET_INICIJATIVE);
+      // Story 5.4: Pismo podrške is optional, no validation needed
 
-      if (opisFiles.length === 0) {
-        missing.push('Opis inicijative');
+      if (budzetFiles.length === 0) {
+        missing.push('Budžet inicijative');
       }
-      if (pismoFiles.length === 0) {
-        missing.push('Pismo namere');
-      }
+      // PISMO_PODRSKE is optional - no validation
     } else {
       // COA validation (Story 2.10 - Budget + Biografije)
       const budgetFiles = window.uploadedFilesRegistry.filter(file => file.category === FILE_CATEGORIES_COA.BUDGET);

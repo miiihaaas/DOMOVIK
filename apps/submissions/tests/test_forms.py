@@ -18,10 +18,10 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
-            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
+            'id_broj': 'ID1234567',  # Story 5.1: Required for fizičko lice (ID + 7 digits)
             'adresa': 'Beograd, Kneza Miloša 10',
             'email': 'marko@example.com',
-            'telefon': '0651234568',  # 10 digits total (8 digits after 6)
+            'telefon': '0651234568',  # Story 5.4+: 6+ digits, no letters
         })
         self.assertTrue(form.is_valid())
 
@@ -101,33 +101,34 @@ class COBApplicantFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('telefon', form.errors)
 
-    def test_phone_normalization_10_digits(self):
-        """Test phone number normalization for 10-digit phones (06X → +3816X)."""
+    def test_phone_valid_10_digits(self):
+        """Test 10-digit phone passes validation (Story 5.4+: 6+ digits, no normalization)."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
-            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
+            'id_broj': 'ID1234567',  # Story 5.1: Required for fizičko lice (ID + 7 digits)
             'adresa': 'Beograd',
             'email': 'marko@example.com',
             'telefon': '0651234568',  # 10 digits
         })
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['telefon'], '+381651234568')
+        # Story 5.4+: No normalization, phone stays as entered
+        self.assertEqual(form.cleaned_data['telefon'], '0651234568')
 
-    def test_phone_normalization_9_digits(self):
-        """Test phone number normalization for 9-digit phones (06X → +3816X)."""
+    def test_phone_valid_9_digits(self):
+        """Test 9-digit phone passes validation (Story 5.4+: 6+ digits)."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
-            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
+            'id_broj': 'ID1234567',  # Story 5.1: Required for fizičko lice (ID + 7 digits)
             'adresa': 'Beograd',
             'email': 'marko@example.com',
             'telefon': '065123456',  # 9 digits
         })
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['telefon'], '+38165123456')
+        self.assertEqual(form.cleaned_data['telefon'], '065123456')
 
     def test_serbian_characters(self):
         """Test Serbian characters (č, ć, š, đ, ž) are accepted."""
@@ -135,7 +136,7 @@ class COBApplicantFormTests(TestCase):
             'entity_type': 'fizicko',
             'ime': 'Đorđe',
             'prezime': 'Đurić',
-            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
+            'id_broj': 'ID1234567',  # Story 5.1: Required for fizičko lice (ID + 7 digits)
             'adresa': 'Niš, Šumadijska 25',
             'email': 'djordje@example.com',
             'telefon': '0651234568',
@@ -277,56 +278,55 @@ class COBApplicantFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('telefon', form.errors)
 
-    def test_phone_normalization_already_normalized_10_digits(self):
-        """Test 10-digit phone already in +381 format remains unchanged."""
+    def test_phone_with_plus_prefix(self):
+        """Test phone with +381 prefix passes validation (Story 5.4+: 6+ digits)."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
-            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
+            'id_broj': 'ID1234567',  # Story 5.1: Required for fizičko lice (ID + 7 digits)
             'adresa': 'Beograd',
             'email': 'marko@example.com',
-            'telefon': '+381651234568',  # 10 digits
+            'telefon': '+381651234568',  # Valid: 12 digits after removing +
         })
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data['telefon'], '+381651234568')
 
-    def test_phone_normalization_already_normalized_9_digits(self):
-        """Test 9-digit phone already in +381 format remains unchanged."""
+    def test_phone_valid_6_digits_minimum(self):
+        """Test 6-digit phone passes validation (Story 5.4+: minimum 6 digits)."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
-            'id_broj': 'ID123456',  # Story 5.1: Required for fizičko lice
+            'id_broj': 'ID1234567',  # Story 5.1: Required for fizičko lice (ID + 7 digits)
             'adresa': 'Beograd',
             'email': 'marko@example.com',
-            'telefon': '+38165123456',  # 9 digits
+            'telefon': '123456',  # Exactly 6 digits (minimum)
         })
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['telefon'], '+38165123456')
 
-    def test_phone_too_short_8_digits(self):
-        """Test 8-digit phone (too short) fails validation."""
+    def test_phone_too_short_5_digits(self):
+        """Test 5-digit phone (too short) fails validation (Story 5.4+: minimum 6)."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
             'adresa': 'Beograd',
             'email': 'marko@example.com',
-            'telefon': '06512345',  # Only 8 digits (too short)
+            'telefon': '12345',  # Only 5 digits (too short)
         })
         self.assertFalse(form.is_valid())
         self.assertIn('telefon', form.errors)
 
-    def test_phone_too_long_11_digits(self):
-        """Test 11-digit phone (too long) fails validation."""
+    def test_phone_with_letters_fails(self):
+        """Test phone with letters fails validation (Story 5.4+: no letters)."""
         form = COBApplicantForm({
             'entity_type': 'fizicko',
             'ime': 'Marko',
             'prezime': 'Petrović',
             'adresa': 'Beograd',
             'email': 'marko@example.com',
-            'telefon': '06512345678',  # 11 digits (too long)
+            'telefon': '065ABC1234',  # Contains letters
         })
         self.assertFalse(form.is_valid())
         self.assertIn('telefon', form.errors)
@@ -619,56 +619,67 @@ class COBSectionIIIFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('saglasnost_gdpr', form.errors)
 
-    def test_valid_file_metadata(self):
-        """Test valid file metadata passes validation."""
+    # Story 5.4: Updated tests for new COB file categories
+    # BUDZET_INICIJATIVE (required, XLS/XLSX) and PISMO_PODRSKE (optional, PDF/DOC/DOCX)
+
+    def test_valid_file_metadata_with_both_files(self):
+        """Test valid file metadata with both files passes validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+            'PISMO_PODRSKE': [{'name': 'pismo.pdf', 'size': 512000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertTrue(valid)
         self.assertEqual(errors, {})
 
-    def test_missing_opis_inicijative(self):
-        """Test missing OPIS_INICIJATIVE fails validation."""
+    def test_valid_file_metadata_budget_only(self):
+        """Story 5.4: Test valid metadata with only required budget file passes."""
         file_metadata = {
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+            # PISMO_PODRSKE is optional - not provided
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    def test_missing_budzet_inicijative(self):
+        """Story 5.4: Test missing BUDZET_INICIJATIVE fails validation."""
+        file_metadata = {
+            'PISMO_PODRSKE': [{'name': 'pismo.pdf', 'size': 512000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertIn('BUDZET_INICIJATIVE', errors)
 
-    def test_missing_pismo_namere(self):
-        """Test missing PISMO_NAMERE fails validation."""
+    def test_pismo_podrske_is_optional(self):
+        """Story 5.4: Test missing PISMO_PODRSKE does NOT fail validation (it's optional)."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)  # Should pass - pismo is optional
+
+    def test_empty_file_list_budzet(self):
+        """Test empty file list for budget fails validation."""
+        file_metadata = {
+            'BUDZET_INICIJATIVE': [],
+            'PISMO_PODRSKE': [{'name': 'pismo.pdf', 'size': 512000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('PISMO_NAMERE', errors)
+        self.assertIn('BUDZET_INICIJATIVE', errors)
 
-    def test_empty_file_list(self):
-        """Test empty file list fails validation."""
+    def test_multiple_files_budzet_category(self):
+        """Test multiple files in budget category fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
-        }
-        valid, errors = validate_cob_file_metadata(file_metadata)
-        self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-
-    def test_multiple_files_single_category(self):
-        """Test multiple files in single category fails validation."""
-        file_metadata = {
-            'OPIS_INICIJATIVE': [
-                {'name': 'opis1.pdf', 'size': 1024},
-                {'name': 'opis2.pdf', 'size': 2048},
+            'BUDZET_INICIJATIVE': [
+                {'name': 'budget1.xlsx', 'size': 1024},
+                {'name': 'budget2.xlsx', 'size': 2048},
             ],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertIn('BUDZET_INICIJATIVE', errors)
 
     def test_invalid_file_metadata_structure(self):
         """Test invalid file metadata structure fails validation."""
@@ -680,8 +691,7 @@ class COBSectionIIIFormTests(TestCase):
     def test_unexpected_file_categories(self):
         """Test unexpected file categories (COA categories) fail validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
             'BUDGET': [{'name': 'budget.xlsx', 'size': 2048}],  # Invalid for COB
             'BIOGRAPHY': [{'name': 'bio.pdf', 'size': 1024}],  # Invalid for COB
         }
@@ -692,154 +702,170 @@ class COBSectionIIIFormTests(TestCase):
     def test_file_metadata_non_list_value(self):
         """Test file metadata with non-list value fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': 'not a list',
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': 'not a list',
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertIn('BUDZET_INICIJATIVE', errors)
 
-    # ISSUE 4 FIX (HIGH): Test for empty string file names
+    # Story 5.4: Test for empty string file names
     def test_empty_string_filename(self):
         """Test file with empty string name fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': '', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': '', 'size': 1024000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'empty_filename')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'empty_filename')
 
     def test_whitespace_only_filename(self):
         """Test file with whitespace-only name fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': '   ', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': '   ', 'size': 1024000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'empty_filename')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'empty_filename')
 
-    # ISSUE 5 FIX (HIGH): Test for missing 'name' or 'size' fields
+    # Test for missing 'name' or 'size' fields
     def test_missing_name_field(self):
         """Test file object missing 'name' field fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'size': 1024000}],  # Missing 'name'
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'size': 1024000}],  # Missing 'name'
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'missing_name')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'missing_name')
 
     def test_missing_size_field(self):
         """Test file object missing 'size' field fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf'}],  # Missing 'size'
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx'}],  # Missing 'size'
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'missing_size')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'missing_size')
 
     def test_missing_both_name_and_size_fields(self):
         """Test file object missing both 'name' and 'size' fields fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{}],  # Missing both fields
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{}],  # Missing both fields
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        # Should catch missing 'name' first
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'missing_name')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'missing_name')
 
-    # ISSUE 6 FIX (HIGH): Test for invalid file extensions
-    def test_invalid_extension_exe(self):
-        """Test file with .exe extension fails validation."""
+    # Story 5.4: Test for BUDZET_INICIJATIVE requires XLS/XLSX format
+    def test_budzet_invalid_extension_pdf(self):
+        """Story 5.4: Test budget with .pdf extension fails validation (requires XLS/XLSX)."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'malware.exe', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.pdf', 'size': 1024000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'invalid_extension')
 
-    def test_invalid_extension_sh(self):
-        """Test file with .sh extension fails validation."""
+    def test_budzet_invalid_extension_docx(self):
+        """Story 5.4: Test budget with .docx extension fails validation (requires XLS/XLSX)."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'script.sh', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.docx', 'size': 1024000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('PISMO_NAMERE', errors)
-        self.assertEqual(errors['PISMO_NAMERE'][0]['code'], 'invalid_extension')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'invalid_extension')
 
-    def test_invalid_extension_bat(self):
-        """Test file with .bat extension fails validation."""
+    def test_budzet_valid_extension_xls(self):
+        """Story 5.4: Test budget with .xls extension passes validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'script.bat', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
-        }
-        valid, errors = validate_cob_file_metadata(file_metadata)
-        self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
-
-    def test_invalid_extension_jpg(self):
-        """Test file with .jpg extension fails validation."""
-        file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'image.jpg', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
-        }
-        valid, errors = validate_cob_file_metadata(file_metadata)
-        self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
-
-    def test_no_extension(self):
-        """Test file with no extension fails validation."""
-        file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'document', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
-        }
-        valid, errors = validate_cob_file_metadata(file_metadata)
-        self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_extension')
-
-    def test_valid_extensions_case_insensitive(self):
-        """Test valid extensions with different cases pass validation."""
-        file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.PDF', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.DOC', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xls', 'size': 1024000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertTrue(valid)
         self.assertEqual(errors, {})
 
-    # ISSUE 7 FIX (HIGH): Test for file size exceeding 10MB
-    def test_file_size_exceeds_10mb(self):
-        """Test file exceeding 10MB (10485760 bytes) fails validation."""
+    def test_budzet_valid_extension_xlsx(self):
+        """Story 5.4: Test budget with .xlsx extension passes validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 10485761}],  # 10MB + 1 byte
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    # Story 5.4: Test for PISMO_PODRSKE requires PDF/DOC/DOCX format
+    def test_pismo_invalid_extension_xlsx(self):
+        """Story 5.4: Test support letter with .xlsx extension fails validation."""
+        file_metadata = {
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+            'PISMO_PODRSKE': [{'name': 'pismo.xlsx', 'size': 512000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'file_too_large')
+        self.assertIn('PISMO_PODRSKE', errors)
+        self.assertEqual(errors['PISMO_PODRSKE'][0]['code'], 'invalid_extension')
+
+    def test_pismo_valid_extension_pdf(self):
+        """Story 5.4: Test support letter with .pdf extension passes validation."""
+        file_metadata = {
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+            'PISMO_PODRSKE': [{'name': 'pismo.pdf', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    def test_pismo_valid_extension_doc(self):
+        """Story 5.4: Test support letter with .doc extension passes validation."""
+        file_metadata = {
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+            'PISMO_PODRSKE': [{'name': 'pismo.doc', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    def test_no_extension(self):
+        """Test file with no extension fails validation."""
+        file_metadata = {
+            'BUDZET_INICIJATIVE': [{'name': 'document', 'size': 1024000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'invalid_extension')
+
+    def test_valid_extensions_case_insensitive(self):
+        """Test valid extensions with different cases pass validation."""
+        file_metadata = {
+            'BUDZET_INICIJATIVE': [{'name': 'budget.XLSX', 'size': 1024000}],
+            'PISMO_PODRSKE': [{'name': 'pismo.DOC', 'size': 512000}],
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertTrue(valid)
+        self.assertEqual(errors, {})
+
+    # Test for file size exceeding 10MB
+    def test_file_size_exceeds_10mb(self):
+        """Test file exceeding 10MB (10485760 bytes) fails validation."""
+        file_metadata = {
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 10485761}],  # 10MB + 1 byte
+        }
+        valid, errors = validate_cob_file_metadata(file_metadata)
+        self.assertFalse(valid)
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'file_too_large')
 
     def test_file_size_exactly_10mb(self):
         """Test file exactly 10MB (10485760 bytes) passes validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 10485760}],  # Exactly 10MB
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 10485760}],  # Exactly 10MB
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertTrue(valid)
@@ -848,114 +874,75 @@ class COBSectionIIIFormTests(TestCase):
     def test_file_size_zero(self):
         """Test file with zero size fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 0}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 0}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_size')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'invalid_size')
 
     def test_file_size_negative(self):
         """Test file with negative size fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': -1024}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': -1024}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_size')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'invalid_size')
 
     def test_file_size_invalid_format(self):
         """Test file with invalid size format fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 'not_a_number'}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 'not_a_number'}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'invalid_size_format')
+        self.assertIn('BUDZET_INICIJATIVE', errors)
+        self.assertEqual(errors['BUDZET_INICIJATIVE'][0]['code'], 'invalid_size_format')
 
-    # ISSUE 12 FIX (MEDIUM): Test for case-sensitive category names
+    # Test for case-sensitive category names
     def test_lowercase_category_name(self):
         """Test lowercase category name fails validation."""
         file_metadata = {
-            'opis_inicijative': [{'name': 'opis.pdf', 'size': 1024000}],  # Lowercase
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'budzet_inicijative': [{'name': 'budget.xlsx', 'size': 1024000}],  # Lowercase
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        # Should have error for missing OPIS_INICIJATIVE and unexpected category
-        self.assertIn('OPIS_INICIJATIVE', errors)
+        self.assertIn('BUDZET_INICIJATIVE', errors)
         self.assertIn('__all__', errors)
 
     def test_mixed_case_category_name(self):
         """Test mixed case category name fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
-            'Pismo_Namere': [{'name': 'pismo.pdf', 'size': 512000}],  # Mixed case
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+            'Pismo_Podrske': [{'name': 'pismo.pdf', 'size': 512000}],  # Mixed case
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        # Should have error for missing PISMO_NAMERE and unexpected category
-        self.assertIn('PISMO_NAMERE', errors)
         self.assertIn('__all__', errors)
 
-    # ISSUE 13 FIX (MEDIUM): Test for multiple files in both categories simultaneously
-    def test_multiple_files_both_categories(self):
-        """Test multiple files in both categories fails validation."""
+    # Test for multiple files in optional category
+    def test_multiple_files_pismo_podrske(self):
+        """Test multiple files in optional support letter category fails validation."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [
-                {'name': 'opis1.pdf', 'size': 1024},
-                {'name': 'opis2.pdf', 'size': 2048},
-            ],
-            'PISMO_NAMERE': [
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
+            'PISMO_PODRSKE': [
                 {'name': 'pismo1.pdf', 'size': 512},
                 {'name': 'pismo2.pdf', 'size': 1024},
             ],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertFalse(valid)
-        # Both categories should have errors
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertIn('PISMO_NAMERE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'too_many_files')
-        self.assertEqual(errors['PISMO_NAMERE'][0]['code'], 'too_many_files')
+        self.assertIn('PISMO_PODRSKE', errors)
+        self.assertEqual(errors['PISMO_PODRSKE'][0]['code'], 'too_many_files')
 
-    # ISSUE 14 FIX (MEDIUM): Explicit test for exactly 2 files required
-    def test_exactly_two_files_required(self):
-        """Test that exactly 2 files are required (one per category)."""
-        # Missing one file
+    # Story 5.4: Test that only budget is required
+    def test_only_budget_required_success(self):
+        """Story 5.4: Test that only budget file is required for valid submission."""
         file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
-            # Missing PISMO_NAMERE
-        }
-        valid, errors = validate_cob_file_metadata(file_metadata)
-        self.assertFalse(valid)
-        self.assertIn('PISMO_NAMERE', errors)
-
-    def test_exactly_two_files_success(self):
-        """Test that exactly 2 files (one per category) passes validation."""
-        file_metadata = {
-            'OPIS_INICIJATIVE': [{'name': 'opis.pdf', 'size': 1024000}],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
+            'BUDZET_INICIJATIVE': [{'name': 'budget.xlsx', 'size': 1024000}],
         }
         valid, errors = validate_cob_file_metadata(file_metadata)
         self.assertTrue(valid)
         self.assertEqual(errors, {})
-
-    def test_three_files_total_fails(self):
-        """Test that 3 total files fail validation."""
-        file_metadata = {
-            'OPIS_INICIJATIVE': [
-                {'name': 'opis1.pdf', 'size': 1024},
-                {'name': 'opis2.pdf', 'size': 2048},
-            ],
-            'PISMO_NAMERE': [{'name': 'pismo.pdf', 'size': 512000}],
-        }
-        valid, errors = validate_cob_file_metadata(file_metadata)
-        self.assertFalse(valid)
-        self.assertIn('OPIS_INICIJATIVE', errors)
-        self.assertEqual(errors['OPIS_INICIJATIVE'][0]['code'], 'too_many_files')

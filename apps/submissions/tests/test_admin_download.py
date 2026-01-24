@@ -292,15 +292,15 @@ class AdminFileDownloadTests(TestCase):
         self.assertIn(FileType.BUDGET, FILE_CATEGORY_FOLDERS)
         self.assertIn(FileType.BIOGRAPHY, FILE_CATEGORY_FOLDERS)
         self.assertIn(FileType.SUPPORT_LETTER, FILE_CATEGORY_FOLDERS)
-        self.assertIn(FileType.OPIS_INICIJATIVE, FILE_CATEGORY_FOLDERS)
-        self.assertIn(FileType.PISMO_NAMERE, FILE_CATEGORY_FOLDERS)
+        self.assertIn(FileType.BUDZET_INICIJATIVE, FILE_CATEGORY_FOLDERS)
+        self.assertIn(FileType.PISMO_PODRSKE, FILE_CATEGORY_FOLDERS)
 
         # Verify correct folder mappings
         self.assertEqual(FILE_CATEGORY_FOLDERS[FileType.BUDGET], 'budgets')
         self.assertEqual(FILE_CATEGORY_FOLDERS[FileType.BIOGRAPHY], 'biographies')
         self.assertEqual(FILE_CATEGORY_FOLDERS[FileType.SUPPORT_LETTER], 'letters_of_support')
-        self.assertEqual(FILE_CATEGORY_FOLDERS[FileType.OPIS_INICIJATIVE], 'initiative_descriptions')
-        self.assertEqual(FILE_CATEGORY_FOLDERS[FileType.PISMO_NAMERE], 'letters_of_intent')
+        self.assertEqual(FILE_CATEGORY_FOLDERS[FileType.BUDZET_INICIJATIVE], 'initiative_descriptions')
+        self.assertEqual(FILE_CATEGORY_FOLDERS[FileType.PISMO_PODRSKE], 'letters_of_intent')
 
         # Verify Serbian keys do NOT exist (regression prevention)
         self.assertNotIn('BUDZET', FILE_CATEGORY_FOLDERS)

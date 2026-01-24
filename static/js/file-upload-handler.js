@@ -59,10 +59,11 @@ class FileUploadHandler {
    * @returns {Array} Array of allowed extensions
    */
   getAllowedExtensions() {
-    if (this.category === 'BUDGET') {
+    // Story 5.4: BUDZET_INICIJATIVE uses Excel (XLS/XLSX)
+    if (this.category === 'BUDGET' || this.category === 'BUDZET_INICIJATIVE') {
       return ['xls', 'xlsx'];
     } else if (this.category === 'BIOGRAPHY' || this.category === 'SUPPORT_LETTER' ||
-               this.category === 'OPIS_INICIJATIVE' || this.category === 'PISMO_NAMERE') {
+               this.category === 'PISMO_PODRSKE') {
       return ['pdf', 'doc', 'docx'];
     }
     return [];
@@ -130,8 +131,8 @@ class FileUploadHandler {
     // Clear previous errors
     this.clearError();
 
-    // For BUDGET, OPIS_INICIJATIVE, and PISMO_NAMERE categories, only allow 1 file
-    if ((this.category === 'BUDGET' || this.category === 'OPIS_INICIJATIVE' || this.category === 'PISMO_NAMERE') && files.length > 1) {
+    // Story 5.4: For single-file categories, only allow 1 file
+    if ((this.category === 'BUDGET' || this.category === 'BUDZET_INICIJATIVE' || this.category === 'PISMO_PODRSKE') && files.length > 1) {
       this.showError('Može se upload-ovati samo jedan fajl.');
       return;
     }
@@ -291,7 +292,8 @@ class FileUploadHandler {
 
     // BUGFIX: For single-file categories, remove any existing file in the same category
     // before adding the new one. This prevents duplicate files when replacing uploads.
-    const singleFileCategories = ['BUDGET', 'OPIS_INICIJATIVE', 'PISMO_NAMERE'];
+    // Story 5.4: Updated COB categories
+    const singleFileCategories = ['BUDGET', 'BUDZET_INICIJATIVE', 'PISMO_PODRSKE'];
     if (singleFileCategories.includes(this.category)) {
       window.uploadedFilesRegistry = window.uploadedFilesRegistry.filter(
         file => file.category !== this.category
@@ -455,8 +457,8 @@ class FileUploadHandler {
     const btn = this.uploadZone.querySelector('.upload-btn');
     if (btn) {
       btn.disabled = false;
-      // Single file categories use singular form
-      const singleFileCategories = ['BUDGET', 'OPIS_INICIJATIVE', 'PISMO_NAMERE'];
+      // Story 5.4: Single file categories use singular form
+      const singleFileCategories = ['BUDGET', 'BUDZET_INICIJATIVE', 'PISMO_PODRSKE'];
       btn.textContent = singleFileCategories.includes(this.category) ? 'Odaberi fajl' : 'Odaberi fajl(ove)';
     }
   }
@@ -545,7 +547,8 @@ function getUploadedFiles() {
   const applicationType = document.body.dataset.applicationType || 'COA';
 
   // Define valid file categories for each application type
-  const cobCategories = ['OPIS_INICIJATIVE', 'PISMO_NAMERE'];
+  // Story 5.4: Updated COB categories
+  const cobCategories = ['BUDZET_INICIJATIVE', 'PISMO_PODRSKE'];
   const coaCategories = ['BUDGET', 'BIOGRAPHY', 'SUPPORT_LETTER'];
 
   // Filter files by current application type to prevent cross-form contamination
@@ -619,35 +622,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Initialize COB form upload handlers (Story 3-4)
-  const opisInicijativeHandler = new FileUploadHandler(
-    'opis-inicijative-upload-zone',
-    'opis-inicijative-file-input',
-    'opis-inicijative-files-list',
-    'opis-inicijative-upload-error',
-    'OPIS_INICIJATIVE'
+  // Story 5.4: Initialize COB form upload handlers (Updated categories)
+  const budzetInicijativeHandler = new FileUploadHandler(
+    'budzet-inicijative-upload-zone',
+    'budzet-inicijative-file-input',
+    'budzet-inicijative-files-list',
+    'budzet-inicijative-upload-error',
+    'BUDZET_INICIJATIVE'
   );
 
-  const pismoNamereHandler = new FileUploadHandler(
-    'pismo-namere-upload-zone',
-    'pismo-namere-file-input',
-    'pismo-namere-files-list',
-    'pismo-namere-upload-error',
-    'PISMO_NAMERE'
+  const pismoPodrskereHandler = new FileUploadHandler(
+    'pismo-podrske-upload-zone',
+    'pismo-podrske-file-input',
+    'pismo-podrske-files-list',
+    'pismo-podrske-upload-error',
+    'PISMO_PODRSKE'
   );
 
-  // Attach click handlers for COB upload buttons
-  const opisInicijativeBtn = document.getElementById('opis-inicijative-upload-btn');
-  if (opisInicijativeBtn) {
-    opisInicijativeBtn.addEventListener('click', () => {
-      document.getElementById('opis-inicijative-file-input').click();
+  // Story 5.4: Attach click handlers for COB upload buttons
+  const budzetInicijativeBtn = document.getElementById('budzet-inicijative-upload-btn');
+  if (budzetInicijativeBtn) {
+    budzetInicijativeBtn.addEventListener('click', () => {
+      document.getElementById('budzet-inicijative-file-input').click();
     });
   }
 
-  const pismoNamereBtn = document.getElementById('pismo-namere-upload-btn');
-  if (pismoNamereBtn) {
-    pismoNamereBtn.addEventListener('click', () => {
-      document.getElementById('pismo-namere-file-input').click();
+  const pismoPodrskeBtn = document.getElementById('pismo-podrske-upload-btn');
+  if (pismoPodrskeBtn) {
+    pismoPodrskeBtn.addEventListener('click', () => {
+      document.getElementById('pismo-podrske-file-input').click();
     });
   }
 
@@ -656,7 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.budgetHandler = budgetHandler;
     window.biografijeHandler = biografijeHandler;
     window.pismaHandler = pismaHandler;
-    window.opisInicijativeHandler = opisInicijativeHandler;
-    window.pismoNamereHandler = pismoNamereHandler;
+    window.budzetInicijativeHandler = budzetInicijativeHandler;
+    window.pismoPodrskeHandler = pismoPodrskereHandler;
   }
 });

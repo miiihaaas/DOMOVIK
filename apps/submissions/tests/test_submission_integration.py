@@ -389,7 +389,7 @@ class SubmissionIntegrationTest(TestCase):
     def test_cob_submission_with_two_files(self):
         """
         Test 7: COB submission - Verify COB works with 2 files only
-        BUGFIX TEST: COB should only require OPIS_INICIJATIVE and PISMO_NAMERE
+        BUGFIX TEST: COB should only require BUDZET_INICIJATIVE and PISMO_PODRSKE
 
         Verifies:
         - COB submission succeeds with correct categories
@@ -405,7 +405,7 @@ class SubmissionIntegrationTest(TestCase):
             file_size=50000,
             file_type='pdf',
             mime_type='application/pdf',
-            category='OPIS_INICIJATIVE',
+            category='BUDZET_INICIJATIVE',
             uploaded_by_session=self.session_key,
             application=None
         )
@@ -417,7 +417,7 @@ class SubmissionIntegrationTest(TestCase):
             file_size=75000,
             file_type='pdf',
             mime_type='application/pdf',
-            category='PISMO_NAMERE',
+            category='PISMO_PODRSKE',
             uploaded_by_session=self.session_key,
             application=None
         )

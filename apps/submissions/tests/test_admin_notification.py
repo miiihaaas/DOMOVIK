@@ -321,8 +321,8 @@ class COBSubmissionAdminNotificationTests(TestCase):
                 'ocekivani_uticaj': 'Uticaj ' + 'x' * 100
             },
             'files': [
-                {'file_type': 'OPIS_INICIJATIVE', 'name': 'opis.pdf', 'size': 1024, 'stored_name': 'opis_uuid.pdf'},
-                {'file_type': 'PISMO_NAMERE', 'name': 'pismo.pdf', 'size': 2048, 'stored_name': 'pismo_uuid.pdf'}
+                {'file_type': 'BUDZET_INICIJATIVE', 'name': 'opis.pdf', 'size': 1024, 'stored_name': 'opis_uuid.pdf'},
+                {'file_type': 'PISMO_PODRSKE', 'name': 'pismo.pdf', 'size': 2048, 'stored_name': 'pismo_uuid.pdf'}
             ],
             'consent': {
                 'privacy': True,

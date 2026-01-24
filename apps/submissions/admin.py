@@ -100,8 +100,9 @@ class FileMetadataInline(admin.TabularInline):
             'BUDZET': '📊 Budžet projekta',
             'BIOGRAFIJA': '👤 Biografija člana tima',
             'PISMO_PODRSKE': '✉️ Pismo podrške',
-            'OPIS_INICIJATIVE': '📄 Opis inicijative',
-            'PISMO_NAMERE': '✉️ Pismo namere',
+            # Story 5.4: Updated COB categories
+            'BUDZET_INICIJATIVE': '📊 Budžet inicijative',
+            'PISMO_PODRSKE': '✉️ Pismo podrške (COB)',
         }
         return category_labels.get(obj.file_type, obj.file_type)
     get_category_serbian.short_description = 'Kategorija'

@@ -412,26 +412,28 @@ class SubmissionHandler {
   /**
    * Collect file metadata for COB submissions
    * Story 3.5: COB file metadata collection
+   * Story 5.4: Updated categories (BUDZET_INICIJATIVE, PISMO_PODRSKE)
    * @returns {Array} File metadata array
    */
   collectFileMetadata() {
     const files = [];
 
-    // Get file upload elements (COB has 2 files)
-    const opisFile = document.getElementById('opis_inicijative_file');
-    const pismoFile = document.getElementById('pismo_namere_file');
+    // Story 5.4: Get file upload elements (COB has 2 files - budget required, support letter optional)
+    const budzetFile = document.getElementById('budzet_inicijative_file');
+    const pismoFile = document.getElementById('pismo_podrske_file');
 
-    if (opisFile && opisFile.files.length > 0) {
+    if (budzetFile && budzetFile.files.length > 0) {
       files.push({
-        file_type: 'OPIS_INICIJATIVE',
-        name: opisFile.files[0].name,
-        size: opisFile.files[0].size
+        file_type: 'BUDZET_INICIJATIVE',
+        name: budzetFile.files[0].name,
+        size: budzetFile.files[0].size
       });
     }
 
+    // Story 5.4: Pismo podrške is optional
     if (pismoFile && pismoFile.files.length > 0) {
       files.push({
-        file_type: 'PISMO_NAMERE',
+        file_type: 'PISMO_PODRSKE',
         name: pismoFile.files[0].name,
         size: pismoFile.files[0].size
       });

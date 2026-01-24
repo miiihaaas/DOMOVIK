@@ -633,40 +633,41 @@ def submit_cob(request):
                 'error': 'Sve saglasnosti (privatnost, uslovi, tačnost) su obavezne.'
             }, status=400)
 
-        # Validate file metadata (exactly 2 files required)
-        if len(files_metadata) != 2:
+        # Story 5.4: Validate file metadata (1-2 files: BUDZET_INICIJATIVE required, PISMO_PODRSKE optional)
+        if len(files_metadata) < 1 or len(files_metadata) > 2:
             submission_logger.warning(
                 f"COB submission wrong file count: {len(files_metadata)}, ip={request.META.get('REMOTE_ADDR')}"
             )
             return JsonResponse({
                 'success': False,
-                'error': f'Tačno 2 dokumenta su obavezna (primljeno: {len(files_metadata)}).'
+                'error': f'Potreban je 1-2 dokumenta (primljeno: {len(files_metadata)}).'
             }, status=400)
 
-        # FIX #10: Validate file categories with user-friendly error
+        # Story 5.4: Validate file categories - BUDZET_INICIJATIVE required, PISMO_PODRSKE optional
         file_categories = {f.get('file_type') for f in files_metadata}
-        required_categories = {FileType.OPIS_INICIJATIVE, FileType.PISMO_NAMERE}
-        if file_categories != required_categories:
-            # FIX #10: Human-readable Serbian error
-            missing = required_categories - file_categories
-            extra = file_categories - required_categories
-            error_parts = []
-            if missing:
-                missing_names = []
-                if FileType.OPIS_INICIJATIVE in missing:
-                    missing_names.append('Opis inicijative')
-                if FileType.PISMO_NAMERE in missing:
-                    missing_names.append('Pismo namere')
-                error_parts.append(f"Nedostaju: {', '.join(missing_names)}")
-            if extra:
-                error_parts.append(f"Suvišno: {', '.join(extra)}")
+        required_category = FileType.BUDZET_INICIJATIVE
+        optional_category = FileType.PISMO_PODRSKE
+        valid_categories = {required_category, optional_category}
 
+        # Check if required budget file is present
+        if required_category not in file_categories:
             submission_logger.warning(
-                f"COB submission wrong file categories: missing={missing}, extra={extra}, ip={request.META.get('REMOTE_ADDR')}"
+                f"COB submission missing required budget file, ip={request.META.get('REMOTE_ADDR')}"
             )
             return JsonResponse({
                 'success': False,
-                'error': f'Nedostaju obavezni dokumenti. {"; ".join(error_parts)}.'
+                'error': 'Nedostaje obavezan dokument: Budžet inicijative.'
+            }, status=400)
+
+        # Check for unexpected categories
+        extra = file_categories - valid_categories
+        if extra:
+            submission_logger.warning(
+                f"COB submission unexpected file categories: extra={extra}, ip={request.META.get('REMOTE_ADDR')}"
+            )
+            return JsonResponse({
+                'success': False,
+                'error': f'Neočekivane kategorije dokumenata: {", ".join(extra)}.'
             }, status=400)
 
         # FIX #3: Duplicate submission prevention (same email + naslov in last 5 minutes)
@@ -1295,8 +1296,8 @@ def validate_cob_section_iii(request):
     Body: {
         saglasnost_gdpr: true/false,
         file_metadata: {
-            'OPIS_INICIJATIVE': [{name, size}],
-            'PISMO_NAMERE': [{name, size}]
+            'BUDZET_INICIJATIVE': [{name, size}],  # Required, XLS/XLSX
+            'PISMO_PODRSKE': [{name, size}]  # Optional, PDF/DOC/DOCX
         }
     }
 

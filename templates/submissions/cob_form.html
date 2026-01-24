@@ -131,7 +131,7 @@
         <div class="form-group">
           <label for="id_telefon">Telefon *</label>
           <input type="tel" name="telefon" id="id_telefon" autocomplete="tel" aria-invalid="false" aria-describedby="id_telefon_error" required>
-          <small class="help-text">npr: 06xxxxxxx ili 06xxxxxxxx</small>
+          <small class="help-text">Samo cifre, najmanje 6 cifara</small>
           <div id="id_telefon_error" class="validation-error" aria-live="polite" style="display: none;"></div>
         </div>
       </div>
@@ -254,38 +254,38 @@
       <fieldset class="section-iii__fieldset">
         <legend class="sr-only">Upload dokumenata</legend>
 
-        <!-- Opis inicijative Upload (Single PDF/DOC File) -->
-        <div class="file-upload-section" id="opis-inicijative-upload-section">
-          <h3 class="file-upload-section__title">Opis inicijative *</h3>
+        <!-- Story 5.4: Budžet inicijative Upload (Single XLS/XLSX File) - REQUIRED -->
+        <div class="file-upload-section" id="budzet-inicijative-upload-section">
+          <h3 class="file-upload-section__title">Budžet inicijative *</h3>
 
-          <div class="upload-zone" id="opis-inicijative-upload-zone" data-category="OPIS_INICIJATIVE">
-            <input type="file" id="opis-inicijative-file-input" accept=".pdf,.doc,.docx" style="display:none;" aria-label="Odaberi fajl za opis inicijative">
-            <button type="button" class="upload-btn" id="opis-inicijative-upload-btn">
+          <div class="upload-zone" id="budzet-inicijative-upload-zone" data-category="BUDZET_INICIJATIVE">
+            <input type="file" id="budzet-inicijative-file-input" accept=".xls,.xlsx" style="display:none;" aria-label="Odaberi Excel fajl za budžet inicijative">
+            <button type="button" class="upload-btn" id="budzet-inicijative-upload-btn">
               Odaberi fajl
             </button>
             <p class="drag-text">ili prevuci fajl ovde</p>
-            <small class="help-text">Podržani formati: PDF, DOC, DOCX. Maksimalna veličina: 10MB.</small>
+            <small class="help-text">Podržani formati: XLS, XLSX (Excel). Maksimalna veličina: 10MB.</small>
           </div>
 
-          <div class="uploaded-files-list" id="opis-inicijative-files-list"></div>
-          <div class="upload-error" id="opis-inicijative-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
+          <div class="uploaded-files-list" id="budzet-inicijative-files-list"></div>
+          <div class="upload-error" id="budzet-inicijative-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
         </div>
 
-        <!-- Pismo namere Upload (Single PDF/DOC File) -->
-        <div class="file-upload-section" id="pismo-namere-upload-section">
-          <h3 class="file-upload-section__title">Pismo namere *</h3>
+        <!-- Story 5.4: Pismo podrške Upload (Single PDF/DOC File) - OPTIONAL -->
+        <div class="file-upload-section" id="pismo-podrske-upload-section">
+          <h3 class="file-upload-section__title">Pismo podrške</h3>
 
-          <div class="upload-zone" id="pismo-namere-upload-zone" data-category="PISMO_NAMERE">
-            <input type="file" id="pismo-namere-file-input" accept=".pdf,.doc,.docx" style="display:none;" aria-label="Odaberi fajl za pismo namere">
-            <button type="button" class="upload-btn" id="pismo-namere-upload-btn">
+          <div class="upload-zone" id="pismo-podrske-upload-zone" data-category="PISMO_PODRSKE">
+            <input type="file" id="pismo-podrske-file-input" accept=".pdf,.doc,.docx" style="display:none;" aria-label="Odaberi fajl za pismo podrške (opciono)">
+            <button type="button" class="upload-btn" id="pismo-podrske-upload-btn">
               Odaberi fajl
             </button>
             <p class="drag-text">ili prevuci fajl ovde</p>
-            <small class="help-text">Podržani formati: PDF, DOC, DOCX. Maksimalna veličina: 10MB.</small>
+            <small class="help-text">Podržani formati: PDF, DOC, DOCX. Maksimalna veličina: 10MB. (Opciono)</small>
           </div>
 
-          <div class="uploaded-files-list" id="pismo-namere-files-list"></div>
-          <div class="upload-error" id="pismo-namere-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
+          <div class="uploaded-files-list" id="pismo-podrske-files-list"></div>
+          <div class="upload-error" id="pismo-podrske-upload-error" style="display:none;" role="alert" aria-live="assertive"></div>
         </div>
 
         <!-- NO BUDGET, BIOGRAFIJE, PISMA PODRŠKE - COB simplification -->
