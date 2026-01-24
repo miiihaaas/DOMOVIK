@@ -475,9 +475,12 @@ def submit_application(request):
         # Log unexpected exception
         logger.error(f"Unexpected submission error: {str(e)}", exc_info=True)
 
+        error_msg = 'Došlo je do neočekivane greške. Molimo pokušajte ponovo ili kontaktirajte podršku.'
+        if settings.DEBUG:
+            error_msg = f'DEBUG: {str(e)}'
         return JsonResponse({
             'success': False,
-            'error': 'Došlo je do neočekivane greške. Molimo pokušajte ponovo ili kontaktirajte podršku.'
+            'error': error_msg
         }, status=500)
 
 
@@ -857,9 +860,12 @@ def submit_cob(request):
             exc_info=True
         )
 
+        error_msg = 'Greška pri čuvanju prijave. Molimo pokušajte ponovo.'
+        if settings.DEBUG:
+            error_msg = f'DEBUG: {str(e)}'
         return JsonResponse({
             'success': False,
-            'error': 'Greška pri čuvanju prijave. Molimo pokušajte ponovo.'
+            'error': error_msg
         }, status=500)
 
 
