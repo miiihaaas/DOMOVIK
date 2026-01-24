@@ -12,6 +12,7 @@ This module provides services for:
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from apps.submissions.models import (
     ReferenceNumberSequence,
     Application,
@@ -271,9 +272,12 @@ def process_submission(submission_data):
         logger.error(f"Submission FAILURE: {str(e)}", exc_info=True)
 
         # Return user-friendly error message (no stack trace)
+        error_msg = 'Greška pri čuvanju prijave. Molimo pokušajte ponovo.'
+        if settings.DEBUG:
+            error_msg = f'DEBUG: {str(e)}'
         return {
             'success': False,
-            'error': 'Greška pri čuvanju prijave. Molimo pokušajte ponovo.'
+            'error': error_msg
         }
 
 
