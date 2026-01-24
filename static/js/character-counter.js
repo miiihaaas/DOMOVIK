@@ -271,11 +271,18 @@ function validateBudgetField() {
 
 /**
  * Format budget field with thousand separators (Task 5.8, 5.14)
- * Serbian format: 1.000.000,00 (on blur)
+ * NOTE: Disabled for type="number" fields as browsers don't accept locale-formatted values
+ * The browser handles number display natively for type="number" inputs
  */
 function formatBudgetField() {
   const budgetField = document.getElementById('id_budžet');
   if (!budgetField) return;
+
+  // Skip formatting for type="number" fields - browser handles this natively
+  // Serbian locale formatting (1.000,00) is incompatible with type="number" which expects dots for decimals
+  if (budgetField.type === 'number') {
+    return;
+  }
 
   const rawValue = budgetField.value.replace(/\./g, '').replace(',', '.');
 
@@ -292,10 +299,16 @@ function formatBudgetField() {
 
 /**
  * Remove formatting on focus for easy editing (Task 5.9, 5.15)
+ * NOTE: Disabled for type="number" fields
  */
 function unformatBudgetField() {
   const budgetField = document.getElementById('id_budžet');
   if (!budgetField) return;
+
+  // Skip for type="number" fields - they don't have locale formatting
+  if (budgetField.type === 'number') {
+    return;
+  }
 
   // Remove thousand separators (dots) and replace decimal comma with dot
   const rawValue = budgetField.value.replace(/\./g, '').replace(',', '.');
