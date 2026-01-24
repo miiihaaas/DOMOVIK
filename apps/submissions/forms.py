@@ -690,15 +690,25 @@ class COBInitiativeDataForm(forms.Form):
     """
     COB (Inicijativa) Section II - Initiative data validation.
 
-    Differences from COA:
-    - NO budžet field (COB doesn't require budget)
-    - NO ciljne_grupe, aktivnosti, rezultati (simpler structure)
-    - Problem limit: 1500 chars (vs COA's 2000)
-    - Single cilj field: 1500 chars (vs COA's glavni_cilj + specifični_ciljevi)
+    Story 3.5: Initial COB form
+    Story 5.3: Added naziv_tima, date fields, totalni_budzet
+              Renamed "Planirani koraci" to "Planirane aktivnosti"
 
     Architecture: Dual-layer validation (client-side + server-side)
     GDPR: Validation only, does NOT persist draft data
     """
+
+    # Story 5.3: Naziv tima - FIRST field in Section II
+    naziv_tima = forms.CharField(
+        max_length=150,
+        required=True,
+        label='Naziv tima',
+        error_messages={
+            'required': 'Naziv tima je obavezan.',
+            'max_length': 'Naziv tima ne može biti duži od 150 karaktera.',
+        },
+        widget=forms.TextInput(attrs={'maxlength': '150'})
+    )
 
     # Naslov inicijative
     naslov = forms.CharField(
@@ -733,7 +743,7 @@ class COBInitiativeDataForm(forms.Form):
             'required': 'Opis problema je obavezan.',
             'max_length': 'Opis problema ne može biti duži od 1500 karaktera.',
         },
-        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})
     )
 
     # Cilj inicijative
@@ -745,19 +755,19 @@ class COBInitiativeDataForm(forms.Form):
             'required': 'Cilj inicijative je obavezan.',
             'max_length': 'Cilj inicijative ne može biti duži od 1500 karaktera.',
         },
-        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})
     )
 
-    # Planirani koraci
+    # Story 5.3: Renamed from "Planirani koraci" to "Planirane aktivnosti"
     planirani_koraci = forms.CharField(
         max_length=1500,
         required=True,
-        label='Planirani koraci',
+        label='Planirane aktivnosti',  # Story 5.3: Changed label
         error_messages={
-            'required': 'Planirani koraci su obavezni.',
-            'max_length': 'Planirani koraci ne mogu biti duži od 1500 karaktera.',
+            'required': 'Planirane aktivnosti su obavezne.',
+            'max_length': 'Planirane aktivnosti ne mogu biti duže od 1500 karaktera.',
         },
-        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})
     )
 
     # Očekivani uticaj na zajednicu
@@ -769,27 +779,69 @@ class COBInitiativeDataForm(forms.Form):
             'required': 'Očekivani uticaj je obavezan.',
             'max_length': 'Očekivani uticaj ne može biti duži od 1500 karaktera.',
         },
-        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})  # ISSUE 15 FIX: Add maxlength attribute
+        widget=forms.Textarea(attrs={'rows': 5, 'maxlength': '1500'})
     )
 
-    # NO budžet field - COB simplification
-    # NO ciljne_grupe field - COB simplification
-    # NO aktivnosti field - COB simplification
-    # NO rezultati field - COB simplification
+    # Story 5.3: Project timeline dates
+    datum_startovanja = forms.DateField(
+        required=True,
+        label='Datum startovanja',
+        error_messages={
+            'required': 'Datum startovanja je obavezan.',
+            'invalid': 'Neispravan format datuma.',
+        },
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control date-picker',
+        })
+    )
 
-    # ISSUE 16 FIX: Removed clean() method - it's DEAD CODE
-    # Django calls clean_<field>() FIRST, then clean()
-    # By the time clean() executes, values are already stripped by clean_<field>() methods
-    # So the check "if value and not value.strip()" would NEVER trigger
-    # Whitespace validation is correctly handled in individual clean_<field>() methods below
+    datum_zavrsetka = forms.DateField(
+        required=True,
+        label='Datum završetka',
+        error_messages={
+            'required': 'Datum završetka je obavezan.',
+            'invalid': 'Neispravan format datuma.',
+        },
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control date-picker',
+        })
+    )
+
+    # Story 5.3: Total budget in EUR
+    totalni_budzet = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        required=True,
+        label='Totalni budžet (EUR)',
+        error_messages={
+            'required': 'Totalni budžet je obavezan.',
+            'invalid': 'Neispravan format iznosa.',
+            'max_digits': 'Iznos ima previše cifara.',
+        },
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0',
+            'placeholder': '0.00',
+            'class': 'form-control budget-input',
+        })
+    )
+
+    def clean_naziv_tima(self):
+        """Normalize and validate naziv_tima."""
+        naziv_tima = self.cleaned_data.get('naziv_tima')
+        if naziv_tima:
+            naziv_tima = naziv_tima.strip()
+            if not naziv_tima:
+                raise ValidationError('Naziv tima ne može biti prazan.')
+        return naziv_tima
 
     def clean_naslov(self):
         """Normalize and validate naslov."""
         naslov = self.cleaned_data.get('naslov')
         if naslov:
-            # Strip leading/trailing whitespace
             naslov = naslov.strip()
-            # Ensure non-empty after strip
             if not naslov:
                 raise ValidationError('Naslov ne može biti prazan.')
         return naslov
@@ -822,12 +874,12 @@ class COBInitiativeDataForm(forms.Form):
         return cilj
 
     def clean_planirani_koraci(self):
-        """Normalize and validate planirani_koraci."""
+        """Normalize and validate planirani_koraci (now called 'Planirane aktivnosti')."""
         planirani_koraci = self.cleaned_data.get('planirani_koraci')
         if planirani_koraci:
             planirani_koraci = planirani_koraci.strip()
             if not planirani_koraci:
-                raise ValidationError('Planirani koraci ne mogu biti prazni.')
+                raise ValidationError('Planirane aktivnosti ne mogu biti prazne.')
         return planirani_koraci
 
     def clean_ocekivani_uticaj(self):
@@ -838,6 +890,34 @@ class COBInitiativeDataForm(forms.Form):
             if not ocekivani_uticaj:
                 raise ValidationError('Očekivani uticaj ne može biti prazan.')
         return ocekivani_uticaj
+
+    def clean_totalni_budzet(self):
+        """Validate totalni_budzet - must be non-negative."""
+        totalni_budzet = self.cleaned_data.get('totalni_budzet')
+        if totalni_budzet is not None and totalni_budzet < 0:
+            raise ValidationError('Budžet mora biti pozitivan broj.')
+        return totalni_budzet
+
+    def clean(self):
+        """
+        Cross-field validation for Section II.
+
+        Story 5.3: Validates that datum_zavrsetka >= datum_startovanja
+        """
+        cleaned_data = super().clean()
+
+        datum_startovanja = cleaned_data.get('datum_startovanja')
+        datum_zavrsetka = cleaned_data.get('datum_zavrsetka')
+
+        # Validate date range if both dates are provided
+        if datum_startovanja and datum_zavrsetka:
+            if datum_zavrsetka < datum_startovanja:
+                self.add_error(
+                    'datum_zavrsetka',
+                    'Datum završetka ne može biti pre datuma startovanja.'
+                )
+
+        return cleaned_data
 
 
 class COBSectionIIIForm(forms.Form):

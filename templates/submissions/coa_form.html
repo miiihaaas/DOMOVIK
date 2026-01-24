@@ -277,11 +277,14 @@
           </div>
         </div>
 
-        <!-- Totalni budžet -->
-        <div class="form-group section-ii__field">
-          <label for="id_budžet">Totalni budžet (EUR) *</label>
-          <input type="text" name="budžet" id="id_budžet" placeholder="0.00" aria-required="true" aria-describedby="id_budžet_error id_budžet_help" inputmode="decimal">
-          <small id="id_budžet_help" class="help-text">Unesite iznos u dinarima (npr. 1000000)</small>
+        <!-- Totalni budžet (Story 5.3: Updated to match COB style with EUR label) -->
+        <div class="form-group section-ii__field budget-field">
+          <label for="id_budžet">Totalni budžet *</label>
+          <div class="budget-input-wrapper">
+            <input type="number" name="budžet" id="id_budžet" step="0.01" min="0" placeholder="0.00" class="form-control budget-input" aria-required="true" aria-describedby="id_budžet_error id_budžet_help" inputmode="decimal">
+            <span class="currency-label">EUR</span>
+          </div>
+          <small id="id_budžet_help" class="help-text">Unesite ukupan budžet u eurima</small>
           <div id="id_budžet_error" class="validation-error" aria-live="polite" style="display: none;"></div>
         </div>
       </fieldset>

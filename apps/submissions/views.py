@@ -734,15 +734,38 @@ def submit_cob(request):
                 maticni_broj=applicant_data.get('registracioni_broj', ''),
             )
 
-            # 4. Create InitiativeData record (COB-specific, NO budžet)
+            # 4. Create InitiativeData record (Story 3.5, Story 5.3: Added naziv_tima, dates, budget)
+            # Story 5.3: Parse date strings to date objects (YYYY-MM-DD format from HTML5 date input)
+            from datetime import datetime as dt
+            datum_startovanja = None
+            datum_zavrsetka = None
+            if initiative_data.get('datum_startovanja'):
+                datum_startovanja = dt.strptime(initiative_data['datum_startovanja'], '%Y-%m-%d').date()
+            if initiative_data.get('datum_zavrsetka'):
+                datum_zavrsetka = dt.strptime(initiative_data['datum_zavrsetka'], '%Y-%m-%d').date()
+
+            # Story 5.3: Parse totalni_budzet to Decimal
+            from decimal import Decimal
+            totalni_budzet = None
+            if initiative_data.get('totalni_budzet'):
+                totalni_budzet = Decimal(str(initiative_data['totalni_budzet']))
+
             initiative = InitiativeData.objects.create(
                 application=application,
+                # Story 5.3: Team name - FIRST field
+                naziv_tima=initiative_data.get('naziv_tima', ''),
                 naslov=initiative_data.get('naslov'),
                 kratak_opis=initiative_data.get('kratak_opis'),
                 problem=initiative_data.get('problem'),
                 cilj_inicijative=initiative_data.get('cilj_inicijative'),
+                # Story 5.3: Now called "Planirane aktivnosti" in UI
                 planirani_koraci=initiative_data.get('planirani_koraci'),
-                ocekivani_uticaj=initiative_data.get('ocekivani_uticaj')
+                ocekivani_uticaj=initiative_data.get('ocekivani_uticaj'),
+                # Story 5.3: Project timeline dates
+                datum_startovanja=datum_startovanja,
+                datum_zavrsetka=datum_zavrsetka,
+                # Story 5.3: Total budget in EUR
+                totalni_budzet=totalni_budzet
             )
 
             # FIX #1: Create FileMetadata records (Story requirement)

@@ -348,13 +348,16 @@ class InitiativeData(models.Model):
     """
     COB (Inicijativa) - Initiative-specific data.
 
-    Differences from ProjectData (COA):
-    - NO budžet field
-    - NO ciljne_grupe, aktivnosti, rezultati fields
-    - HAS planirani_koraci and ocekivani_uticaj fields
+    Story 3.5: COB Submission Processing
+    Story 5.3: Added naziv_tima, date fields, totalni_budzet
+
+    Fields added in Story 5.3:
+    - naziv_tima: Team name (max 150 chars)
+    - datum_startovanja: Project start date
+    - datum_zavrsetka: Project end date
+    - totalni_budzet: Total budget in EUR
 
     Architecture: OneToOne with Application (type="COB")
-    Story 3.5: COB Submission Processing
     """
 
     application = models.OneToOneField(
@@ -364,13 +367,48 @@ class InitiativeData(models.Model):
         verbose_name='Prijava'
     )
 
+    # Story 5.3: Team name - FIRST field in Section II
+    naziv_tima = models.CharField(
+        max_length=150,
+        verbose_name='Naziv tima',
+        help_text='Ime tima koji podnosi inicijativu',
+        blank=True,  # Allow blank for migration, will be required in form
+        default=''
+    )
+
     # Initiative details (from Story 3-3, epics.md - Story 3.3)
     naslov = models.CharField(max_length=150, verbose_name='Naslov inicijative')
     kratak_opis = models.TextField(max_length=500, verbose_name='Kratak opis')
     problem = models.TextField(max_length=1500, verbose_name='Problem koji inicijativa rešava')
     cilj_inicijative = models.TextField(max_length=1500, verbose_name='Cilj inicijative')
-    planirani_koraci = models.TextField(max_length=1500, verbose_name='Planirani koraci')
+    # Story 5.3: Renamed verbose_name from "Planirani koraci" to "Planirane aktivnosti"
+    planirani_koraci = models.TextField(max_length=1500, verbose_name='Planirane aktivnosti')
     ocekivani_uticaj = models.TextField(max_length=1500, verbose_name='Očekivani uticaj na zajednicu')
+
+    # Story 5.3: Project timeline dates
+    datum_startovanja = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Datum startovanja',
+        help_text='Planirani datum početka inicijative'
+    )
+
+    datum_zavrsetka = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Datum završetka',
+        help_text='Planirani datum završetka inicijative'
+    )
+
+    # Story 5.3: Total budget in EUR
+    totalni_budzet = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Totalni budžet',
+        help_text='Ukupan budžet u EUR'
+    )
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Datum kreiranja')
@@ -387,6 +425,27 @@ class InitiativeData(models.Model):
 
     def __str__(self):
         return f"Initiative: {self.naslov} ({self.application.reference_number})"
+
+    def clean(self):
+        """
+        Validate initiative data including date constraints.
+
+        Story 5.3: Ensures datum_zavrsetka >= datum_startovanja
+        """
+        super().clean()
+
+        # Validate date range if both dates are provided
+        if self.datum_startovanja and self.datum_zavrsetka:
+            if self.datum_zavrsetka < self.datum_startovanja:
+                raise ValidationError({
+                    'datum_zavrsetka': 'Datum završetka ne može biti pre datuma startovanja.'
+                })
+
+        # Validate budget is non-negative
+        if self.totalni_budzet is not None and self.totalni_budzet < 0:
+            raise ValidationError({
+                'totalni_budzet': 'Budžet mora biti pozitivan broj.'
+            })
 
 
 class FileMetadata(models.Model):

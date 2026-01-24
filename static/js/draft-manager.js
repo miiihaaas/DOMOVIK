@@ -285,15 +285,22 @@ function collectFormData() {
       budžet: document.getElementById('id_budžet')?.value || ''
     };
   } else if (appType === 'COB') {
-    // COB: Initiative Data (Story 3.1 - Simpler fields, NO budget)
+    // COB: Initiative Data (Story 3.1, Story 5.3: Added naziv_tima, dates, budget)
     baseData.sectionII = {
+      // Story 5.3: Team name - FIRST field
+      naziv_tima: document.getElementById('id_naziv_tima')?.value || '',
       naslov: document.getElementById('id_naslov')?.value || '',
       kratak_opis: document.getElementById('id_kratak_opis')?.value || '',
       problem: document.getElementById('id_problem')?.value || '',
       cilj: document.getElementById('id_cilj')?.value || '',
+      // Story 5.3: Renamed from "planirani_koraci" to "planirane_aktivnosti" in UI
       planirani_koraci: document.getElementById('id_planirani_koraci')?.value || '',
-      ocekivani_uticaj: document.getElementById('id_ocekivani_uticaj')?.value || ''
-      // NO BUDGET - COB simplification
+      ocekivani_uticaj: document.getElementById('id_ocekivani_uticaj')?.value || '',
+      // Story 5.3: Project timeline dates
+      datum_startovanja: document.getElementById('id_datum_startovanja')?.value || '',
+      datum_zavrsetka: document.getElementById('id_datum_zavrsetka')?.value || '',
+      // Story 5.3: Total budget in EUR
+      totalni_budzet: document.getElementById('id_totalni_budzet')?.value || ''
     };
   }
 
@@ -587,13 +594,25 @@ function loadDraft() {
           window.DurationCalculator.update();
         }
       } else if (appType === 'COB') {
-        // COB: Initiative Data (simpler, no budget)
+        // COB: Initiative Data (Story 3.1, Story 5.3: Added naziv_tima, dates, budget)
+        // Story 5.3: Team name - FIRST field
+        restoreFieldValue('id_naziv_tima', draftData.sectionII.naziv_tima);
         restoreFieldValue('id_naslov', draftData.sectionII.naslov);
         restoreFieldValue('id_kratak_opis', draftData.sectionII.kratak_opis);
         restoreFieldValue('id_problem', draftData.sectionII.problem);
         restoreFieldValue('id_cilj', draftData.sectionII.cilj);
         restoreFieldValue('id_planirani_koraci', draftData.sectionII.planirani_koraci);
         restoreFieldValue('id_ocekivani_uticaj', draftData.sectionII.ocekivani_uticaj);
+        // Story 5.3: Restore project timeline dates
+        restoreFieldValue('id_datum_startovanja', draftData.sectionII.datum_startovanja);
+        restoreFieldValue('id_datum_zavrsetka', draftData.sectionII.datum_zavrsetka);
+        // Story 5.3: Restore total budget
+        restoreFieldValue('id_totalni_budzet', draftData.sectionII.totalni_budzet);
+
+        // Story 5.3: Trigger duration calculator update after restoring dates
+        if (window.DurationCalculator && typeof window.DurationCalculator.update === 'function') {
+          window.DurationCalculator.update();
+        }
       }
 
       // Trigger character counter updates for Section II (Task 6.4)
@@ -765,8 +784,8 @@ function triggerCharacterCountersAfterDraftLoad() {
     // COA: Project Data fields
     sectionIIFields = ['naslov', 'opis', 'problem', 'cilj', 'specifični_ciljevi', 'ciljne_grupe', 'aktivnosti', 'rezultati'];
   } else if (appType === 'COB') {
-    // COB: Initiative Data fields (simpler, no budget)
-    sectionIIFields = ['naslov', 'kratak_opis', 'problem', 'cilj', 'planirani_koraci', 'ocekivani_uticaj'];
+    // COB: Initiative Data fields (Story 5.3: Added naziv_tima)
+    sectionIIFields = ['naziv_tima', 'naslov', 'kratak_opis', 'problem', 'cilj', 'planirani_koraci', 'ocekivani_uticaj'];
   } else {
     sectionIIFields = [];
   }

@@ -137,12 +137,20 @@
       </div>
     </div>
 
-    <!-- SECTION II: Podaci o inicijativi (Simplified - NO Budget) -->
+    <!-- SECTION II: Podaci o inicijativi (Story 5.3: Added naziv_tima, dates, budget) -->
     <div id="section-ii" class="section-ii" style="display: none;">
       <h2 class="section-title">Sekcija II: Podaci o inicijativi</h2>
 
       <fieldset class="section-ii__fieldset">
         <legend class="sr-only">Informacije o inicijativi</legend>
+
+        <!-- Story 5.3: Naziv tima - FIRST field in Section II -->
+        <div class="form-group section-ii__field">
+          <label for="id_naziv_tima">Naziv tima *</label>
+          <input type="text" name="naziv_tima" id="id_naziv_tima" maxlength="150" aria-required="true" aria-describedby="id_naziv_tima_counter">
+          <small class="help-text">Maksimalno 150 karaktera</small>
+          <div id="id_naziv_tima_counter" class="character-counter" data-field="naziv_tima" aria-live="polite"></div>
+        </div>
 
         <!-- Naslov inicijative -->
         <div class="form-group section-ii__field">
@@ -180,9 +188,9 @@
           <div class="character-error-message" data-field="cilj" style="display: none;"></div>
         </div>
 
-        <!-- Planirani koraci -->
+        <!-- Story 5.3: Renamed from "Planirani koraci" to "Planirane aktivnosti" -->
         <div class="form-group section-ii__field">
-          <label for="id_planirani_koraci">Planirani koraci *</label>
+          <label for="id_planirani_koraci">Planirane aktivnosti *</label>
           <textarea name="planirani_koraci" id="id_planirani_koraci" rows="6" data-max="1500" aria-required="true" aria-describedby="id_planirani_koraci_counter" required></textarea>
           <small class="help-text">Maksimalno 1500 karaktera</small>
           <div id="id_planirani_koraci_counter" class="character-counter" data-field="planirani_koraci" aria-live="polite"></div>
@@ -200,7 +208,42 @@
           <div class="character-error-message" data-field="ocekivani_uticaj" style="display: none;"></div>
         </div>
 
-        <!-- NO BUDGET FIELD - COB simplification -->
+        <!-- Story 5.3: Project timeline dates -->
+        <div class="project-dates-section">
+          <h3 class="project-dates-section__title">Vremenski okvir inicijative</h3>
+          <div class="project-dates-row">
+            <div class="form-group date-field">
+              <label for="id_datum_startovanja">Datum startovanja *</label>
+              <input type="date" name="datum_startovanja" id="id_datum_startovanja" class="form-control date-picker" aria-required="true">
+              <small class="help-text">Planirani datum početka</small>
+            </div>
+
+            <div class="form-group date-field">
+              <label for="id_datum_zavrsetka">Datum završetka *</label>
+              <input type="date" name="datum_zavrsetka" id="id_datum_zavrsetka" class="form-control date-picker" aria-required="true" aria-describedby="id_datum_zavrsetka_error">
+              <small class="help-text">Planirani datum završetka</small>
+              <div id="id_datum_zavrsetka_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+            </div>
+
+            <div class="form-group duration-field">
+              <label>Trajanje inicijative</label>
+              <div id="trajanje_projekta" class="duration-display">-</div>
+              <small class="help-text">Automatski preračunato</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Story 5.3: Total budget in EUR -->
+        <div class="form-group section-ii__field budget-field">
+          <label for="id_totalni_budzet">Totalni budžet *</label>
+          <div class="budget-input-wrapper">
+            <input type="number" name="totalni_budzet" id="id_totalni_budzet" step="0.01" min="0" placeholder="0.00" class="form-control budget-input" aria-required="true" aria-describedby="id_totalni_budzet_error">
+            <span class="currency-label">EUR</span>
+          </div>
+          <small class="help-text">Unesite ukupan budžet u eurima</small>
+          <div id="id_totalni_budzet_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+        </div>
+
       </fieldset>
     </div>
 
@@ -346,4 +389,6 @@
 <script src="{% static 'js/file-preview.js' %}"></script>
 <script src="{% static 'js/consent-manager.js' %}"></script>
 <script src="{% static 'js/submission-handler.js' %}"></script>
+<!-- Story 5.3: Duration calculator for project dates -->
+<script src="{% static 'js/duration-calculator.js' %}"></script>
 {% endblock %}

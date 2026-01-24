@@ -344,14 +344,22 @@ class SubmissionHandler {
 
     // Add application-specific data (COA vs COB)
     if (applicationType === 'COB') {
-      // COB: Initiative data (NO budget, WITH id_ prefix same as COA)
+      // COB: Initiative data (Story 3.5, Story 5.3: Added naziv_tima, dates, budget)
       submissionData.initiative = {
+        // Story 5.3: Team name - FIRST field
+        naziv_tima: document.getElementById('id_naziv_tima')?.value || '',
         naslov: document.getElementById('id_naslov')?.value || '',
         kratak_opis: document.getElementById('id_kratak_opis')?.value || '',
         problem: document.getElementById('id_problem')?.value || '',
         cilj_inicijative: document.getElementById('id_cilj')?.value || '',
+        // Story 5.3: Now called "Planirane aktivnosti" in UI
         planirani_koraci: document.getElementById('id_planirani_koraci')?.value || '',
-        ocekivani_uticaj: document.getElementById('id_ocekivani_uticaj')?.value || ''
+        ocekivani_uticaj: document.getElementById('id_ocekivani_uticaj')?.value || '',
+        // Story 5.3: Project timeline dates
+        datum_startovanja: document.getElementById('id_datum_startovanja')?.value || null,
+        datum_zavrsetka: document.getElementById('id_datum_zavrsetka')?.value || null,
+        // Story 5.3: Total budget in EUR
+        totalni_budzet: parseFloat(document.getElementById('id_totalni_budzet')?.value) || 0
       };
 
       // COB consent (3 checkboxes, same as COA)
