@@ -1411,3 +1411,126 @@
     padding: 0.75rem 1rem;
   }
 }
+
+
+/* ==========================================================================
+   Story 5.2: Project Dates Section
+   ========================================================================== */
+
+.project-dates-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: var(--neutral-warm-gray);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.project-dates-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--primary-teal);
+}
+
+.project-dates-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.date-field {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.date-field label {
+  display: block;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.date-field input[type="date"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background-color: white;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.date-field input[type="date"]:focus {
+  outline: none;
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.date-field input[type="date"].is-invalid {
+  border-color: var(--error-red);
+}
+
+.date-field input[type="date"].is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.duration-field {
+  flex: 0 0 150px;
+  text-align: center;
+}
+
+.duration-field label {
+  display: block;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.duration-display {
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duration-display.duration-valid {
+  color: var(--success-green);
+  border-color: var(--success-green);
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.duration-display.duration-error {
+  color: var(--error-red);
+  border-color: var(--error-red);
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+/* Responsive: Stack on smaller screens */
+@media (max-width: 640px) {
+  .project-dates-row {
+    flex-direction: column;
+  }
+
+  .date-field,
+  .duration-field {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .duration-field {
+    margin-top: 0.5rem;
+  }
+}

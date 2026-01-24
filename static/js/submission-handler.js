@@ -369,6 +369,7 @@ class SubmissionHandler {
       }
     } else {
       // COA: Project data (WITH budget)
+      // Story 5.2: Added datum_startovanja and datum_zavrsetka
       submissionData.project = {
         title: document.getElementById('id_naslov')?.value || '',
         short_description: document.getElementById('id_opis')?.value || '',
@@ -378,6 +379,9 @@ class SubmissionHandler {
         target_groups: document.getElementById('id_ciljne_grupe')?.value || '',
         activities: document.getElementById('id_aktivnosti')?.value || '',
         results: document.getElementById('id_rezultati')?.value || '',
+        // Story 5.2: Project timeline dates
+        datum_startovanja: document.getElementById('id_datum_startovanja')?.value || null,
+        datum_zavrsetka: document.getElementById('id_datum_zavrsetka')?.value || null,
         total_budget: parseInt(document.getElementById('id_budžet')?.value || '0', 10)
       };
 

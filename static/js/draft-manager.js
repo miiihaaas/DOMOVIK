@@ -269,7 +269,7 @@ function collectFormData() {
 
   // Section II: Different fields for COA vs COB
   if (appType === 'COA') {
-    // COA: Project Data (Story 2.6)
+    // COA: Project Data (Story 2.6, Story 5.2: Added date fields)
     baseData.sectionII = {
       naslov: document.getElementById('id_naslov')?.value || '',
       opis: document.getElementById('id_opis')?.value || '',
@@ -279,6 +279,9 @@ function collectFormData() {
       ciljne_grupe: document.getElementById('id_ciljne_grupe')?.value || '',
       aktivnosti: document.getElementById('id_aktivnosti')?.value || '',
       rezultati: document.getElementById('id_rezultati')?.value || '',
+      // Story 5.2: Project timeline dates
+      datum_startovanja: document.getElementById('id_datum_startovanja')?.value || '',
+      datum_zavrsetka: document.getElementById('id_datum_zavrsetka')?.value || '',
       budžet: document.getElementById('id_budžet')?.value || ''
     };
   } else if (appType === 'COB') {
@@ -574,7 +577,15 @@ function loadDraft() {
         restoreFieldValue('id_ciljne_grupe', draftData.sectionII.ciljne_grupe);
         restoreFieldValue('id_aktivnosti', draftData.sectionII.aktivnosti);
         restoreFieldValue('id_rezultati', draftData.sectionII.rezultati);
+        // Story 5.2: Restore project timeline dates
+        restoreFieldValue('id_datum_startovanja', draftData.sectionII.datum_startovanja);
+        restoreFieldValue('id_datum_zavrsetka', draftData.sectionII.datum_zavrsetka);
         restoreFieldValue('id_budžet', draftData.sectionII.budžet);
+
+        // Story 5.2: Trigger duration calculator update after restoring dates
+        if (window.DurationCalculator && typeof window.DurationCalculator.update === 'function') {
+          window.DurationCalculator.update();
+        }
       } else if (appType === 'COB') {
         // COB: Initiative Data (simpler, no budget)
         restoreFieldValue('id_naslov', draftData.sectionII.naslov);

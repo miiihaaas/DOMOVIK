@@ -214,7 +214,18 @@ def process_submission(submission_data):
         )
 
         # Step 4: Create ProjectData record (COA only)
+        # Story 5.2: Added datum_startovanja and datum_zavrsetka
         if application_type == ApplicationType.COA and project_data:
+            # Story 5.2: Parse date strings to date objects (YYYY-MM-DD format from HTML5 date input)
+            datum_startovanja = None
+            datum_zavrsetka = None
+            if project_data.get('datum_startovanja'):
+                from datetime import datetime
+                datum_startovanja = datetime.strptime(project_data['datum_startovanja'], '%Y-%m-%d').date()
+            if project_data.get('datum_zavrsetka'):
+                from datetime import datetime
+                datum_zavrsetka = datetime.strptime(project_data['datum_zavrsetka'], '%Y-%m-%d').date()
+
             ProjectData.objects.create(
                 application=application,
                 title=project_data.get('title'),
@@ -225,6 +236,8 @@ def process_submission(submission_data):
                 target_groups=project_data.get('target_groups'),
                 activities=project_data.get('activities'),
                 results=project_data.get('results'),
+                datum_startovanja=datum_startovanja,  # Story 5.2
+                datum_zavrsetka=datum_zavrsetka,  # Story 5.2
                 total_budget=project_data.get('total_budget')
             )
 

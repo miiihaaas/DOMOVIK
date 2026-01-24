@@ -228,6 +228,16 @@
           <div class="character-error-message" data-field="ciljne_grupe" style="display: none;"></div>
         </div>
 
+        <!-- Story 5.2: Rezultati moved BEFORE Aktivnosti -->
+        <div class="form-group section-ii__field">
+          <label for="id_rezultati">Rezultati *</label>
+          <textarea name="rezultati" id="id_rezultati" rows="10" aria-required="true" aria-describedby="id_rezultati_counter id_rezultati_help"></textarea>
+          <small id="id_rezultati_help" class="help-text">Maksimalno 1500 karaktera</small>
+          <div id="id_rezultati_counter" class="character-counter" data-field="rezultati" aria-live="polite"></div>
+          <div class="character-overflow-preview" data-field="rezultati"></div>
+          <div class="character-error-message" data-field="rezultati" style="display: none;"></div>
+        </div>
+
         <!-- Aktivnosti -->
         <div class="form-group section-ii__field">
           <label for="id_aktivnosti">Aktivnosti *</label>
@@ -238,14 +248,33 @@
           <div class="character-error-message" data-field="aktivnosti" style="display: none;"></div>
         </div>
 
-        <!-- Rezultati -->
-        <div class="form-group section-ii__field">
-          <label for="id_rezultati">Rezultati *</label>
-          <textarea name="rezultati" id="id_rezultati" rows="10" aria-required="true" aria-describedby="id_rezultati_counter id_rezultati_help"></textarea>
-          <small id="id_rezultati_help" class="help-text">Maksimalno 1500 karaktera</small>
-          <div id="id_rezultati_counter" class="character-counter" data-field="rezultati" aria-live="polite"></div>
-          <div class="character-overflow-preview" data-field="rezultati"></div>
-          <div class="character-error-message" data-field="rezultati" style="display: none;"></div>
+        <!-- Story 5.2: Datumska polja sa automatskim preračunavanjem trajanja -->
+        <div class="form-group section-ii__field project-dates-section">
+          <h4 class="project-dates-title">Projektni plan - vremenski okvir</h4>
+          <div class="project-dates-row">
+            <div class="date-field">
+              <label for="id_datum_startovanja">Datum startovanja *</label>
+              <input type="date" name="datum_startovanja" id="id_datum_startovanja"
+                     class="form-control date-picker"
+                     aria-required="true"
+                     aria-describedby="id_datum_startovanja_help">
+              <small id="id_datum_startovanja_help" class="help-text">Planirani datum početka projekta</small>
+            </div>
+            <div class="date-field">
+              <label for="id_datum_zavrsetka">Datum završetka *</label>
+              <input type="date" name="datum_zavrsetka" id="id_datum_zavrsetka"
+                     class="form-control date-picker"
+                     aria-required="true"
+                     aria-describedby="id_datum_zavrsetka_help id_datum_zavrsetka_error">
+              <small id="id_datum_zavrsetka_help" class="help-text">Planirani datum završetka projekta</small>
+              <div id="id_datum_zavrsetka_error" class="validation-error" aria-live="polite" style="display: none;"></div>
+            </div>
+            <div class="duration-field">
+              <label>Trajanje projekta</label>
+              <div id="trajanje_projekta" class="duration-display" aria-live="polite">-</div>
+              <small class="help-text">Automatski preračunato</small>
+            </div>
+          </div>
         </div>
 
         <!-- Totalni budžet -->
@@ -416,4 +445,6 @@
 <script src="{% static 'js/submission-handler.js' %}"></script>
 <!-- Story 5.1: Team members dynamic table -->
 <script src="{% static 'js/team-members.js' %}"></script>
+<!-- Story 5.2: Duration calculator for project dates -->
+<script src="{% static 'js/duration-calculator.js' %}"></script>
 {% endblock %}

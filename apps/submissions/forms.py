@@ -214,6 +214,7 @@ class COAFormSectionII(forms.ModelForm):
     COA Form Section II - Project Data Entry with Character Management
     Story 2.6: Section II fields with character limits and budget validation
     Story 2.11: Updated to use ProjectData model
+    Story 5.2: Added datum_startovanja, datum_zavrsetka fields + reordered results before activities
 
     Handles project data including title, short_description, problem, main_goal, etc.
     Client-side character counting managed by character-counter.js.
@@ -222,10 +223,13 @@ class COAFormSectionII(forms.ModelForm):
 
     class Meta:
         model = ProjectData
+        # Story 5.2: Reordered - results before activities, added date fields
         fields = [
             'title', 'short_description', 'problem', 'main_goal',
             'specific_goals', 'target_groups',
-            'activities', 'results', 'total_budget'
+            'results', 'activities',  # Story 5.2: Swapped order
+            'datum_startovanja', 'datum_zavrsetka',  # Story 5.2: New date fields
+            'total_budget'
         ]
 
         widgets = {
@@ -238,6 +242,15 @@ class COAFormSectionII(forms.ModelForm):
             'activities': forms.Textarea(attrs={'rows': 10}),
             'results': forms.Textarea(attrs={'rows': 10}),
             'total_budget': forms.NumberInput(attrs={'step': '1', 'min': '0', 'placeholder': '0'}),
+            # Story 5.2: Date picker widgets
+            'datum_startovanja': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control date-picker',
+            }),
+            'datum_zavrsetka': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control date-picker',
+            }),
         }
 
         labels = {
@@ -250,6 +263,9 @@ class COAFormSectionII(forms.ModelForm):
             'activities': 'Aktivnosti',
             'results': 'Rezultati',
             'total_budget': 'Totalni budžet (EUR)',
+            # Story 5.2: Date field labels
+            'datum_startovanja': 'Datum startovanja',
+            'datum_zavrsetka': 'Datum završetka',
         }
 
         help_texts = {
@@ -262,6 +278,9 @@ class COAFormSectionII(forms.ModelForm):
             'activities': 'Maksimalno 1500 karaktera',
             'results': 'Maksimalno 1500 karaktera',
             'total_budget': 'Unesite iznos u dinarima (npr. 1000000)',
+            # Story 5.2: Date field help texts
+            'datum_startovanja': 'Planirani datum početka projekta',
+            'datum_zavrsetka': 'Planirani datum završetka projekta',
         }
 
     def clean_title(self):
@@ -326,6 +345,27 @@ class COAFormSectionII(forms.ModelForm):
         if total_budget is not None and total_budget < 0:
             raise ValidationError('Budžet mora biti pozitivan broj.')
         return total_budget
+
+    def clean(self):
+        """
+        Cross-field validation for Section II.
+
+        Story 5.2: Validates that datum_zavrsetka >= datum_startovanja
+        """
+        cleaned_data = super().clean()
+
+        datum_startovanja = cleaned_data.get('datum_startovanja')
+        datum_zavrsetka = cleaned_data.get('datum_zavrsetka')
+
+        # Validate date range if both dates are provided
+        if datum_startovanja and datum_zavrsetka:
+            if datum_zavrsetka < datum_startovanja:
+                self.add_error(
+                    'datum_zavrsetka',
+                    'Datum završetka ne može biti pre datuma startovanja.'
+                )
+
+        return cleaned_data
 
 
 class FileUploadForm(forms.Form):

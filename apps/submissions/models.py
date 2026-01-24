@@ -305,6 +305,21 @@ class ProjectData(models.Model):
         help_text='Iznos u RSD'
     )
 
+    # Story 5.2: Project timeline dates
+    datum_startovanja = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Datum startovanja',
+        help_text='Planirani datum početka projekta'
+    )
+
+    datum_zavrsetka = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Datum završetka',
+        help_text='Planirani datum završetka projekta'
+    )
+
     class Meta:
         verbose_name = 'Podaci Projekta'
         verbose_name_plural = 'Podaci Projekata'
@@ -312,6 +327,21 @@ class ProjectData(models.Model):
     def __str__(self):
         """Return string representation of project data."""
         return f"ProjectData: {self.title[:50]}"
+
+    def clean(self):
+        """
+        Validate project data including date constraints.
+
+        Story 5.2: Ensures datum_zavrsetka >= datum_startovanja
+        """
+        super().clean()
+
+        # Validate date range if both dates are provided
+        if self.datum_startovanja and self.datum_zavrsetka:
+            if self.datum_zavrsetka < self.datum_startovanja:
+                raise ValidationError({
+                    'datum_zavrsetka': 'Datum završetka ne može biti pre datuma startovanja.'
+                })
 
 
 class InitiativeData(models.Model):
