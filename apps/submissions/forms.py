@@ -6,7 +6,7 @@ Story 2.8: FileUploadForm - File Upload with Validation
 Story 2.11: Updated for ProjectData model separation
 Story 3.2: COBApplicantForm - Simplified applicant validation (no JMBG/matični broj)
 """
-from typing import Dict, Tuple, Any, List
+from typing import Dict, Tuple, Any, List, Optional
 import re
 
 from django import forms
@@ -1024,7 +1024,7 @@ def validate_cob_file_metadata(file_metadata: Dict[str, Any]) -> Tuple[bool, Dic
     return len(errors) == 0, errors
 
 
-def _validate_file_object(file_obj: Any, category: str, allowed_extensions: List[str]) -> Dict[str, str] | None:
+def _validate_file_object(file_obj: Any, category: str, allowed_extensions: List[str]) -> Optional[Dict[str, str]]:
     """
     Validate individual file object metadata.
     Story 5.4: Helper function for file validation
