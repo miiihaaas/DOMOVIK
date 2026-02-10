@@ -470,7 +470,7 @@ class PDFGenerationService:
 
             project_info = [
                 ['Naslov:', project_data.title or 'N/A'],
-                ['Totalni budzet:', f"{project_data.total_budget} RSD" if project_data.total_budget else 'N/A'],
+                ['Totalni budzet:', f"{project_data.total_budget} EUR" if project_data.total_budget else 'N/A'],
             ]
 
             project_table = Table(project_info, colWidths=[5*cm, 10*cm])
