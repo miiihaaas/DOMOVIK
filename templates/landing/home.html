@@ -9,11 +9,7 @@
 <div class="landing__header">
     <!-- AC1: Domovik i donor logotipi - implementirano u Task 2 -->
     <div class="landing__logos">
-        <img src="{% static 'images/logos/domovik-logo.svg' %}" alt="Domovik" class="landing__logo--primary">
-        <div class="landing__donor-logos">
-            <img src="{% static 'images/logos/donor-1.svg' %}" alt="Donor 1" class="landing__logo--donor">
-            <img src="{% static 'images/logos/donor-2.svg' %}" alt="Donor 2" class="landing__logo--donor">
-        </div>
+        <img src="{% static 'images/logos/domovik-logo.png' %}" alt="Domovik" class="landing__logo--primary">
     </div>
 </div>
 {% endblock %}
@@ -84,6 +80,14 @@
 {% endblock %}
 
 {% block footer %}
+<div class="landing__donor-section">
+    <div class="landing__donor-logos">
+        <img src="{% static 'images/logos/donor-1.png' %}" alt="LUXEMBURG AID AND DEVELOPMENT" class="landing__logo--donor">
+        <img src="{% static 'images/logos/donor-2.png' %}" alt="THE FOUNDATION HOUSE" class="landing__logo--donor">
+        <img src="{% static 'images/logos/donor-3.png' %}" alt="LUXDEV" class="landing__logo--donor">
+    </div>
+    <p class="landing__donor-text">The “Innovation Catalyst Initiative for Minorities” is a project implemented by The Foundation House under the “ Support to the Civil Society in Kosovo” project funded by the Grand Duchy of Luxembourg and implemented by LuxDev,  The Luxembourg Development Cooperation Agency.</p>
+</div>
 <div class="landing__footer">
     <p>&copy; 2025 DOMOVIK. Sva prava zadržana.</p>
 </div>
