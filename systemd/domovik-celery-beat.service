@@ -1,0 +1,17 @@
+[Unit]
+Description=Domovik Celery Beat Scheduler
+After=network.target mysql.service domovik-celery-worker.service
+Requires=mysql.service
+
+[Service]
+User=mihailo
+Group=www-data
+WorkingDirectory=/var/www/domovik
+ExecStart=/var/www/domovik/venv/bin/celery -A config beat --loglevel=info --logfile=/var/www/domovik/logs/celery-beat.log --schedule=/var/www/domovik/celerybeat-schedule
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

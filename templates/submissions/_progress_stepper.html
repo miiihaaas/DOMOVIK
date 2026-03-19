@@ -1,60 +1,64 @@
 {% comment %}
 Progress Stepper Component - COA/COB Multi-Section Forms
-Story 2.2: Section I indicator (Sekcija 1 od 3)
+Story 2.2: Section indicator (Sekcija 1 od 3)
 Story 2.7: Enhanced visual design with ARIA support, BEM methodology
-CODE REVIEW FIX (MEDIUM #5): Use BEM classes only, removed legacy classes
+Redesign: Domovik brand palette, Playfair Display typography
 {% endcomment %}
 
-<nav class="progress-stepper" role="navigation" aria-label="Progress stepper" aria-live="polite">
-  <div class="progress-stepper__step progress-stepper__step--active" data-step="1" aria-current="step" aria-label="Sekcija 1: Opšti podaci">
-    <div class="progress-stepper__circle">
-      <span class="step-number">1</span>
-      <span class="step-checkmark" aria-label="Completed">✓</span>
-    </div>
-    <div class="progress-stepper__label">Opšti podaci</div>
-  </div>
+<nav class="progress-stepper" role="navigation" aria-label="Napredak kroz formu" aria-live="polite">
+  <ol class="progress-stepper__track">
 
-  <div class="progress-stepper__connector"></div>
+    {# --- Korak 1 --- #}
+    <li class="progress-stepper__step progress-stepper__step--active" data-step="1" aria-current="step">
+      <div class="progress-stepper__indicator">
+        <span class="progress-stepper__number">1</span>
+        <svg class="progress-stepper__check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <span class="progress-stepper__label">Opšti podaci</span>
+    </li>
 
-  <div class="progress-stepper__step" data-step="2" aria-disabled="true" aria-label="Sekcija 2: Podaci o projektu">
-    <div class="progress-stepper__circle">
-      <span class="step-number">2</span>
-      <span class="step-checkmark" aria-label="Completed">✓</span>
-    </div>
-    <div class="progress-stepper__label" id="section-2-label">Podaci o projektu</div>
-  </div>
+    {# --- Korak 2 --- #}
+    <li class="progress-stepper__step" data-step="2" aria-disabled="true">
+      <div class="progress-stepper__indicator">
+        <span class="progress-stepper__number">2</span>
+        <svg class="progress-stepper__check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <span class="progress-stepper__label" id="section-2-label">Podaci o projektu</span>
+    </li>
 
-  <div class="progress-stepper__connector"></div>
+    {# --- Korak 3 --- #}
+    <li class="progress-stepper__step" data-step="3" aria-disabled="true">
+      <div class="progress-stepper__indicator">
+        <span class="progress-stepper__number">3</span>
+        <svg class="progress-stepper__check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <span class="progress-stepper__label">Dokumentacija i saglasnost</span>
+    </li>
 
-  <div class="progress-stepper__step" data-step="3" aria-disabled="true" aria-label="Sekcija 3: Dokumentacija i saglasnost">
-    <div class="progress-stepper__circle">
-      <span class="step-number">3</span>
-      <span class="step-checkmark" aria-label="Completed">✓</span>
-    </div>
-    <div class="progress-stepper__label">Dokumentacija i saglasnost</div>
+  </ol>
+
+  <div class="progress-stepper__counter">
+    <strong>Korak <span class="progress-stepper__current">1</span> od 3<span class="progress-stepper__counter-label">: Opšti podaci</span></strong>
+    <span class="sr-only">Nalazite se u sekciji 1 od 3</span>
   </div>
 </nav>
-
-<div class="stepper-text">
-  <strong>Sekcija 1 od 3</strong>
-  <span class="sr-only">Nalazite se u sekciji 1 od 3</span>
-</div>
 
 <script>
 // Dynamic Section 2 label based on application type (COA vs COB)
 (function() {
-  const applicationType = document.body.dataset.applicationType;
-  const section2Label = document.getElementById('section-2-label');
-  const section2Step = document.querySelector('[data-step="2"]');
+  var applicationType = document.body.dataset.applicationType;
+  var section2Label = document.getElementById('section-2-label');
+  var section2Step = document.querySelector('[data-step="2"]');
 
-  if (applicationType === 'COB') {
-    const newLabel = 'Podaci o inicijativi';
-    section2Label.textContent = newLabel;
-    section2Step.setAttribute('aria-label', 'Sekcija 2: ' + newLabel);
-  } else if (applicationType === 'COA') {
-    const newLabel = 'Podaci o projektu';
-    section2Label.textContent = newLabel;
-    section2Step.setAttribute('aria-label', 'Sekcija 2: ' + newLabel);
+  if (applicationType === 'COB' && section2Label) {
+    section2Label.textContent = 'Podaci o inicijativi';
+    section2Step.setAttribute('aria-label', 'Sekcija 2: Podaci o inicijativi');
   }
 })();
 </script>

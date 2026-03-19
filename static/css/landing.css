@@ -1,374 +1,952 @@
 /*
- * DOMOVIK - Landing Page Styles
- * BEM Naming Convention
- * Story 1.1-1.3: Landing page, downloads, application type selection
- * Responsive design with Civic Tech identity
+ * DOMOVIK - Landing Page
+ * Editorial/magazine aesthetic — institutional, human, not corporate
+ * Domovik brand palette + Playfair Display / Libre Franklin
  */
 
-/* ===== LANDING HEADER & LOGOS ===== */
-.landing__header {
-  background-color: white;
-  padding: var(--spacing-md) 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+/* ================================================================
+   SCROLL-REVEAL ANIMATION (CSS-only)
+   ================================================================ */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-.landing__logos {
-  max-width: 1200px;
-  max-height: 100px;
-  margin: 0 auto;
-  padding: 0 var(--spacing-md);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.landing__logo--primary {
-  max-width: 200px;
-  height: auto;
-}
-
-.landing__donor-logos {
-  display: flex;
-  gap: var(--spacing-md);
-  align-items: center;
-}
-
-.landing__logo--donor {
-  /* max-width: 250px; */
-  max-height: 100px;
-  height: auto;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-}
-
-.landing__logo--donor:hover {
+.reveal.is-visible {
   opacity: 1;
+  transform: translateY(0);
 }
 
-/* ===== HERO SECTION ===== */
-.landing__hero {
-  background: linear-gradient(135deg, var(--primary-teal) 0%, #0284C7 100%);
-  color: white;
-  padding: var(--spacing-xl) var(--spacing-md);
-  text-align: center;
+/* Stagger children */
+.reveal:nth-child(2) { transition-delay: 0.08s; }
+.reveal:nth-child(3) { transition-delay: 0.16s; }
+.reveal:nth-child(4) { transition-delay: 0.24s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
-.landing__hero-title {
-  font-size: 2.5rem;
+
+/* ================================================================
+   NAVIGATION BAR
+   ================================================================ */
+
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-light);
+  backdrop-filter: blur(8px);
+}
+
+.landing-nav__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-5);
+  display: flex;
+  align-items: center;
+}
+
+.landing-nav__brand {
+  display: block;
+  line-height: 0;
+}
+
+.landing-nav__logo {
+  height: 44px;
+  width: auto;
+}
+
+
+/* ================================================================
+   HERO — Asymmetric split with geometric pattern
+   ================================================================ */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-secondary);
+  color: var(--color-text-inverse);
+  min-height: 480px;
+}
+
+.hero__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-5);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: var(--space-8);
+  position: relative;
+  z-index: 1;
+}
+
+/* Text side */
+.hero__content {
+  max-width: 540px;
+}
+
+.hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: var(--space-4);
+}
+
+.hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-text-inverse);
+  margin-bottom: var(--space-5);
+  letter-spacing: -0.02em;
+}
+
+.hero__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: var(--space-6);
+  max-width: 440px;
+}
+
+.hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--text-base);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  min-height: 48px;
+  box-shadow: 0 4px 16px rgba(198, 69, 31, 0.3);
+}
+
+.hero__cta:hover {
+  background: var(--color-accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(198, 69, 31, 0.4);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+}
+
+/* Geometric pattern side — CSS-only abstract shapes */
+.hero__pattern {
+  position: relative;
+  height: 100%;
+  min-height: 320px;
+}
+
+.hero__pattern::before,
+.hero__pattern::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.08;
+}
+
+.hero__pattern::before {
+  width: 400px;
+  height: 400px;
+  background: var(--color-text-inverse);
+  top: -60px;
+  right: -80px;
+}
+
+.hero__pattern::after {
+  width: 240px;
+  height: 240px;
+  background: var(--color-accent);
+  bottom: -20px;
+  left: 40px;
+  opacity: 0.15;
+}
+
+/* Extra decorative elements via box-shadow on pattern */
+.hero__pattern {
+  background:
+    radial-gradient(circle at 70% 30%, rgba(255,255,255,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 30% 80%, rgba(198,69,31,0.08) 0%, transparent 40%);
+}
+
+/* Accent line at the bottom of hero */
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--color-accent);
+}
+
+
+/* ================================================================
+   PREPARATION — Numbered timeline
+   ================================================================ */
+
+.prep {
+  background: var(--color-surface);
+  padding: var(--space-10) var(--space-5);
+}
+
+.prep__inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.prep__header {
+  margin-bottom: var(--space-8);
+}
+
+.prep__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-3);
+}
+
+.prep__title::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: var(--color-accent);
+  margin-top: var(--space-4);
+  border-radius: var(--radius-full);
+}
+
+.prep__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  max-width: 500px;
+}
+
+/* Timeline */
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+/* Vertical connecting line */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 23px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.timeline__item {
+  display: flex;
+  gap: var(--space-5);
+  padding-bottom: var(--space-6);
+  position: relative;
+}
+
+.timeline__item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline__marker {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 106, 175, 0.2);
+}
+
+.timeline__content {
+  padding-top: var(--space-2);
+  flex: 1;
+}
+
+.timeline__heading {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.timeline__content p {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Reassurance info box */
+.prep__reassurance {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  padding: var(--space-5);
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info);
+  border-left: 4px solid var(--color-info);
+  border-radius: var(--radius-md);
+}
+
+.prep__reassurance-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--color-info);
+  margin-top: 2px;
+}
+
+.prep__reassurance p {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: #1A5276;
+  line-height: 1.6;
+  margin: 0;
+}
+
+
+/* ================================================================
+   DOWNLOADS
+   ================================================================ */
+
+.downloads {
+  background: var(--color-bg);
+  padding: var(--space-9) var(--space-5);
+}
+
+.downloads__inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.downloads__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.downloads__card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  background: var(--color-surface);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.downloads__card-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  color: var(--color-success);
+}
+
+.downloads__card-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.downloads__card-body {
+  flex: 1;
+}
+
+.downloads__card-body h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.downloads__steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.downloads__step {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.downloads__arrow {
+  color: var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.downloads__btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.downloads__btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.downloads__btn:hover {
+  background: #1E8449;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+}
+
+
+/* ================================================================
+   APPLICATION TYPE — Large CTA cards
+   ================================================================ */
+
+.apply {
+  background: var(--color-surface);
+  padding: var(--space-10) var(--space-5);
+}
+
+.apply__inner {
   max-width: 900px;
   margin: 0 auto;
-  color: white;
-}
-
-/* ===== INFO SECTION ===== */
-.landing__info-section {
-  max-width: 900px;
-  margin: var(--spacing-xl) auto;
-  padding: 0 var(--spacing-md);
-  background-color: white;
-  padding: var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.landing__info-section h2 {
-  color: var(--primary-teal);
-  margin-bottom: var(--spacing-md);
-}
-
-.landing__info-list {
-  list-style-type: none;
-  padding: 0;
-  margin: var(--spacing-md) 0;
-}
-
-.landing__info-list li {
-  padding: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-  background-color: var(--neutral-warm-gray);
-  border-left: 4px solid var(--primary-teal);
-  border-radius: var(--radius-sm);
-}
-
-.landing__info-list li::before {
-  content: " ";
-  color: var(--primary-teal);
-  font-weight: bold;
-  margin-right: var(--spacing-xs);
-}
-
-.reassurance {
-  background-color: var(--neutral-beige);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  border: 2px dashed var(--accent-coral);
-  font-style: italic;
-  color: var(--text-secondary);
-  margin-top: var(--spacing-md);
-}
-
-/* ===== DOWNLOADS SECTION (Story 1.2) ===== */
-.landing__downloads {
-  max-width: 900px;
-  margin: var(--spacing-xl) auto;
-  padding: 0 var(--spacing-md);
-}
-
-.landing__downloads h2 {
-  color: var(--primary-teal);
-  text-align: center;
-  margin-bottom: var(--spacing-lg);
-}
-
-.landing__download-card {
-  background-color: white;
-  padding: var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   text-align: center;
 }
 
-.landing__download-card h3 {
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
+.apply__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-3);
 }
 
-.landing__download-guidance {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: var(--spacing-md);
-  font-weight: 500;
+.apply__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
 }
 
-.landing__download-link {
-  display: inline-block;
-  padding: 0.75rem 2rem;
-  background-color: var(--accent-coral);
-  color: white;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  transition: all 0.3s ease;
-  min-height: 44px;  /* AC8: Touch target */
-  min-width: 44px;
-}
-
-.landing__download-link:hover {
-  background-color: #EF5533;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.3);
-  color: white;
-}
-
-/* ===== APPLICATION TYPE BANNERS (Story 1.3) ===== */
-/* AC4: Responsive layout with guaranteed touch targets (min 44x44px) */
-.landing__banners {
-  max-width: 1200px;
-  margin: var(--spacing-xl) auto;
-  padding: 0 var(--spacing-md);
+.apply__cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-lg);
+  gap: var(--space-6);
 }
 
-.landing__banner {
-  background-color: white;
-  padding: var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  min-height: 300px;
-  min-width: 280px;  /* Guarantee minimum width for touch targets */
+/* Card */
+.apply-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--space-7) var(--space-6);
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--color-border-light);
   text-decoration: none;
-  border: 2px solid transparent;
+  transition: all var(--transition-base);
+  overflow: hidden;
+  min-height: 280px;
 }
 
-.landing__banner:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+.apply-card:hover {
+  transform: translateY(-4px);
+  text-decoration: none;
 }
 
-.landing__banner:active {
-  opacity: 0.9;
-  transform: scale(1);
-}
-
-.landing__banner:focus {
-  outline: 3px solid var(--primary-teal);
+.apply-card:focus-visible {
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 3px;
 }
 
-.landing__banner--cob:focus {
-  outline-color: var(--accent-coral);
+/* Badge */
+.apply-card__badge {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-5);
 }
 
-/* Banner Icon Styling */
-.landing__banner-icon {
-  width: 64px;
-  height: 64px;
-  margin-bottom: var(--spacing-md);
+.apply-card__icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-5);
 }
 
-.landing__banner-icon .icon {
+.apply-card__icon svg {
   width: 100%;
   height: 100%;
-  stroke-width: 1.5;
 }
 
-/* Banner Title, Description, CTA */
-.landing__banner-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
+.apply-card__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+  line-height: 1.2;
 }
 
-.landing__banner-description {
-  font-size: 1rem;
+.apply-card__desc {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   line-height: 1.6;
-  color: #4a5568;
-  margin-bottom: var(--spacing-md);
-  flex-grow: 1;
+  margin-bottom: var(--space-5);
+  flex: 1;
 }
 
-.landing__banner-cta {
-  font-weight: 600;
-  font-size: 1rem;
+.apply-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--text-base);
   margin-top: auto;
+  transition: gap var(--transition-fast);
 }
 
-/* COA Banner - Tirkizna Primarna */
-.landing__banner--coa {
-  border: 2px solid var(--primary-teal);
+.apply-card__cta svg {
+  width: 18px;
+  height: 18px;
+  transition: transform var(--transition-fast);
 }
 
-.landing__banner--coa:hover {
-  background: rgba(14, 165, 233, 0.05);
-  border-color: var(--primary-teal);
-  box-shadow: 0 8px 16px rgba(14, 165, 233, 0.2);
+.apply-card:hover .apply-card__cta svg {
+  transform: translateX(4px);
 }
 
-.landing__banner--coa .landing__banner-icon {
-  color: var(--primary-teal);
+/* Project card — Primary blue */
+.apply-card--project {
+  border-color: var(--color-primary);
 }
 
-.landing__banner--coa .landing__banner-cta {
-  color: var(--primary-teal);
+.apply-card--project:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  box-shadow: 0 12px 32px rgba(0, 106, 175, 0.15);
 }
 
-/* COB Banner - Koraljna Accent */
-.landing__banner--cob {
-  border: 2px solid var(--accent-coral);
+.apply-card--project .apply-card__badge {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
-.landing__banner--cob:hover {
-  background: rgba(255, 122, 89, 0.05);
-  border-color: var(--accent-coral);
-  box-shadow: 0 8px 16px rgba(255, 122, 89, 0.2);
+.apply-card--project .apply-card__icon {
+  color: var(--color-primary);
 }
 
-.landing__banner--cob .landing__banner-icon {
-  color: var(--accent-coral);
+.apply-card--project .apply-card__title {
+  color: var(--color-primary);
 }
 
-.landing__banner--cob .landing__banner-cta {
-  color: var(--accent-coral);
+.apply-card--project .apply-card__desc {
+  color: var(--color-text-secondary);
 }
 
-/* ===== DONOR SECTION (above footer) ===== */
-.landing__donor-section {
-  background-color: white;
-  padding: var(--spacing-lg) var(--spacing-md);
+.apply-card--project .apply-card__cta {
+  color: var(--color-primary);
+}
+
+/* Initiative card — Accent coral/red */
+.apply-card--initiative {
+  border-color: var(--color-accent);
+}
+
+.apply-card--initiative:hover {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+  box-shadow: 0 12px 32px rgba(198, 69, 31, 0.15);
+}
+
+.apply-card--initiative .apply-card__badge {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.apply-card--initiative .apply-card__icon {
+  color: var(--color-accent);
+}
+
+.apply-card--initiative .apply-card__title {
+  color: var(--color-accent);
+}
+
+.apply-card--initiative .apply-card__desc {
+  color: var(--color-text-secondary);
+}
+
+.apply-card--initiative .apply-card__cta {
+  color: var(--color-accent);
+}
+
+
+/* ================================================================
+   DONOR STRIP — Institutional footer
+   ================================================================ */
+
+.donor-strip {
+  background: var(--color-bg-alt);
+  padding: var(--space-8) var(--space-5);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.donor-strip__inner {
+  max-width: 900px;
+  margin: 0 auto;
   text-align: center;
-  margin-top: var(--spacing-xl);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.landing__donor-section .landing__donor-logos {
+.donor-strip__logos {
+  display: flex;
   justify-content: center;
-  margin-bottom: var(--spacing-md);
+  align-items: center;
+  gap: var(--space-7);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
 }
 
-.landing__donor-text {
-  width: 100%;
-  font-size: 0.95rem;
-  color: #000000;
+.donor-strip__logo {
+  max-height: 64px;
+  width: auto;
+  opacity: 0.75;
+  transition: opacity var(--transition-base);
+  filter: grayscale(20%);
+}
+
+.donor-strip__logo:hover {
+  opacity: 1;
+  filter: grayscale(0%);
+}
+
+.donor-strip__text {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.donor-strip__text p {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.donor-strip__text p:last-child {
+  margin-bottom: 0;
+  font-style: italic;
+}
+
+
+/* ================================================================
+   SITE FOOTER
+   ================================================================ */
+
+.site-footer {
+  background: var(--color-secondary);
+  color: rgba(255, 255, 255, 0.7);
+  padding: var(--space-5) var(--space-5);
+}
+
+.site-footer__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.site-footer__inner p {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
   margin: 0;
 }
 
-/* ===== FOOTER ===== */
-.landing__footer {
-  background-color: var(--text-primary);
-  color: white;
-  text-align: center;
-  padding: var(--spacing-lg) var(--spacing-md);
+.site-footer__links {
+  display: flex;
+  gap: var(--space-5);
 }
 
-.landing__footer p {
-  margin: 0;
-  font-size: 0.9rem;
+.site-footer__links a {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
-@media (min-width: 769px) {
-  .landing__donor-text {
-    font-size: 0.8rem;
-    max-width: 80%;
-    margin: 0 auto;
-  }
+.site-footer__links a:hover {
+  color: rgba(255, 255, 255, 1);
+  text-decoration: underline;
 }
 
-/* ===== RESPONSIVE DESIGN (AC4) ===== */
-/* Tablet (768px) */
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
+/* ==========================================================================
+   MOBILE — Tablet (max-width: 768px)
+   ========================================================================== */
 @media (max-width: 768px) {
-  .landing__banners {
+  .hero__inner {
     grid-template-columns: 1fr;
+    padding: var(--space-8) var(--space-4);
+    gap: var(--space-5);
   }
 
-  .landing__banner {
-    margin-bottom: var(--spacing-md);
+  .hero__pattern {
+    display: none;
   }
 
-  .landing__logos {
+  .hero {
+    min-height: auto;
+  }
+
+  .hero__title {
+    font-size: 2rem;
+  }
+
+  .hero__content {
+    max-width: 100%;
+  }
+
+  .hero__subtitle {
+    max-width: 100%;
+  }
+
+  /* CTA cards — full-width stacked */
+  .apply__cards {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .apply-card {
+    min-height: auto;
+    padding: var(--space-5);
+  }
+
+  /* Downloads card stacked */
+  .downloads__card {
     flex-direction: column;
+    text-align: center;
+    padding: var(--space-5);
+    gap: var(--space-4);
+  }
+
+  .downloads__steps {
+    justify-content: center;
+  }
+
+  .downloads__btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Donor logos: wrap, centered, smaller */
+  .donor-strip__logos {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-4);
+  }
+
+  .donor-strip__logo {
+    max-height: 44px;
+  }
+
+  .donor-strip__text p {
+    font-size: 11px;
+  }
+
+  /* Footer stacked */
+  .site-footer__inner {
+    flex-direction: column;
+    gap: var(--space-3);
     text-align: center;
   }
 
-  .landing__donor-logos {
-    flex-direction: column;
+  .site-footer__links {
+    gap: var(--space-4);
   }
 
-  .landing__hero-title {
-    font-size: 2rem;
+  /* Timeline smaller markers */
+  .timeline::before {
+    left: 19px;
+  }
+
+  .timeline__marker {
+    width: 40px;
+    height: 40px;
+    font-size: var(--text-base);
+  }
+
+  .timeline__item {
+    gap: var(--space-4);
+  }
+
+  .timeline__heading {
+    font-size: var(--text-base);
+  }
+
+  .timeline__content p {
+    font-size: var(--text-sm);
+  }
+
+  /* Sections less padding */
+  .prep,
+  .downloads,
+  .apply {
+    padding: var(--space-8) var(--space-4);
   }
 }
 
-/* Mobile (320px) */
-/* AC4: Minimum 44x44px touch targets for all interactive elements */
-@media (max-width: 320px) {
-  .landing__hero {
-    padding: var(--spacing-lg) var(--spacing-sm);
+/* ==========================================================================
+   MOBILE — Small phone (max-width: 480px)
+   ========================================================================== */
+@media (max-width: 480px) {
+  .hero__inner {
+    padding: var(--space-7) var(--space-3);
   }
 
-  .landing__hero-title {
+  .hero__title {
     font-size: 1.75rem;
   }
 
-  .landing__banner {
-    padding: var(--spacing-md);
-    min-height: 200px;
-    min-width: 280px;  /* Maintain minimum width for tap targets */
+  .hero__subtitle {
+    font-size: var(--text-base);
   }
 
-  .landing__download-link,
-  .landing__banner-link {
-    padding: 0.6rem 1.2rem;
-    min-height: 44px;  /* AC4: Guarantee touch target size */
-    min-width: 44px;
+  .hero__cta {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  .prep__title,
+  .apply__title,
+  .downloads__title {
+    font-size: var(--text-xl);
+  }
+
+  .prep__subtitle,
+  .apply__subtitle {
+    font-size: var(--text-sm);
+  }
+
+  /* Timeline compact */
+  .timeline__marker {
+    width: 36px;
+    height: 36px;
+    font-size: var(--text-sm);
+  }
+
+  .timeline::before {
+    left: 17px;
+  }
+
+  .timeline__item {
+    gap: var(--space-3);
+    padding-bottom: var(--space-5);
+  }
+
+  /* Apply cards — more compact */
+  .apply-card {
+    padding: var(--space-4);
+  }
+
+  .apply-card__icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .apply-card__title {
+    font-size: var(--text-lg);
+  }
+
+  /* Donor logos even smaller */
+  .donor-strip__logos {
+    gap: var(--space-3);
+  }
+
+  .donor-strip__logo {
+    max-height: 36px;
+  }
+
+  .donor-strip {
+    padding: var(--space-6) var(--space-3);
+  }
+
+  /* Sections minimal padding */
+  .prep,
+  .downloads,
+  .apply {
+    padding: var(--space-6) var(--space-3);
+  }
+
+  /* Nav compact */
+  .landing-nav__inner {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .landing-nav__logo {
+    height: 36px;
   }
 }
