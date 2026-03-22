@@ -36,7 +36,7 @@
 
   {% include "submissions/_progress_stepper.html" %}
 
-  <form method="post" action="" class="cob-form" id="cob-form">
+  <form method="post" action="" class="cob-form" id="cob-form" novalidate>
     {# TODO Story 3.5: Update action to {% url 'cob_submit' %} when submission view is implemented #}
     {% csrf_token %}
 

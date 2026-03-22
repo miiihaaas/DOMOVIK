@@ -644,7 +644,7 @@
    ================================================================ */
 
 .donor-strip {
-  background: var(--color-bg-alt);
+  background: #ffffff;
   padding: var(--space-8) var(--space-5);
   border-top: 1px solid var(--color-border-light);
 }

@@ -346,10 +346,18 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'django.request': {
+            'handlers': ['submissions', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+
+# django-ratelimit: Use X-Forwarded-For from nginx (Unix socket leaves REMOTE_ADDR empty)
+RATELIMIT_IP_META_KEY = 'HTTP_X_FORWARDED_FOR'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

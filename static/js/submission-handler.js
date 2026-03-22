@@ -154,7 +154,7 @@ class SubmissionHandler {
       console.error('Submission exception:', error);
 
       // Differentiate error types for better UX
-      let errorMessage = 'Došlo je do greške. Proverite internet konekciju i pokušajte ponovo.';
+      let errorMessage;
 
       if (error.name === 'AbortError') {
         // Timeout error
@@ -165,6 +165,11 @@ class SubmissionHandler {
       } else if (error.message && error.message.includes('Failed to fetch')) {
         // Generic fetch failure (CORS, DNS, etc.)
         errorMessage = 'Ne mogu da se povežem sa serverom. Proverite internet konekciju.';
+      } else if (error.message) {
+        // Server returned a specific error message
+        errorMessage = error.message;
+      } else {
+        errorMessage = 'Došlo je do greške. Proverite internet konekciju i pokušajte ponovo.';
       }
 
       this.handleSubmissionError(errorMessage);
@@ -506,15 +511,25 @@ class SubmissionHandler {
         clearTimeout(timeoutId);
       }
 
-      // Parse JSON response
-      const data = await response.json();
-
-      // Check if response is successful
+      // Check if response is successful and parse JSON
       if (!response.ok) {
-        // HTTP error (4xx, 5xx)
-        throw new Error(data.error || 'Greška pri komunikaciji sa serverom.');
+        // Try to parse JSON error from server
+        let errorMsg = 'Greška pri komunikaciji sa serverom.';
+        try {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const data = await response.json();
+            errorMsg = data.error || errorMsg;
+          } else {
+            errorMsg = `Serverska greška (${response.status}). Pokušajte ponovo.`;
+          }
+        } catch (_) {
+          // JSON parse failed — server returned HTML error page
+        }
+        throw new Error(errorMsg);
       }
 
+      const data = await response.json();
       return data;
     } catch (error) {
       // Clear timeout on error

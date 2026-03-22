@@ -267,6 +267,15 @@ def process_submission(submission_data):
             'reference_number': reference_number
         }
 
+    except ValidationError as e:
+        # Return validation errors to the user with specific messages
+        logger.warning(f"Submission validation error: {str(e)}")
+        messages = e.messages if hasattr(e, 'messages') else [str(e)]
+        return {
+            'success': False,
+            'error': ' '.join(messages)
+        }
+
     except Exception as e:
         # Log failure with full traceback
         logger.error(f"Submission FAILURE: {str(e)}", exc_info=True)

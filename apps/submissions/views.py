@@ -469,7 +469,7 @@ def submit_application(request):
             return JsonResponse({
                 'success': False,
                 'error': result.get('error', 'Greška pri čuvanju prijave.')
-            }, status=500)
+            }, status=400)
 
     except Exception as e:
         # Log unexpected exception
@@ -848,6 +848,14 @@ def submit_cob(request):
             'reference_number': reference_number,
             'message': 'Inicijativa uspešno podnesena.'
         }, status=201)
+
+    except ValidationError as e:
+        messages = e.messages if hasattr(e, 'messages') else [str(e)]
+        submission_logger.warning(f'COB validation error: {messages}')
+        return JsonResponse({
+            'success': False,
+            'error': ' '.join(messages)
+        }, status=400)
 
     except Exception as e:
         # Log error for debugging
