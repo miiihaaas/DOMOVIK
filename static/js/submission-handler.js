@@ -409,6 +409,14 @@ class SubmissionHandler {
       }
     }
 
+    // Z2 (2026-07-24): include team members (Ostali članovi tima) for BOTH COA and COB.
+    // The backend (submit_application / submit_cob) already reads submissionData.team_members
+    // and saves ClanTima rows — they were simply never sent, so nothing was ever stored.
+    submissionData.team_members =
+      (typeof TeamMembersManager !== 'undefined' && TeamMembersManager.getTeamMembersData)
+        ? TeamMembersManager.getTeamMembersData()
+        : [];
+
     // FIX #17: Remove console.log in production (information disclosure)
     // console.log('Collected submission data:', submissionData);
     return submissionData;

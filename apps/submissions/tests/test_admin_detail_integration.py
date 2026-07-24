@@ -133,6 +133,11 @@ class AdminDetailViewIntegrationTests(TestCase):
                 'files-INITIAL_FORMS': '0',
                 'files-MIN_NUM_FORMS': '0',
                 'files-MAX_NUM_FORMS': '0',
+                # Z2: ClanTimaInline management form (team members)
+                'clanovi_tima-TOTAL_FORMS': '0',
+                'clanovi_tima-INITIAL_FORMS': '0',
+                'clanovi_tima-MIN_NUM_FORMS': '0',
+                'clanovi_tima-MAX_NUM_FORMS': '0',
             },
             follow=True
         )

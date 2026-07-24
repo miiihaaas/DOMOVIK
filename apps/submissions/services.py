@@ -26,10 +26,62 @@ from apps.submissions.validators import (
     validate_id_broj,
     validate_registracioni_broj
 )
-from apps.submissions.constants import ApplicationType, ApplicationStatus, EntityType
+from apps.submissions.constants import ApplicationType, ApplicationStatus, EntityType, FILE_CATEGORY_FOLDERS
+import os
 import logging
 
 logger = logging.getLogger('domovik.submissions')
+
+
+def resolve_file_on_disk(file_metadata):
+    """
+    Return the absolute on-disk path for a FileMetadata's file, or None if not found.
+
+    Z1 (2026-07-24): single source of truth for locating an uploaded file, shared by
+    the admin download views and the fix_file_metadata repair command. Search order:
+
+      1. Linked UploadedFile.file_path (authoritative FileField location).
+      2. media/submissions/<category_folder>/<stored_filename> (final location, if ever moved).
+      3. media/uploads/drafts/<stored_filename> (files are currently never moved after submit).
+
+    Args:
+        file_metadata: FileMetadata instance.
+
+    Returns:
+        str absolute path, or None.
+    """
+    from apps.submissions.models import UploadedFile
+
+    # 1. Authoritative: the UploadedFile FileField knows exactly where the file lives.
+    uf = UploadedFile.objects.filter(
+        application_id=file_metadata.application_id,
+        stored_filename=file_metadata.stored_filename,
+        is_deleted=False,
+    ).first()
+    if uf and uf.file_path:
+        try:
+            uf_path = uf.file_path.path
+            if os.path.exists(uf_path):
+                return uf_path
+        except (ValueError, NotImplementedError):
+            pass  # storage without a local filesystem path
+
+    # 2. Final location under submissions/<folder>/
+    category_folder = FILE_CATEGORY_FOLDERS.get(file_metadata.file_type, 'submissions')
+    final_path = os.path.join(
+        settings.MEDIA_ROOT, 'submissions', category_folder, file_metadata.stored_filename
+    )
+    if os.path.exists(final_path):
+        return final_path
+
+    # 3. Drafts location (default, files are not moved after submission)
+    drafts_path = os.path.join(
+        settings.MEDIA_ROOT, 'uploads', 'drafts', file_metadata.stored_filename
+    )
+    if os.path.exists(drafts_path):
+        return drafts_path
+
+    return None
 
 
 class ReferenceNumberService:

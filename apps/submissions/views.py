@@ -31,7 +31,7 @@ from apps.submissions.forms import (
 )
 from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata, FileMetadata, ClanTima
 from apps.submissions.validators import generate_unique_filename
-from apps.submissions.services import process_submission, PDFGenerationService
+from apps.submissions.services import process_submission, PDFGenerationService, resolve_file_on_disk
 from apps.submissions.tasks import (
     send_confirmation_email_now,
     send_admin_notification_now,
@@ -776,14 +776,28 @@ def submit_cob(request):
                 totalni_budzet=totalni_budzet
             )
 
-            # FIX #1: Create FileMetadata records (Story requirement)
-            for file_info in files_metadata:
+            # Z1 (2026-07-24): Create FileMetadata from the session's UploadedFile records,
+            # NOT from the client payload. The browser only knows the original filename; the
+            # real name on disk (stored_filename) lives in UploadedFile. Trusting the client
+            # here is exactly why COB downloads returned 404 (stored_filename was wrong).
+            # This mirrors the COA path (process_submission builds metadata server-side).
+            session_key = request.session.session_key
+            uploaded_files_qs = UploadedFile.objects.none()
+            if session_key:
+                uploaded_files_qs = UploadedFile.objects.filter(
+                    uploaded_by_session=session_key,
+                    is_deleted=False,
+                    application__isnull=True,
+                    category__in=valid_categories,  # only this COB form's file types
+                )
+
+            for uf in uploaded_files_qs:
                 FileMetadata.objects.create(
                     application=application,
-                    file_type=file_info.get('file_type'),
-                    original_filename=file_info.get('name', file_info.get('original_filename', '')),
-                    stored_filename=file_info.get('stored_name', file_info.get('stored_filename', file_info.get('name', ''))),
-                    file_size=file_info.get('size', file_info.get('file_size', 0))
+                    file_type=uf.category,
+                    original_filename=uf.original_filename,
+                    stored_filename=uf.stored_filename,
+                    file_size=uf.file_size,
                 )
 
             # Story 5.1: Save team members (Ostali članovi tima)
@@ -798,15 +812,9 @@ def submit_cob(request):
                         telefon=member.get('telefon', '')
                     )
 
-            # 5. Link uploaded files from session to application
-            session_key = request.session.session_key
+            # 5. Link the same uploaded files from session to application
             if session_key:
-                uploaded_files = UploadedFile.objects.filter(
-                    uploaded_by_session=session_key,
-                    is_deleted=False,
-                    application__isnull=True
-                )
-                uploaded_files.update(application=application)
+                uploaded_files_qs.update(application=application)
 
             # Success logging (GDPR-compliant, no PII)
             submission_logger.info(
@@ -1429,8 +1437,6 @@ def download_file(request, app_id, file_id):
         - MIME type validated against stored value
         - Returns 404 if not found, 403 if not authorized
     """
-    from apps.submissions.constants import FILE_CATEGORY_FOLDERS
-
     # Get application and file metadata
     application = get_object_or_404(Application, pk=app_id)
     file_metadata = get_object_or_404(FileMetadata, pk=file_id)
@@ -1445,37 +1451,15 @@ def download_file(request, app_id, file_id):
         # ISSUE 9 FIX: Consistent Serbian
         return HttpResponseForbidden("Nemate pristup ovom fajlu.")
 
-    # ISSUE 6 FIX: Use imported constant instead of hardcoded dict
-    # BUGFIX: Try final location first, then fallback to drafts folder
-    category_folder = FILE_CATEGORY_FOLDERS.get(file_metadata.file_type, 'submissions')
-    file_path = os.path.join(
-        settings.MEDIA_ROOT,
-        'submissions',
-        category_folder,
-        file_metadata.stored_filename
-    )
-
-    # BUGFIX: If file not in final location, check drafts folder
-    if not os.path.exists(file_path):
-        drafts_path = os.path.join(
-            settings.MEDIA_ROOT,
-            'uploads',
-            'drafts',
-            file_metadata.stored_filename
+    # Z1 (2026-07-24): single source of truth for locating the file
+    # (UploadedFile.file_path → submissions/<folder>/ → uploads/drafts/).
+    file_path = resolve_file_on_disk(file_metadata)
+    if not file_path:
+        logger.error(
+            f"File not found on disk: FileMetadata ID {file_id}, "
+            f"stored={file_metadata.stored_filename!r}, Application: {application.reference_number}"
         )
-        if os.path.exists(drafts_path):
-            file_path = drafts_path
-            logger.warning(
-                f"File found in drafts folder (not moved after submission): {drafts_path}, "
-                f"FileMetadata ID: {file_id}, Application: {application.reference_number}"
-            )
-        else:
-            # Log missing file error
-            logger.error(
-                f"File not found in either location: final={file_path}, drafts={drafts_path}, "
-                f"FileMetadata ID: {file_id}, Application: {application.reference_number}"
-            )
-            raise Http404("Fajl nije pronađen na serveru. Molimo kontaktirajte support.")
+        raise Http404("Fajl nije pronađen na serveru. Molimo kontaktirajte support.")
 
     # ISSUE 3 FIX: Validate MIME type against database (security)
     # Determine MIME type from file extension
@@ -1495,18 +1479,22 @@ def download_file(request, app_id, file_id):
     else:
         content_type = expected_content_type
 
+    # Z1: allow inline viewing in the browser (e.g. open a PDF/Excel preview) via ?inline=1.
+    # Default remains attachment (download).
+    as_attachment = request.GET.get('inline') != '1'
+
     # ISSUE 1 FIX: Wrap file opening in try/except to prevent resource leak
     try:
         file_handle = open(file_path, 'rb')
         response = FileResponse(
             file_handle,
             content_type=content_type,
-            as_attachment=True,
+            as_attachment=as_attachment,
             filename=file_metadata.original_filename
         )
 
         logger.info(
-            f"File downloaded: {file_metadata.original_filename}, "
+            f"File {'viewed' if not as_attachment else 'downloaded'}: {file_metadata.original_filename}, "
             f"application={application.reference_number}, user={request.user.username}"
         )
 
@@ -1545,8 +1533,6 @@ def download_all_files(request, app_id):
         - Only includes files that exist on disk
         - Validates total ZIP size (100MB max)
     """
-    from apps.submissions.constants import FILE_CATEGORY_FOLDERS
-
     # Get application
     application = get_object_or_404(Application, pk=app_id)
 
@@ -1577,41 +1563,19 @@ def download_all_files(request, app_id):
         zip_buffer = BytesIO()
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            # ISSUE 6 FIX: Use imported constant
+            # Z1 (2026-07-24): use the shared resolver instead of duplicating path logic.
             for file_metadata in files:
-                # Construct file path
-                category_folder = FILE_CATEGORY_FOLDERS.get(file_metadata.file_type, 'submissions')
-                file_path = os.path.join(
-                    settings.MEDIA_ROOT,
-                    'submissions',
-                    category_folder,
-                    file_metadata.stored_filename
-                )
-
-                # BUGFIX: If file not in final location, check drafts folder
-                if not os.path.exists(file_path):
-                    drafts_path = os.path.join(
-                        settings.MEDIA_ROOT,
-                        'uploads',
-                        'drafts',
-                        file_metadata.stored_filename
-                    )
-                    if os.path.exists(drafts_path):
-                        file_path = drafts_path
-                        logger.warning(
-                            f"File found in drafts folder during ZIP creation: {drafts_path}, "
-                            f"FileMetadata ID: {file_metadata.id}"
-                        )
+                file_path = resolve_file_on_disk(file_metadata)
 
                 # Only add file if it exists on disk
-                if os.path.exists(file_path):
+                if file_path:
                     # Add file to ZIP with original filename
                     zip_file.write(file_path, arcname=file_metadata.original_filename)
                 else:
                     # Log missing file but continue (don't break entire ZIP download)
                     logger.warning(
-                        f"File not found in either location during ZIP creation: final={os.path.join(settings.MEDIA_ROOT, 'submissions', category_folder, file_metadata.stored_filename)}, "
-                        f"drafts={os.path.join(settings.MEDIA_ROOT, 'uploads', 'drafts', file_metadata.stored_filename)}, "
+                        f"File not found on disk during ZIP creation: "
+                        f"stored={file_metadata.stored_filename!r}, "
                         f"FileMetadata ID: {file_metadata.id}, skipping"
                     )
 

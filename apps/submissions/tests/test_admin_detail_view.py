@@ -182,6 +182,11 @@ class AdminDetailViewTests(TestCase):
                 'files-INITIAL_FORMS': '0',
                 'files-MIN_NUM_FORMS': '0',
                 'files-MAX_NUM_FORMS': '0',
+                # Z2: ClanTimaInline management form (team members)
+                'clanovi_tima-TOTAL_FORMS': '0',
+                'clanovi_tima-INITIAL_FORMS': '0',
+                'clanovi_tima-MIN_NUM_FORMS': '0',
+                'clanovi_tima-MAX_NUM_FORMS': '0',
             },
             follow=True
         )
@@ -192,10 +197,12 @@ class AdminDetailViewTests(TestCase):
 
     def test_admin_detail_view_shows_file_metadata_inline(self):
         """Test detail view shows FileMetadata inline for uploaded documents."""
-        # Create sample file metadata
+        # Create sample file metadata.
+        # Z1: use the real FileType constant 'BUDGET' (the old 'BUDZET' matched a buggy
+        # label-dict key that showed raw codes for real submissions).
         FileMetadata.objects.create(
             application=self.coa_fizicko_app,
-            file_type='BUDZET',
+            file_type='BUDGET',
             original_filename='budzet.xlsx',
             stored_filename='COA-2025-001_budzet_abc123.xlsx',
             file_size=2500000,  # 2.5 MB in bytes

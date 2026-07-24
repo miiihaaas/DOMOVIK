@@ -72,6 +72,9 @@ FILE_CATEGORY_FOLDERS = {
     # Story 5.4: Updated COB file categories
     'BUDZET_INICIJATIVE': 'initiative_budgets',  # Was: initiative_descriptions
     'PISMO_PODRSKE': 'letters_of_support_cob',  # Was: letters_of_intent
+    # Z1 (2026-07-24): legacy COB categories from pre-5.4 submissions (still in DB)
+    'OPIS_INICIJATIVE': 'initiative_descriptions',
+    'PISMO_NAMERE': 'letters_of_intent',
 }
 
 

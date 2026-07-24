@@ -23,7 +23,8 @@ from apps.submissions.models import (
     InitiativeData,
     FileMetadata,
     DraftMetadata,
-    AdminLog
+    AdminLog,
+    ClanTima,
 )
 from apps.submissions.services import log_admin_action
 from apps.submissions.constants import (
@@ -79,7 +80,8 @@ class FileMetadataInline(admin.TabularInline):
         'original_filename',
         'get_file_size_mb',
         'uploaded_at',
-        'get_download_link',  # Story 4.4 will implement actual download
+        'get_file_status',   # Z1: is the file actually on disk?
+        'get_download_link',
     )
 
     readonly_fields = (
@@ -87,6 +89,7 @@ class FileMetadataInline(admin.TabularInline):
         'original_filename',
         'get_file_size_mb',
         'uploaded_at',
+        'get_file_status',
         'get_download_link',
     )
 
@@ -95,17 +98,31 @@ class FileMetadataInline(admin.TabularInline):
         Display file category in Serbian.
         CODE REVIEW NOTE: Category labels remain in admin.py (display logic),
         FILE_CATEGORY_FOLDERS moved to constants.py (storage paths).
+        Z1 FIX: keys now match constants.FileType (BUDGET/BIOGRAPHY, not BUDZET/BIOGRAFIJA),
+        which previously showed the raw code for COA files. Legacy COB codes included.
         """
         category_labels = {
-            'BUDZET': '📊 Budžet projekta',
-            'BIOGRAFIJA': '👤 Biografija člana tima',
-            'PISMO_PODRSKE': '✉️ Pismo podrške',
-            # Story 5.4: Updated COB categories
+            # COA (Epic 2)
+            'BUDGET': '📊 Budžet projekta',
+            'BIOGRAPHY': '👤 Biografija člana tima',
+            'SUPPORT_LETTER': '✉️ Pismo podrške',
+            # COB (Story 5.4)
             'BUDZET_INICIJATIVE': '📊 Budžet inicijative',
             'PISMO_PODRSKE': '✉️ Pismo podrške (COB)',
+            # Legacy COB (pre-5.4)
+            'OPIS_INICIJATIVE': '📄 Opis inicijative (stari)',
+            'PISMO_NAMERE': '✉️ Pismo namere (stari)',
         }
         return category_labels.get(obj.file_type, obj.file_type)
     get_category_serbian.short_description = 'Kategorija'
+
+    def get_file_status(self, obj):
+        """Z1: show whether the file can actually be located on disk."""
+        from apps.submissions.services import resolve_file_on_disk
+        if resolve_file_on_disk(obj):
+            return format_html('<span style="color: #28a745;">✅ Dostupan</span>')
+        return format_html('<span style="color: #dc3545; font-weight: bold;">⚠️ Nedostaje</span>')
+    get_file_status.short_description = 'Status fajla'
 
     def get_file_size_mb(self, obj):
         """Display file size in MB."""
@@ -127,13 +144,15 @@ class FileMetadataInline(admin.TabularInline):
         # Construct download URL
         download_url = reverse('submissions:admin_download_file', args=[app_id, file_id])
 
-        # Return download link with icon
+        # Z1: offer both "open in browser" (inline) and "download" (attachment).
         return format_html(
-            '<a href="{}" target="_blank" style="color: #0EA5E9; text-decoration: none;">'
-            '⬇️ Download</a>',
+            '<a href="{}?inline=1" target="_blank" style="color: #0EA5E9; text-decoration: none; margin-right: 12px;">'
+            '👁️ Otvori</a>'
+            '<a href="{}" style="color: #0EA5E9; text-decoration: none;">⬇️ Preuzmi</a>',
+            download_url,
             download_url
         )
-    get_download_link.short_description = 'Download'
+    get_download_link.short_description = 'Dokument'
 
     def has_add_permission(self, request, obj=None):
         """Prevent adding files via admin (files come from frontend only)."""
@@ -144,6 +163,29 @@ class FileMetadataInline(admin.TabularInline):
         return False
 
 
+class ClanTimaInline(admin.TabularInline):
+    """
+    Z2 (2026-07-24): read-only inline of team members (Ostali članovi tima).
+
+    Until now these were never even saved (the frontend didn't send them) and never shown.
+    Now displayed alongside the application so admins can see the full team.
+    """
+    model = ClanTima
+    extra = 0
+    max_num = 0
+    can_delete = False
+    fields = ('ime_prezime', 'email', 'telefon')
+    readonly_fields = ('ime_prezime', 'email', 'telefon')
+    verbose_name = 'Član tima'
+    verbose_name_plural = '👥 Ostali članovi tima'
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     """
@@ -151,10 +193,11 @@ class ApplicationAdmin(admin.ModelAdmin):
     Story 4.1: Basic list view + search + filters
     Story 4.2: Enhanced list view with query optimization, pagination, visual UX
     Story 4.3: Enhanced detail view with dynamic fieldsets, status editing, FileMetadata inline
+    Z2 (2026-07-24): Added ClanTimaInline (team members).
     """
 
-    # Story 4.3: Add FileMetadata inline
-    inlines = [FileMetadataInline]
+    # Story 4.3: FileMetadata inline; Z2: team members inline
+    inlines = [FileMetadataInline, ClanTimaInline]
 
     list_display = (
         'reference_number',
@@ -162,6 +205,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         'get_title',
         'get_application_type_display_serbian',  # Story 4.2: Serbian + icon
         'get_status_display_colored',            # Story 4.2: Color-coded status
+        'get_team_and_docs',                     # Z2: team members + document counts
         'get_submitted_at_display',              # Story 4.2: Highlight recent
     )
 
@@ -249,7 +293,15 @@ class ApplicationAdmin(admin.ModelAdmin):
         qs = qs.select_related('applicant')  # Avoid extra queries for applicant data
         qs = qs.prefetch_related('project_data', 'initiative_data')  # Prefetch title data
         qs = qs.prefetch_related('files')  # ISSUE 11 FIX: Prefetch files for FileMetadataInline to avoid N+1
+        qs = qs.prefetch_related('clanovi_tima')  # Z2: prefetch team members for count column + inline
         return qs
+
+    def get_team_and_docs(self, obj):
+        """Z2: compact counts of team members and uploaded documents."""
+        team_count = obj.clanovi_tima.count()
+        doc_count = obj.files.count()
+        return format_html('👥 {} &nbsp; 📎 {}', team_count, doc_count)
+    get_team_and_docs.short_description = 'Tim / Dok.'
 
     def get_applicant_name(self, obj):
         """

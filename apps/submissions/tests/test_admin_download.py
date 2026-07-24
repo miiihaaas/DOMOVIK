@@ -219,8 +219,9 @@ class AdminFileDownloadTests(TestCase):
         response = self.client.get(f'/admin/submissions/application/{self.application.id}/change/')
 
         self.assertEqual(response.status_code, 200)
-        # Verify download link present
-        self.assertContains(response, '⬇️ Download')
+        # Verify document links present (Z1: "Otvori" inline + "Preuzmi" download)
+        self.assertContains(response, '👁️ Otvori')
+        self.assertContains(response, '⬇️ Preuzmi')
         self.assertContains(response, 'admin/application')
         self.assertContains(response, 'download-file')
 
