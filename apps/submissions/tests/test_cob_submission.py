@@ -424,17 +424,24 @@ class COBSubmissionTestCase(TestCase):
         self.assertFalse(data['success'])
         self.assertIn('podnosiocu', data['error'])
 
-    @patch('apps.submissions.views.send_confirmation_email.delay')
-    def test_email_confirmation_triggered(self, mock_email_task):
+    @patch('apps.submissions.views.send_confirmation_email_now')
+    def test_email_confirmation_triggered(self, mock_email_now):
         """
-        Test 15: CODE REVIEW FIX #6 - Verify email confirmation task is triggered.
-        This test verifies that send_confirmation_email.delay() is called with correct application ID.
+        Test 15: Verify confirmation email is triggered on COB submission.
+        Z4′: emails are now sent SYNCHRONOUSLY via send_confirmation_email_now(application_id)
+        (scheduled through transaction.on_commit). This test verifies it is invoked with the
+        correct application ID.
         """
-        response = self.client.post(
-            self.submit_url,
-            data=json.dumps(self.valid_cob_data),
-            content_type='application/json'
-        )
+        mock_email_now.return_value = True
+
+        # submit_cob schedules the email via transaction.on_commit; under TestCase we must
+        # capture and execute those callbacks explicitly.
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                self.submit_url,
+                data=json.dumps(self.valid_cob_data),
+                content_type='application/json'
+            )
 
         self.assertEqual(response.status_code, 201)
         data = response.json()
@@ -443,8 +450,8 @@ class COBSubmissionTestCase(TestCase):
         # Get the created application
         application = Application.objects.get(reference_number=reference_number)
 
-        # Verify email task was called with application ID
-        mock_email_task.assert_called_once_with(application.id)
+        # Verify synchronous email helper was called with application ID
+        mock_email_now.assert_called_once_with(application.id)
 
     def test_validation_email_format(self):
         """

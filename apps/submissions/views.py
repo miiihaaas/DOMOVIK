@@ -32,7 +32,10 @@ from apps.submissions.forms import (
 from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata, FileMetadata, ClanTima
 from apps.submissions.validators import generate_unique_filename
 from apps.submissions.services import process_submission, PDFGenerationService
-from apps.submissions.tasks import send_confirmation_email, send_admin_notification
+from apps.submissions.tasks import (
+    send_confirmation_email_now,
+    send_admin_notification_now,
+)
 from django.shortcuts import render, get_object_or_404
 
 # File upload logger
@@ -442,16 +445,17 @@ def submit_application(request):
                         telefon=member.get('telefon', '')
                     )
 
-            # Trigger async email tasks (Story 2.14 + Story 3.6)
+            # Z4′: Send emails SYNCHRONOUSLY (no Celery worker on production).
+            # Both *_now() helpers swallow errors so a mail failure never breaks the submission.
             # SECURITY: Don't log email addresses (GDPR compliance)
             submission_logger.info(
-                f"Triggering email tasks for {result['reference_number']}"
+                f"Sending emails for {result['reference_number']}"
             )
             # Story 2.14: User confirmation email
-            send_confirmation_email.delay(application_obj.id)
+            send_confirmation_email_now(application_obj.id)
 
-            # Story 3.6: Admin notification email (CRITICAL FIX: Code Review - COA also sends admin notifications)
-            send_admin_notification.delay(application_obj.id, 'COA')
+            # Story 3.6: Admin notification email (COA also sends admin notifications)
+            send_admin_notification_now(application_obj.id, 'COA')
 
             logger.info(
                 f"Submission completed successfully: {result['reference_number']}, "
@@ -819,19 +823,19 @@ def submit_cob(request):
             # Store application ID for email task (after transaction commits)
             application_id_for_email = application.id
 
-        # FIX #4: Trigger async email tasks AFTER transaction commits (Story 2.14, Story 3.6)
-        # CRITICAL FIX (Code Review): Use transaction.on_commit() to ensure emails only send if transaction succeeds
-        # This prevents email sending if database transaction rolls back after this point
+        # Z4′: Send emails SYNCHRONOUSLY AFTER the transaction commits (Story 2.14, Story 3.6).
+        # transaction.on_commit() guarantees emails only go out if the submission was actually saved.
+        # Both *_now() helpers swallow errors so a mail failure never rolls back or breaks the submission.
         if application_id_for_email:
             try:
                 # Story 2.14: Send confirmation email to user (AFTER transaction commits)
-                transaction.on_commit(lambda: send_confirmation_email.delay(application_id_for_email))
+                transaction.on_commit(lambda: send_confirmation_email_now(application_id_for_email))
 
                 # Story 3.6: Send admin notification email (AFTER transaction commits)
-                transaction.on_commit(lambda: send_admin_notification.delay(application_id_for_email, 'COB'))
+                transaction.on_commit(lambda: send_admin_notification_now(application_id_for_email, 'COB'))
 
                 submission_logger.info(
-                    f"Email tasks queued for {reference_number} (will execute after transaction commit)"
+                    f"Emails scheduled for {reference_number} (will send after transaction commit)"
                 )
             except Exception as email_error:
                 # Log email queue failure but don't fail the submission
@@ -1019,14 +1023,19 @@ def resend_email(request, reference_number):
             'message': f"Prijava sa referentnim brojem {reference_number} nije pronađena."
         }, status=404)
 
-    # Story 2.14: Trigger Celery email task
+    # Z4′: Resend synchronously and report the real outcome to the user.
     logger.info(f"Resending email confirmation for {reference_number}")
-    send_confirmation_email.delay(application.id)
+    sent = send_confirmation_email_now(application.id)
 
+    if sent:
+        return JsonResponse({
+            'success': True,
+            'message': f"Email potvrda je poslata na {application.applicant.email}."
+        })
     return JsonResponse({
-        'success': True,
-        'message': f"Email potvrda je poslata na {application.applicant.email}."
-    })
+        'success': False,
+        'message': "Slanje email potvrde trenutno nije uspelo. Molimo preuzmite PDF potvrdu ili pokušajte kasnije."
+    }, status=502)
 
 
 @csrf_protect
