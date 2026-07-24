@@ -495,7 +495,7 @@ class PDFGenerationService:
         Bicete obavesteni putem emaila o daljem toku procesa.<br/>
         Ako imate pitanja, kontaktirajte nas na info@domovik.org<br/>
         <br/>
-        <i>DOMOVIK - Udruzenje za podrsku gradjanskih inicijativa</i>
+        <i>DOMOVIK</i>
         </para>
         """
 
