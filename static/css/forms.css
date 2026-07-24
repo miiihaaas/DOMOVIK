@@ -1,31 +1,23 @@
 /**
- * Forms CSS - Civic Tech Design System
- * Story 2.2: COA Form Section I styling
+ * Forms CSS - Domovik Design System
+ * Grant application form styling
  *
- * Design Principles:
- * - Civic Tech color palette (tirkizna primarna #0EA5E9, koraljna accent #FF7A59)
- * - Accessible (4.5:1 color contrast, visible focus states)
- * - Responsive (mobile-first, breakpoints 320px, 768px, 1024px+)
- * - Touch-friendly (44x44px minimum tap targets)
+ * Design: Domovik brand palette (#006AAF primary, #C6451F accent)
+ * Typography: Playfair Display (headings) + Libre Franklin (body)
+ * Accessible, responsive, touch-friendly (44px targets)
+ *
+ * NOTE: All design tokens inherited from base.css via legacy aliases.
  */
 
 /* ==========================================================================
-   Civic Tech Color Palette
+   Form-Specific Tokens (extend base.css)
    ========================================================================== */
 :root {
-  /* Civic Tech Palette */
-  --primary-teal: #0EA5E9;
-  --accent-coral: #FF7A59;
-  --neutral-warm-gray: #F5F5F0;
-  --text-primary: #2C3E50;
-  --text-secondary: #6B7280;
-  --error-red: #EF4444;
-  --success-green: #10B981;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --form-error-red: var(--color-error, #C0392B);
+  --form-success-green: var(--color-success, #27AE60);
+  --form-border: var(--color-border, #D4CFC8);
+  --form-bg: var(--color-surface, #FFFFFF);
+  --form-radius: var(--radius-md, 8px);
 }
 
 /* ==========================================================================
@@ -34,264 +26,258 @@
 .container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: var(--space-6) var(--space-4);
 }
 
 .form-title {
-  font-size: 2rem;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-5);
   text-align: center;
+  letter-spacing: -0.01em;
 }
 
+/* Section subtitle — left accent border, warm surface background */
 .section-subtitle {
-  font-size: 1.25rem;
-  color: var(--text-primary);
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  border-bottom: 2px solid var(--primary-teal);
-  padding-bottom: 0.5rem;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  border-bottom: none;
 }
 
 /* ==========================================================================
-   Progress Stepper (Story 2.7 - Enhanced Civic Tech Design)
+   Progress Stepper (Domovik Design System)
+   Horizontalni stepper sa connecting lines, 3 stanja:
+   - active: solid primary fill, bold label
+   - completed: checkmark, subdued boja
+   - upcoming: outline/ghost, disabled
    ========================================================================== */
+
 .progress-stepper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 2rem 0;
-  padding: 1.5rem;
-  background: var(--neutral-warm-gray);
-  border-radius: 12px;
+  margin: var(--space-6) 0 var(--space-5);
 }
 
-/* BEM: Progress Stepper Step */
+/* Track — ordered list, horizontal layout with connecting lines via ::after */
+.progress-stepper__track {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  list-style: none;
+  padding: var(--space-5) var(--space-4);
+  margin: 0;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+  counter-reset: step;
+}
+
+/* Step — vertical stack: indicator + label */
 .progress-stepper__step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
   position: relative;
-  cursor: not-allowed; /* MVP: Not clickable (Task 10 optional) */
+  flex: 1;
+  max-width: 200px;
+  cursor: default;
 }
 
-/* Legacy class support */
-.stepper-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
+/* Connecting line between steps (::after on all except last) */
+.progress-stepper__step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 22px;            /* Center of the 44px indicator */
+  left: calc(50% + 28px);
+  right: calc(-50% + 28px);
+  height: 2px;
+  background: var(--color-border);
+  transition: background-color var(--transition-base);
+  z-index: 0;
 }
 
-/* BEM: Step Circle */
-.progress-stepper__circle {
-  width: 40px;
-  height: 40px;
+/* Completed connector line */
+.progress-stepper__step--completed:not(:last-child)::after {
+  background: var(--color-primary);
+}
+
+/* Indicator circle */
+.progress-stepper__indicator {
+  position: relative;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: #fff;
-  border: 2px solid #D6D3D1; /* Gray for inactive */
-  color: #78716C; /* Gray text */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 16px;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-/* Legacy class support */
-.step-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #D6D3D1;
-  color: #78716C;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 16px;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-/* Step Number - visible by default */
-.step-number {
-  display: inline-block;
-}
-
-/* Step Checkmark - hidden by default */
-.step-checkmark {
-  display: none;
-  color: #10B981; /* Green checkmark */
-  font-size: 20px;
+  font-family: var(--font-body);
   font-weight: 700;
+  font-size: var(--text-base);
+  transition: all var(--transition-base);
+
+  /* Default: upcoming / ghost */
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
-/* ACTIVE STATE (Current Section) - Tirkizna */
-.progress-stepper__step--active .progress-stepper__circle,
-.stepper-step--active .step-circle {
-  background: var(--primary-teal); /* Tirkizna #0EA5E9 */
-  border-color: var(--primary-teal);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-}
-
-.stepper-step.active .step-circle {
-  background: var(--primary-teal);
-  border-color: var(--primary-teal);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-}
-
-/* COMPLETED STATE - Tirkizna border, checkmark */
-.progress-stepper__step--completed .progress-stepper__circle,
-.stepper-step--completed .step-circle {
-  background: #F5F5F0; /* Light gray background */
-  border-color: var(--primary-teal); /* Tirkizna border */
-  color: #10B981; /* Green checkmark */
-}
-
-.stepper-step.completed .step-circle {
-  background: #F5F5F0;
-  border-color: var(--primary-teal);
-  color: #10B981;
-}
-
-/* Show checkmark, hide number for completed steps */
-.progress-stepper__step--completed .step-number,
-.stepper-step--completed .step-number,
-.stepper-step.completed .step-number {
-  display: none;
-}
-
-.progress-stepper__step--completed .step-checkmark,
-.stepper-step--completed .step-checkmark,
-.stepper-step.completed .step-checkmark {
+/* Step number — visible by default */
+.progress-stepper__number {
   display: inline-block;
+  line-height: 1;
 }
 
-/* BEM: Step Label */
+/* SVG checkmark — hidden by default */
+.progress-stepper__check {
+  display: none;
+  width: 20px;
+  height: 20px;
+}
+
+/* Label below indicator */
 .progress-stepper__label {
-  margin-top: 8px;
-  font-size: 14px;
-  color: #78716C; /* Gray */
-  text-align: center;
+  margin-top: var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
   line-height: 1.3;
+  max-width: 140px;
+  transition: color var(--transition-base), font-weight var(--transition-base);
 }
 
-/* Legacy class support */
-.step-label {
-  margin-top: 8px;
-  font-size: 14px;
-  color: #78716C;
-  text-align: center;
-  font-weight: 500;
-  line-height: 1.3;
+/* ===== ACTIVE state (current section) ===== */
+.progress-stepper__step--active .progress-stepper__indicator {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  box-shadow: 0 4px 14px rgba(0, 106, 175, 0.35);
 }
 
-/* Active step label - Tirkizna, bold */
-.progress-stepper__step--active .progress-stepper__label,
-.stepper-step--active .step-label,
-.stepper-step.active .step-label {
-  color: var(--primary-teal);
+.progress-stepper__step--active .progress-stepper__label {
+  color: var(--color-primary);
   font-weight: 700;
 }
 
-/* Completed step label - Gray (not as prominent) */
-.progress-stepper__step--completed .progress-stepper__label,
-.stepper-step--completed .step-label,
-.stepper-step.completed .step-label {
-  color: #78716C;
+/* Subtle pulse animation on active indicator */
+@keyframes stepper-pulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(0, 106, 175, 0.35); }
+  50%      { box-shadow: 0 4px 20px rgba(0, 106, 175, 0.5); }
+}
+
+.progress-stepper__step--active .progress-stepper__indicator {
+  animation: stepper-pulse 2.5s ease-in-out infinite;
+}
+
+/* ===== COMPLETED state ===== */
+.progress-stepper__step--completed .progress-stepper__indicator {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.progress-stepper__step--completed .progress-stepper__number {
+  display: none;
+}
+
+.progress-stepper__step--completed .progress-stepper__check {
+  display: inline-block;
+  color: var(--color-primary);
+}
+
+.progress-stepper__step--completed .progress-stepper__label {
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
-/* BEM: Connector Line */
-.progress-stepper__connector {
-  flex: 1;
-  max-width: 80px;
-  height: 2px;
-  background: #D6D3D1; /* Gray default */
-  margin: 0 1rem;
-  transition: background-color 0.3s ease;
-}
-
-/* Legacy class support */
-.stepper-line {
-  flex: 1;
-  max-width: 80px;
-  height: 2px;
-  background: #D6D3D1;
-  margin: 0 1rem;
-  transition: background-color 0.3s ease;
-}
-
-/* Connector line completed state - Tirkizna */
-.progress-stepper__connector--completed {
-  background: var(--primary-teal);
-}
-
-.stepper-text {
+/* ===== Counter text below stepper ===== */
+.progress-stepper__counter {
   text-align: center;
-  margin-top: 1rem;
-  font-size: 1.125rem;
-  color: var(--text-primary);
+  margin-top: var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  color: var(--color-text);
+}
+
+.progress-stepper__counter strong {
+  color: var(--color-primary);
+}
+
+/* Section label inside counter — hidden on desktop, shown on mobile < 480px */
+.progress-stepper__counter-label {
+  display: none;
 }
 
 /* ==========================================================================
-   Entity Type Switcher
+   Entity Type Switcher — Segmented Control
    ========================================================================== */
 .entity-type-switcher {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: var(--neutral-warm-gray);
-  border-radius: 8px;
+  margin-bottom: var(--space-6);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
 }
 
 .switcher-label {
   display: block;
+  font-family: var(--font-body);
   font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
-  font-size: 1.125rem;
+  margin-bottom: var(--space-3);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .switcher-buttons {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  border: 1px solid var(--color-border);
 }
 
 .switcher-btn {
-  padding: 0.75rem 1.5rem;
-  border: 2px solid var(--primary-teal);
-  background: #fff;
-  color: var(--primary-teal);
-  border-radius: 8px;
+  flex: 1;
+  padding: var(--space-3) var(--space-5);
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: 6px;
+  font-family: var(--font-body);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 150px;
-  min-height: 44px; /* Touch-friendly (NFR mobile) */
-  font-size: 1rem;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+  font-size: var(--text-base);
+  text-align: center;
 }
 
-.switcher-btn:hover {
-  background: #E0F7FF; /* Light tirkizna hover */
+.switcher-btn:hover:not(.active) {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
 }
 
 .switcher-btn.active {
-  background: var(--primary-teal);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
-.switcher-btn:focus {
-  outline: 2px solid var(--primary-teal);
+.switcher-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 
@@ -313,40 +299,80 @@
    Form Groups & Fields
    ========================================================================== */
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
+  position: relative;
 }
 
+/* Label — always above input, discrete required indicator */
 .form-group label {
   display: block;
+  font-family: var(--font-body);
   font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--text-primary);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+  line-height: 1.4;
 }
 
+/* Required asterisk — styled as small accent-colored dot instead of red star */
+.form-group label:has(+ [required])::after,
+.form-group label:has(+ [aria-required="true"])::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+/* Inputs — visible warm border, surface background */
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="tel"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="url"],
+.form-group input[type="search"],
+.form-group input[type="password"],
+.form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #E5E7EB;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-family: inherit;
-  transition: border-color 0.2s;
-  background: #fff;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--form-radius);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--form-bg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  min-height: 44px;
 }
 
+/* Focus state — primary blue highlight ring */
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--primary-teal);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 106, 175, 0.12);
 }
 
+/* Textarea — visible height */
 .form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 120px;
+}
+
+/* Placeholder */
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
 }
 
 /* Hidden input (entity_type) */
@@ -354,42 +380,59 @@
   display: none;
 }
 
+/* Disabled / readonly fields — clearly distinguishable */
+.form-group input:disabled,
+.form-group input[readonly],
+.form-group textarea:disabled,
+.form-group textarea[readonly],
+.form-group select:disabled {
+  background-color: var(--color-bg);
+  border-color: var(--color-border-light);
+  border-style: dashed;
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
 /* Help text */
 .help-text {
   display: block;
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  margin-top: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
 /* Error messages (server-side validation) */
 .error-message {
   display: block;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: #FEE2E2;
-  color: var(--error-red);
-  border-left: 3px solid var(--error-red);
-  border-radius: 4px;
-  font-size: 0.875rem;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-error-light);
+  color: #922B21;
+  border-left: 3px solid var(--form-error-red);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 /* Form error container (for submission errors) */
 .form-error {
-  display: none; /* Hidden by default */
-  margin: 1rem 0;
-  padding: 1rem;
-  background: #FEE2E2;
-  color: #991B1B; /* Dark red for better contrast */
-  border-left: 4px solid var(--error-red);
-  border-radius: 4px;
-  font-size: 0.9375rem;
+  display: none;
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  background: var(--color-error-light);
+  color: #922B21;
+  border-left: 4px solid var(--form-error-red);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   line-height: 1.6;
 }
 
-/* Focusable error container (for accessibility) */
 .form-error:focus {
-  outline: 2px solid var(--error-red);
+  outline: 2px solid var(--form-error-red);
   outline-offset: 2px;
 }
 
@@ -399,33 +442,41 @@
 
 /* Validation error messages (client-side real-time validation) */
 .validation-error {
-  display: none; /* Hidden by default */
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: #FEE2E2;
-  color: #D32F2F; /* Error red with 6.5:1 contrast ratio (exceeds 4.5:1 minimum) */
-  border-left: 3px solid #D32F2F;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  display: none;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-error-light);
+  color: #922B21;
+  border-left: 3px solid var(--form-error-red);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.5;
   animation: fadeIn 200ms ease-in;
 }
 
-/* Error state for form group (red border on invalid field) */
+/* Error state for form group */
 .form-group.error input[type="text"],
 .form-group.error input[type="email"],
 .form-group.error input[type="tel"],
-.form-group.error textarea {
-  border-color: #D32F2F; /* Red border */
-  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+.form-group.error input[type="number"],
+.form-group.error input[type="date"],
+.form-group.error textarea,
+.form-group.error select {
+  border-color: var(--form-error-red);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
 }
 
-/* Valid state for form group (green border on valid field) - optional visual feedback */
+/* Valid state for form group */
 .form-group.valid input[type="text"],
 .form-group.valid input[type="email"],
 .form-group.valid input[type="tel"],
-.form-group.valid textarea {
-  border-color: #00AA00; /* Green border with 4.7:1 contrast ratio */
-  box-shadow: 0 0 0 3px rgba(0, 170, 0, 0.1);
+.form-group.valid input[type="number"],
+.form-group.valid input[type="date"],
+.form-group.valid textarea,
+.form-group.valid select {
+  border-color: var(--form-success-green);
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
 }
 
 /* Smooth fade-in animation for validation errors */
@@ -449,20 +500,21 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 0.75rem 1.25rem;
-  background: #fff;
-  border-radius: 8px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
   opacity: 0;
   visibility: hidden;
   transition: opacity 200ms ease, visibility 200ms ease;
   z-index: 1000;
-  font-size: 0.875rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text);
 }
 
 /* Visible state */
@@ -473,7 +525,7 @@
 
 /* Saving state (spinner + "Čuva se...") */
 .autosave-indicator--saving {
-  border-left: 4px solid var(--primary-teal);
+  border-left: 4px solid var(--color-primary);
 }
 
 .autosave-indicator--saving .autosave-indicator__icon::before {
@@ -483,25 +535,25 @@
 
 /* Saved state (checkmark + "Sačuvano") */
 .autosave-indicator--saved {
-  border-left: 4px solid var(--success-green);
+  border-left: 4px solid var(--form-success-green);
 }
 
 .autosave-indicator--saved .autosave-indicator__icon::before {
-  content: "✓"; /* Checkmark */
+  content: "✓";
   font-size: 1.25rem;
-  color: var(--success-green);
+  color: var(--form-success-green);
 }
 
 /* Warning state (persistent warning for errors) */
 .autosave-indicator--warning {
-  border-left: 4px solid var(--error-red);
-  background: #FEE2E2;
+  border-left: 4px solid var(--form-error-red);
+  background: var(--color-error-light);
 }
 
 .autosave-indicator--warning .autosave-indicator__icon::before {
-  content: "⚠"; /* Warning sign */
+  content: "⚠";
   font-size: 1.25rem;
-  color: var(--error-red);
+  color: var(--form-error-red);
 }
 
 /* Icon element */
@@ -596,11 +648,11 @@
 /* Modal content card */
 .draft-recovery-modal__content {
   position: relative;
-  z-index: 1001; /* Above backdrop */
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
-  padding: 2rem;
+  z-index: 1001;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: var(--space-6);
   max-width: 600px;
   width: 90%;
   transform: scale(0.95);
@@ -613,10 +665,11 @@
 
 /* Modal heading */
 .draft-recovery-modal__heading {
-  margin: 0 0 1rem 0;
-  font-size: 1.5rem;
+  margin: 0 0 var(--space-4) 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
   font-weight: 700;
-  color: #0369A1; /* Darker teal for WCAG AA compliance (4.52:1 contrast on white) */
+  color: var(--color-primary);
   line-height: 1.3;
 }
 
@@ -679,21 +732,21 @@
   min-width: 150px;
 }
 
-/* Primary button - "Nastavi" (koraljna accent) */
+/* Primary button - "Nastavi" */
 .draft-recovery-modal__btn--primary {
-  background: var(--accent-coral); /* Koraljna CTA */
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(255, 122, 89, 0.3);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  box-shadow: 0 2px 8px rgba(0, 106, 175, 0.3);
 }
 
 .draft-recovery-modal__btn--primary:hover {
-  background: #E6674D; /* Darker coral */
-  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.4);
+  background: var(--color-primary-dark);
+  box-shadow: 0 4px 12px rgba(0, 106, 175, 0.4);
   transform: translateY(-1px);
 }
 
-.draft-recovery-modal__btn--primary:focus {
-  outline: 2px solid var(--accent-coral);
+.draft-recovery-modal__btn--primary:focus-visible {
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 
@@ -761,161 +814,262 @@
 }
 
 /* ==========================================================================
-   Navigation Buttons (Story 2.7 - Enhanced)
+   Navigation Buttons
    ========================================================================== */
 .form-navigation {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 2px solid #E5E7EB;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .btn {
-  padding: 0.875rem 1.75rem;
-  border: none;
-  border-radius: 8px;
+  padding: var(--space-3) var(--space-6);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--text-base);
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-height: 44px; /* Touch-friendly */
+  transition: all var(--transition-base);
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
+  text-decoration: none;
 }
 
 .btn-primary {
-  background: var(--primary-teal); /* Tirkizna */
-  color: #fff;
-  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 4px rgba(0, 106, 175, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0284C7; /* Darker tirkizna */
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
-  transform: translateY(-2px);
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  box-shadow: 0 4px 12px rgba(0, 106, 175, 0.3);
+  transform: translateY(-1px);
+  color: var(--color-text-inverse);
 }
 
 .btn-primary:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 106, 175, 0.2);
 }
 
 .btn-secondary {
-  background: #fff;
-  color: #78716C; /* Gray */
-  border: 2px solid #D6D3D1; /* Gray border */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--color-surface);
+  color: var(--color-secondary);
+  border: 2px solid var(--color-border);
+  box-shadow: none;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: #78716C;
-  color: #2C3E50;
-  background: #F5F5F0; /* Light gray */
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+  background: var(--color-bg);
 }
 
 .btn-secondary:active:not(:disabled) {
-  background: #E5E7EB;
+  background: var(--color-bg-alt);
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
-  background: #F3F4F6; /* Light gray */
-  color: #9CA3AF; /* Gray text */
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-light);
   box-shadow: none;
   transform: none !important;
 }
 
-.btn:focus {
-  outline: 2px solid var(--primary-teal);
+.btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 
 /* ==========================================================================
    Responsive Design - Mobile (Story 2.7 - Enhanced)
    ========================================================================== */
+/* ==========================================================================
+   MOBILE — Tablet (max-width: 768px)
+   ========================================================================== */
 @media (max-width: 768px) {
   .container {
-    padding: 1rem 0.75rem;
+    padding: var(--space-4) var(--space-3);
   }
 
   .form-title {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
-  /* Progress Stepper - Smaller circles, shorter labels on mobile */
-  .progress-stepper {
-    padding: 1rem;
+  /* Section titles: smaller but visually weighted */
+  .section-title {
+    font-size: var(--text-lg);
+    padding: var(--space-3) var(--space-4);
+    border-left-width: 3px;
   }
 
-  .progress-stepper__circle,
-  .step-circle {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
+  .section-subtitle {
+    font-size: var(--text-base);
+    margin-top: var(--space-4);
   }
 
-  .step-checkmark {
-    font-size: 16px;
+  /* Progress Stepper — compact on tablet */
+  .progress-stepper__track {
+    padding: var(--space-4) var(--space-3);
   }
 
-  .progress-stepper__label,
-  .step-label {
-    font-size: 12px;
-    max-width: 80px;
+  .progress-stepper__indicator {
+    width: 36px;
+    height: 36px;
+    font-size: var(--text-sm);
   }
 
-  .progress-stepper__connector,
-  .stepper-line {
-    max-width: 60px;
+  .progress-stepper__check {
+    width: 16px;
+    height: 16px;
   }
 
-  /* Switcher buttons stack on mobile */
+  .progress-stepper__step:not(:last-child)::after {
+    top: 18px;
+    left: calc(50% + 22px);
+    right: calc(-50% + 22px);
+  }
+
+  .progress-stepper__label {
+    font-size: var(--text-xs);
+    max-width: 90px;
+  }
+
+  /* Inputs: 48px touch targets on mobile */
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="tel"],
+  .form-group input[type="number"],
+  .form-group input[type="date"],
+  .form-group input[type="url"],
+  .form-group input[type="search"],
+  .form-group input[type="password"],
+  .form-group select,
+  .form-group textarea {
+    min-height: 48px;
+    font-size: 16px;  /* Prevents iOS zoom on focus */
+  }
+
+  /* Switcher buttons stack */
   .switcher-buttons {
     flex-direction: column;
   }
 
   .switcher-btn {
     width: 100%;
+    min-height: 48px;
   }
 
-  /* Form navigation - Stack buttons, SLEDEĆA above PRETHODNA */
+  /* Form navigation — stack, SLEDEĆA above PRETHODNA */
   .form-navigation {
     flex-direction: column-reverse;
   }
 
   .btn {
     width: 100%;
-    min-height: 44px; /* Touch target compliance */
+    min-height: 48px;
+  }
+
+  /* Budget input: full-width on mobile */
+  .budget-input-wrapper .budget-input {
+    max-width: none;
+    flex: 1;
   }
 }
 
+/* ==========================================================================
+   MOBILE — Small phone (max-width: 480px)
+   Stepper: show only current step as inline badge
+   ========================================================================== */
+@media (max-width: 480px) {
+  /* Hide the full track, show compact counter only */
+  .progress-stepper__track {
+    display: none;
+  }
+
+  .progress-stepper__counter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
+    box-shadow: var(--shadow-sm);
+    font-size: var(--text-sm);
+  }
+
+  .progress-stepper__counter strong {
+    font-family: var(--font-body);
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  /* Show section name on mobile: "Korak 2 od 3: Podaci o projektu" */
+  .progress-stepper__counter-label {
+    display: inline;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  /* Form title smaller */
+  .form-title {
+    font-size: var(--text-xl);
+  }
+
+  /* Section title tighter */
+  .section-title {
+    font-size: var(--text-base);
+    font-weight: 700;
+    padding: var(--space-3);
+  }
+
+  /* Labels slightly larger for readability */
+  .form-group label {
+    font-size: var(--text-sm);
+  }
+
+  /* Entity switcher compact */
+  .entity-type-switcher {
+    padding: var(--space-4);
+  }
+
+  /* Team members section */
+  .team-members-section {
+    padding: var(--space-4);
+  }
+
+  /* Project dates compact */
+  .project-dates-section {
+    padding: var(--space-4);
+  }
+}
+
+/* ==========================================================================
+   MOBILE — Extra small (max-width: 320px)
+   ========================================================================== */
 @media (max-width: 320px) {
-  /* Extra small devices */
-  .progress-stepper__circle,
-  .step-circle {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
-  }
-
-  .step-checkmark {
-    font-size: 14px;
-  }
-
-  .progress-stepper__label,
-  .step-label {
-    font-size: 10px;
-    max-width: 70px;
-  }
-
   .form-group input,
   .form-group textarea {
-    font-size: 0.875rem;
+    font-size: 16px;  /* Prevent iOS zoom */
+  }
+
+  .form-title {
+    font-size: var(--text-lg);
   }
 }
 
@@ -925,7 +1079,7 @@
 
 /* Section II Container */
 .section-ii {
-  margin-top: 2rem;
+  margin-top: var(--space-6);
 }
 
 .section-ii__fieldset {
@@ -935,35 +1089,36 @@
 }
 
 .section-ii__field {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
-/* Character Counter (Task 9) */
+/* Character Counter — bottom-right corner alignment */
 .character-counter {
   display: block;
   text-align: right;
-  font-size: 14px;
-  color: #6B7280; /* Neutral gray - valid state */
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
   font-weight: 400;
-  margin-top: 0.5rem;
+  margin-top: var(--space-1);
   line-height: 1.5;
 }
 
 .character-counter--error {
-  color: #DC2626; /* Red - overflow state */
-  font-weight: bold;
+  color: var(--form-error-red);
+  font-weight: 700;
 }
 
-/* Character Overflow Preview (Task 10) */
+/* Character Overflow Preview */
 .character-overflow-preview {
-  display: none; /* Hidden by default, shown when overflow occurs */
-  padding: 0.75rem;
-  margin-top: 0.5rem;
-  border: 1px solid #D6D3D1; /* Gray border */
-  border-radius: 8px;
-  background-color: #FAFAF9; /* Light gray background */
-  font-family: inherit;
-  font-size: 0.875rem;
+  display: none;
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   line-height: 1.6;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -971,27 +1126,28 @@
 }
 
 .text-valid {
-  background-color: #D1FAE5; /* Light green background */
-  border-left: 4px solid #10B981; /* Green border for emphasis */
+  background-color: var(--color-success-light);
+  border-left: 4px solid var(--form-success-green);
   padding: 2px 4px;
   display: inline;
 }
 
 .text-overflow {
-  background-color: #FEE2E2; /* Light red background */
-  color: #DC2626; /* Red text */
+  background-color: var(--color-error-light);
+  color: var(--form-error-red);
   padding: 2px 4px;
   font-weight: 500;
   display: inline;
 }
 
-/* Character Error Message (Task 11) */
+/* Character Error Message */
 .character-error-message {
-  display: none; /* Hidden by default */
-  color: #DC2626; /* Red */
-  font-size: 14px;
+  display: none;
+  color: var(--form-error-red);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
   font-weight: 500;
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
   line-height: 1.5;
 }
 
@@ -1030,11 +1186,18 @@
   display: none;
 }
 
+/* Section title — accent left border + Playfair Display */
 .section-title {
-  font-size: 1.5rem;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
   font-weight: 700;
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-left: 4px solid var(--color-accent);
+  background: var(--color-surface);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Screen reader only class for accessibility */
@@ -1054,12 +1217,12 @@
    Validation Summary Banner (Story 2.7 - Task 12)
    ========================================================================== */
 .validation-summary {
-  margin: 1.5rem 0;
-  padding: 1.25rem;
-  background: #FEE2E2; /* Light red background */
-  border-left: 4px solid var(--error-red);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-error-light);
+  border-left: 4px solid var(--form-error-red);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.1);
 }
 
 .validation-summary__header {
@@ -1145,47 +1308,49 @@
 
 /* Submit button base styles */
 .submit-btn {
-  padding: 1rem 2rem;
+  padding: var(--space-4) var(--space-6);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: var(--text-md);
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-height: 44px; /* Touch-friendly */
+  transition: all var(--transition-base);
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  background: var(--accent-coral); /* Koraljna CTA */
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.3);
+  gap: var(--space-3);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  box-shadow: 0 4px 12px rgba(198, 69, 31, 0.3);
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #E6674D; /* Darker coral */
-  box-shadow: 0 6px 16px rgba(255, 122, 89, 0.4);
-  transform: translateY(-2px);
+  background: var(--color-accent-dark);
+  box-shadow: 0 6px 16px rgba(198, 69, 31, 0.4);
+  transform: translateY(-1px);
 }
 
 .submit-btn:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(255, 122, 89, 0.3);
+  box-shadow: 0 2px 8px rgba(198, 69, 31, 0.3);
 }
 
-.submit-btn:focus {
-  outline: 2px solid var(--accent-coral);
+.submit-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-/* Submit button disabled state (Story 2.12 - Task 5) */
+/* Submit button disabled state */
 .submit-btn:disabled,
 .submit-btn--disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  background-color: #cccccc; /* Gray */
-  color: #666666; /* Darker gray text */
-  pointer-events: none; /* Prevent clicks */
+  background-color: var(--color-border);
+  color: var(--color-text-secondary);
+  pointer-events: none;
   box-shadow: none;
   transform: none !important;
 }
@@ -1235,59 +1400,58 @@
 }
 
 /* ==========================================================================
-   Team Members Section - Story 5.1
+   Team Members Section
    ========================================================================== */
 
 .team-members-section {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background-color: var(--neutral-warm-gray);
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
 }
 
 .team-members-section h4 {
-  font-size: 1rem;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-4);
   font-weight: 600;
 }
 
-/* Team Members Container */
 #team-members-container {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 
-/* Team Member Row - Horizontal Flexbox Layout */
+/* Team Member Row */
 .team-member-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
   align-items: flex-end;
-  background-color: #ffffff;
-  padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 0.75rem;
-  border: 1px solid #e5e7eb;
-  transition: box-shadow 0.2s ease;
+  background-color: var(--color-bg);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--color-border-light);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .team-member-row:hover {
   box-shadow: var(--shadow-sm);
+  border-color: var(--color-border);
 }
 
 .team-member-row:last-of-type {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 
-/* Team Member Form Groups - Flex Children */
 .team-member-row .form-group {
   flex: 1;
   min-width: 150px;
   margin-bottom: 0;
 }
 
-/* Actions column (delete button) - fixed width */
 .team-member-row .team-member-actions {
   flex: 0 0 auto;
   min-width: auto;
@@ -1295,89 +1459,102 @@
   align-items: flex-end;
 }
 
-/* Team Member Labels - Consistent with other form elements */
 .team-member-row label {
   display: block;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.375rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-/* Team Member Inputs - Match other form inputs */
 .team-member-row input {
   width: 100%;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.9375rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background-color: #ffffff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .team-member-row input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 106, 175, 0.12);
 }
 
 .team-member-row input::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
+  opacity: 0.6;
 }
 
 /* Delete Button */
 .delete-team-member {
   min-height: 38px;
-  padding: 0.375rem 0.75rem;
+  padding: var(--space-1) var(--space-3);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   font-weight: 500;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  color: var(--form-error-red);
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
   white-space: nowrap;
 }
 
 .delete-team-member:not(.disabled):hover {
-  background-color: var(--error-red);
-  border-color: var(--error-red);
-  color: #ffffff;
+  background-color: var(--form-error-red);
+  border-color: var(--form-error-red);
+  color: var(--color-text-inverse);
 }
 
 .delete-team-member.disabled,
 .delete-team-member:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background-color: #e5e7eb;
-  border-color: #d1d5db;
-  color: #9ca3af;
+  background-color: var(--color-bg);
+  border-color: var(--color-border-light);
+  color: var(--color-text-secondary);
 }
 
-/* Add Team Member Button */
-#add-team-member {
+/* Add Team Member Button — ghost/outline with + icon */
+#add-team-member,
+.btn-add-member {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--success-green);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary);
   background-color: transparent;
-  border: 1px dashed var(--success-green);
-  border-radius: 6px;
+  border: 1.5px dashed var(--color-primary);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
+  min-height: 44px;
 }
 
-#add-team-member:hover {
-  background-color: rgba(16, 185, 129, 0.1);
+#add-team-member:hover,
+.btn-add-member:hover {
+  background-color: var(--color-primary-light);
   border-style: solid;
+  border-color: var(--color-primary);
 }
 
-#add-team-member:focus {
-  outline: 2px solid var(--success-green);
+#add-team-member:focus-visible,
+.btn-add-member:focus-visible {
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 
@@ -1395,49 +1572,53 @@
 
   .team-member-row .team-member-actions {
     flex: 1 1 100%;
-    margin-top: 0.5rem;
+    margin-top: var(--space-2);
   }
 
   .delete-team-member {
     width: 100%;
     justify-content: center;
-    min-height: 40px;
-    font-size: 0.9rem;
+    min-height: 44px;
   }
 
-  #add-team-member {
+  #add-team-member,
+  .btn-add-member {
     width: 100%;
     justify-content: center;
-    padding: 0.75rem 1rem;
+    padding: var(--space-3) var(--space-4);
   }
 }
 
 
 /* ==========================================================================
-   Story 5.2: Project Dates Section
+   Project Dates Section
    ========================================================================== */
 
 .project-dates-section {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background-color: var(--neutral-warm-gray);
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
 }
 
-.project-dates-title {
-  font-size: 1.1rem;
+.project-dates-title,
+.project-dates-section__title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--primary-teal);
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  padding-left: var(--space-4);
+  border-bottom: none;
+  border-left: 3px solid var(--color-accent);
 }
 
 .project-dates-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: var(--space-5);
   align-items: flex-start;
 }
 
@@ -1448,77 +1629,83 @@
 
 .date-field label {
   display: block;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
 }
 
 .date-field input[type="date"] {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-  color: var(--text-primary);
-  background-color: white;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: var(--space-3);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--form-radius);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  min-height: 44px;
 }
 
 .date-field input[type="date"]:focus {
   outline: none;
-  border-color: var(--primary-teal);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 106, 175, 0.12);
 }
 
 .date-field input[type="date"].is-invalid {
-  border-color: var(--error-red);
+  border-color: var(--form-error-red);
 }
 
 .date-field input[type="date"].is-invalid:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
 }
 
+/* Duration — readonly / auto-calculated display */
 .duration-field {
-  flex: 0 0 150px;
+  flex: 0 0 170px;
   text-align: center;
 }
 
 .duration-field label {
   display: block;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
 }
 
 .duration-display {
-  padding: 0.75rem 1rem;
-  background-color: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1.1rem;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg);
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--form-radius);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
   font-weight: 600;
-  color: var(--text-secondary);
-  min-height: 48px;
+  color: var(--color-text-secondary);
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: not-allowed;
 }
 
 .duration-display.duration-valid {
-  color: var(--success-green);
-  border-color: var(--success-green);
-  background-color: rgba(16, 185, 129, 0.05);
+  color: var(--form-success-green);
+  border-color: var(--form-success-green);
+  background-color: var(--color-success-light);
 }
 
 .duration-display.duration-error {
-  color: var(--error-red);
-  border-color: var(--error-red);
-  background-color: rgba(239, 68, 68, 0.05);
+  color: var(--form-error-red);
+  border-color: var(--form-error-red);
+  background-color: var(--color-error-light);
 }
 
-/* Responsive: Stack on smaller screens */
 @media (max-width: 640px) {
   .project-dates-row {
     flex-direction: column;
@@ -1531,59 +1718,71 @@
   }
 
   .duration-field {
-    margin-top: 0.5rem;
+    margin-top: var(--space-2);
   }
 }
 
 /* ==========================================================================
-   Story 5.3: Budget Field Styles (COB Initiative)
+   Budget Field
    ========================================================================== */
 
 .budget-field {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .budget-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0;
 }
 
 .budget-input-wrapper .budget-input {
   flex: 1;
-  max-width: 200px;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  max-width: 220px;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--form-radius) 0 0 var(--form-radius);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   text-align: right;
+  min-height: 44px;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .budget-input-wrapper .budget-input:focus {
   outline: none;
-  border-color: var(--primary-teal);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 106, 175, 0.12);
+  position: relative;
+  z-index: 1;
 }
 
 .budget-input-wrapper .budget-input.is-invalid {
-  border-color: var(--error-red);
+  border-color: var(--form-error-red);
 }
 
 .budget-input-wrapper .budget-input.is-invalid:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
 }
 
 .budget-input-wrapper .currency-label {
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  padding: 0.75rem 1rem;
-  background-color: var(--neutral-warm-gray);
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-left: none;
+  border-radius: 0 var(--form-radius) var(--form-radius) 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.05em;
 }
 
 /* Hide number input spinners */

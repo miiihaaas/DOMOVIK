@@ -1,0 +1,17 @@
+[Unit]
+Description=Domovik Celery Worker
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+User=mihailo
+Group=www-data
+WorkingDirectory=/var/www/domovik
+ExecStart=/var/www/domovik/venv/bin/celery -A config worker --loglevel=info --logfile=/var/www/domovik/logs/celery-worker.log -Q celery,emails
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

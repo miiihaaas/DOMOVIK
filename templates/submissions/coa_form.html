@@ -36,7 +36,7 @@
 
   {% include "submissions/_progress_stepper.html" %}
 
-  <form method="post" action="{% url 'submissions:coa_form' %}" class="coa-form" id="coa-form-section-i">
+  <form method="post" action="{% url 'submissions:coa_form' %}" class="coa-form" id="coa-form-section-i" novalidate>
     {% csrf_token %}
 
     <!-- SECTION I: Opšti podaci -->

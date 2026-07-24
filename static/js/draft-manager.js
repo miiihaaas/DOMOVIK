@@ -506,6 +506,7 @@ function loadDraft() {
           fizickoFields.classList.add('active');
           // Enable required attributes for fizicko fields
           fizickoFields.querySelectorAll('input, textarea').forEach(input => {
+            if (input.closest('.team-members-section')) return;
             input.setAttribute('required', 'required');
           });
         }
@@ -521,6 +522,7 @@ function loadDraft() {
           pravnoFields.classList.add('active');
           // Enable required attributes for pravno fields
           pravnoFields.querySelectorAll('input, textarea').forEach(input => {
+            if (input.closest('.team-members-section')) return;
             input.setAttribute('required', 'required');
           });
         }

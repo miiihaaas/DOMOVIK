@@ -26,14 +26,19 @@ function updateProgressStepper(sectionNumber) {
   // Performance measurement start
   const perfStart = performance.now();
 
-  // Update stepper text
-  const stepperText = document.querySelector('.stepper-text strong');
+  // Get active step label for mobile display
+  const activeStep = document.querySelector(`.progress-stepper__step[data-step="${sectionNumber}"]`);
+  const activeLabel = activeStep ? activeStep.querySelector('.progress-stepper__label') : null;
+  const labelText = activeLabel ? activeLabel.textContent : '';
+
+  // Update stepper counter text (includes label for mobile compact view)
+  const stepperText = document.querySelector('.progress-stepper__counter strong') || document.querySelector('.stepper-text strong');
   if (stepperText) {
-    stepperText.textContent = `Sekcija ${sectionNumber} od 3`;
+    stepperText.innerHTML = `Korak <span class="progress-stepper__current">${sectionNumber}</span> od 3<span class="progress-stepper__counter-label">: ${labelText}</span>`;
   }
 
   // Update screen reader announcement
-  const srText = document.querySelector('.stepper-text .sr-only');
+  const srText = document.querySelector('.progress-stepper__counter .sr-only') || document.querySelector('.stepper-text .sr-only');
   if (srText) {
     srText.textContent = `Nalazite se u sekciji ${sectionNumber} od 3`;
   }
@@ -66,18 +71,8 @@ function updateProgressStepper(sectionNumber) {
     }
   });
 
-  // Update connector lines (tirkizna for completed sections)
-  // CODE REVIEW FIX (MEDIUM #8): Use BEM class only
-  const connectors = document.querySelectorAll('.progress-stepper__connector');
-  connectors.forEach((connector, index) => {
-    const connectorAfterStep = index + 1; // Connector after step 1 is index 0
-
-    if (connectorAfterStep < sectionNumber) {
-      connector.classList.add('progress-stepper__connector--completed');
-    } else {
-      connector.classList.remove('progress-stepper__connector--completed');
-    }
-  });
+  // Connector lines are now CSS ::after pseudo-elements on steps,
+  // so completed state is handled automatically via step class changes.
 
   // Performance measurement end
   const perfEnd = performance.now();

@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function toggleRequiredFields(container, isRequired) {
     const inputs = container.querySelectorAll('input, textarea');
     inputs.forEach(input => {
+      // Skip team member fields — they are optional
+      if (input.closest('.team-members-section')) return;
       if (isRequired) {
         input.setAttribute('required', 'required');
       } else {

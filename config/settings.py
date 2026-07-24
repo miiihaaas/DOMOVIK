@@ -161,9 +161,9 @@ CSRF_COOKIE_HTTPONLY = True  # SECURITY: Prevents JavaScript from accessing CSRF
 
 # HTTPS enforcement for production
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
-    SESSION_COOKIE_SECURE = True  # HTTPS-only session cookies
-    CSRF_COOKIE_SECURE = True  # HTTPS-only CSRF cookies
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
 else:
     # Development: Allow HTTP for local testing
     SECURE_SSL_REDIRECT = False
@@ -346,10 +346,18 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'django.request': {
+            'handlers': ['submissions', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+
+# django-ratelimit: Use X-Forwarded-For from nginx (Unix socket leaves REMOTE_ADDR empty)
+RATELIMIT_IP_META_KEY = 'HTTP_X_FORWARDED_FOR'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
