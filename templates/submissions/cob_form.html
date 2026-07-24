@@ -71,14 +71,7 @@
           <label for="id_prezime">Prezime *</label>
           <input type="text" name="prezime" id="id_prezime" autocomplete="family-name" required>
         </div>
-
-        <!-- Story 5.1: Added ID broj field (was removed in COB simplification, now required) -->
-        <div class="form-group">
-          <label for="id_id_broj">Broj lične karte / ID broj *</label>
-          <input type="text" name="id_broj" id="id_id_broj" maxlength="9" placeholder="ID123456" autocomplete="off" required>
-          <small class="help-text">Format: IDxxxxxx (npr. ID123456)</small>
-          <div id="id_id_broj_error" class="validation-error" aria-live="polite" style="display: none;"></div>
-        </div>
+        {# Z3 (2026-07-24): Broj lične karte / ID broj removed from the form. #}
       </div>
 
       <!-- Pravno lice fields -->

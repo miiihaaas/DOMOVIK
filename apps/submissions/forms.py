@@ -17,7 +17,6 @@ from apps.submissions.validators import (
     validate_file_extension,
     validate_file_size,
     validate_mime_type,
-    validate_id_broj,
     validate_registracioni_broj,
     validate_phone,
     validate_phone_optional,
@@ -57,10 +56,12 @@ class COAFormSectionI(forms.ModelForm):
 
     class Meta:
         model = Applicant
+        # Z3 (2026-07-24): 'jmbg' (Broj lične karte / ID broj) removed from collection.
+        # Field kept on the model (nullable) so existing submissions are preserved.
         fields = [
             'entity_type',
             # Fizičko lice fields
-            'first_name', 'last_name', 'jmbg',
+            'first_name', 'last_name',
             # Pravno lice fields
             'organization_name', 'maticni_broj',
             # Common fields
@@ -76,8 +77,6 @@ class COAFormSectionI(forms.ModelForm):
             'entity_type': 'Tip podnosioca',
             'first_name': 'Ime',
             'last_name': 'Prezime',
-            # Story 5.1: Changed from "JMBG" to "Broj lične karte / ID broj"
-            'jmbg': 'Broj lične karte / ID broj',
             'organization_name': 'Naziv organizacije',
             # Story 5.1: Changed from "Matični broj" to "Registracioni broj"
             'maticni_broj': 'Registracioni broj',
@@ -87,26 +86,10 @@ class COAFormSectionI(forms.ModelForm):
         }
 
         help_texts = {
-            # Story 5.1: Updated help text for ID broj format
-            'jmbg': 'Format: IDxxxxxx (npr. ID123456)',
             'maticni_broj': 'Alfanumerički format (npr. REG-2024-ABC)',
             'email': 'npr. marko@example.com',
             'phone': 'Samo cifre, najmanje 6 cifara',  # Story 5.4+: Updated
         }
-
-    def clean_jmbg(self):
-        """
-        Validate ID broj (Broj lične karte / ID broj) format.
-
-        Story 5.1: Changed from JMBG (13 digits) to ID broj (IDxxxxxx format)
-        """
-        jmbg = self.cleaned_data.get('jmbg')
-        if jmbg:
-            # Normalize: strip whitespace and convert to uppercase
-            jmbg = jmbg.strip().upper()
-            # Validate format
-            validate_id_broj(jmbg)
-        return jmbg
 
     def clean_maticni_broj(self):
         """
@@ -143,9 +126,7 @@ class COAFormSectionI(forms.ModelForm):
                 self.add_error('first_name', 'Ime je obavezno za fizička lica.')
             if not cleaned_data.get('last_name'):
                 self.add_error('last_name', 'Prezime je obavezno za fizička lica.')
-            # Story 5.1: ID broj is required for fizičko lice (COA)
-            if not cleaned_data.get('jmbg'):
-                self.add_error('jmbg', 'Broj lične karte / ID broj je obavezan za fizička lica.')
+            # Z3: Broj lične karte / ID broj no longer collected for fizička lica.
         elif entity_type == 'pravno':
             if not cleaned_data.get('organization_name'):
                 self.add_error('organization_name', 'Naziv organizacije je obavezan za pravna lica.')
@@ -489,20 +470,7 @@ class COBApplicantForm(forms.Form):
         widget=forms.TextInput(attrs={'autocomplete': 'family-name'})
     )
 
-    # Story 5.1: Added ID broj field for fizičko lice (was removed in COB simplification, now required)
-    id_broj = forms.CharField(
-        max_length=9,
-        required=False,  # Conditional based on entity_type
-        label='Broj lične karte / ID broj',
-        help_text='Format: IDxxxxxx (npr. ID123456)',
-        error_messages={
-            'max_length': 'ID broj ne može biti duži od 9 karaktera.',
-        },
-        widget=forms.TextInput(attrs={
-            'placeholder': 'ID123456',
-            'autocomplete': 'off'
-        })
-    )
+    # Z3 (2026-07-24): Broj lične karte / ID broj removed from collection for fizička lica.
 
     # Pravno lice fields
     naziv_organizacije = forms.CharField(
@@ -579,20 +547,16 @@ class COBApplicantForm(forms.Form):
             # ISSUE 12 FIX: Validate fizičko lice fields with strip() to catch whitespace-only strings
             ime = cleaned_data.get('ime', '').strip()
             prezime = cleaned_data.get('prezime', '').strip()
-            id_broj = cleaned_data.get('id_broj', '').strip()
 
             if not ime:
                 self.add_error('ime', 'Ime je obavezno za fizička lica.')
             if not prezime:
                 self.add_error('prezime', 'Prezime je obavezno za fizička lica.')
-            # Story 5.1: ID broj is required for fizičko lice
-            if not id_broj:
-                self.add_error('id_broj', 'Broj lične karte / ID broj je obavezan za fizička lica.')
+            # Z3: Broj lične karte / ID broj no longer collected for fizička lica.
 
             # Update cleaned_data with stripped values
             cleaned_data['ime'] = ime
             cleaned_data['prezime'] = prezime
-            cleaned_data['id_broj'] = id_broj
 
         elif entity_type == 'pravno':
             # ISSUE 12 FIX: Validate pravno lice fields with strip()
@@ -610,20 +574,6 @@ class COBApplicantForm(forms.Form):
             cleaned_data['registracioni_broj'] = registracioni_broj
 
         return cleaned_data
-
-    def clean_id_broj(self):
-        """
-        Validate and normalize ID broj format.
-
-        Story 5.1: ID broj must be in format IDxxxxxx (ID + 6-7 digits)
-        """
-        id_broj = self.cleaned_data.get('id_broj')
-        if id_broj:
-            # Normalize: strip whitespace and convert to uppercase
-            id_broj = id_broj.strip().upper()
-            # Validate format using the validator
-            validate_id_broj(id_broj)
-        return id_broj
 
     def clean_registracioni_broj(self):
         """

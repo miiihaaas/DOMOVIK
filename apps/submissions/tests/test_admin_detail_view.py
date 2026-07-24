@@ -116,7 +116,8 @@ class AdminDetailViewTests(TestCase):
         self.assertContains(response, 'Fizičko lice')  # Entity type
         self.assertContains(response, 'Marko')  # First name
         self.assertContains(response, 'Petrović')  # Last name
-        self.assertContains(response, '1234567890123')  # JMBG
+        # Z3 (2026-07-24): Broj lične karte / ID broj no longer displayed
+        self.assertNotContains(response, '1234567890123')
         self.assertContains(response, 'marko@example.com')  # Email
 
     def test_admin_detail_view_shows_podnosilac_section_pravno(self):
@@ -139,8 +140,8 @@ class AdminDetailViewTests(TestCase):
         self.assertContains(response, 'Test Projekat')  # Naslov
         self.assertContains(response, 'Opis projekta')  # Kratak opis
         self.assertContains(response, 'Glavni cilj')  # Glavni cilj
-        # ISSUE 2 FIX: Budget is IntegerField, formatted without decimals
-        self.assertContains(response, '100,000 RSD')  # Formatted budget (integer, no .00)
+        # Z5 (2026-07-24): currency shown as EUR (was mislabeled RSD)
+        self.assertContains(response, '100,000 EUR')  # Formatted budget (integer, no .00)
 
     def test_admin_detail_view_shows_initiative_data_for_cob(self):
         """Test detail view shows initiative data fields for COB application."""

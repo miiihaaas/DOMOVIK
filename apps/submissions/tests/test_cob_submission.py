@@ -491,9 +491,35 @@ class COBSubmissionTestCase(TestCase):
 
     def test_file_metadata_creation(self):
         """
-        Test 18: CODE REVIEW FIX #1 - Verify FileMetadata records are created.
-        This is a CRITICAL fix - Story 3-5 AC requires FileMetadata creation.
+        Test 18: Verify FileMetadata records are created from the session's UploadedFile rows.
+
+        Z1 (2026-07-24): submit_cob now builds FileMetadata from UploadedFile (server-side
+        source of truth for stored_filename), so the test must set up UploadedFile records
+        for the client's session, mirroring the real upload -> submit flow.
         """
+        from apps.submissions.models import FileMetadata, UploadedFile
+
+        # Establish a session and attach the two uploaded (draft) files to it.
+        session = self.client.session
+        session.save()
+        session_key = session.session_key
+        UploadedFile.objects.create(
+            original_filename='opis_inicijative.pdf',
+            stored_filename='20260101_000000_aaaa_opis_inicijative.pdf',
+            file_path='uploads/drafts/20260101_000000_aaaa_opis_inicijative.pdf',
+            file_size=1024000, file_type='pdf', mime_type='application/pdf',
+            category=FileType.BUDZET_INICIJATIVE,
+            uploaded_by_session=session_key,
+        )
+        UploadedFile.objects.create(
+            original_filename='pismo_namere.pdf',
+            stored_filename='20260101_000001_bbbb_pismo_namere.pdf',
+            file_path='uploads/drafts/20260101_000001_bbbb_pismo_namere.pdf',
+            file_size=512000, file_type='pdf', mime_type='application/pdf',
+            category=FileType.PISMO_PODRSKE,
+            uploaded_by_session=session_key,
+        )
+
         response = self.client.post(
             self.submit_url,
             data=json.dumps(self.valid_cob_data),
@@ -504,14 +530,19 @@ class COBSubmissionTestCase(TestCase):
         data = response.json()
         application = Application.objects.get(reference_number=data['reference_number'])
 
-        # FIX #1 VERIFICATION: Verify FileMetadata records exist
-        from apps.submissions.models import FileMetadata
+        # Verify FileMetadata records exist with the correct (server-side) stored filenames
         file_metadata_count = FileMetadata.objects.filter(application=application).count()
         self.assertEqual(file_metadata_count, 2, "FileMetadata records should be created for both files")
 
-        # Verify file types
         file_types = set(FileMetadata.objects.filter(application=application).values_list('file_type', flat=True))
         self.assertEqual(file_types, {FileType.BUDZET_INICIJATIVE, FileType.PISMO_PODRSKE})
+
+        # Z1: stored_filename must be the on-disk (timestamped) name, not the browser name
+        stored = set(FileMetadata.objects.filter(application=application).values_list('stored_filename', flat=True))
+        self.assertEqual(stored, {
+            '20260101_000000_aaaa_opis_inicijative.pdf',
+            '20260101_000001_bbbb_pismo_namere.pdf',
+        })
 
 
 class COBReferenceNumberServiceTestCase(TestCase):

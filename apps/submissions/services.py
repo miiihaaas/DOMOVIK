@@ -23,7 +23,6 @@ from apps.submissions.models import (
 from apps.submissions.validators import (
     validate_email,
     validate_phone,
-    validate_id_broj,
     validate_registracioni_broj
 )
 from apps.submissions.constants import ApplicationType, ApplicationStatus, EntityType, FILE_CATEGORY_FOLDERS
@@ -233,9 +232,7 @@ def process_submission(submission_data):
         validate_email(applicant_data.get('email'))
         validate_phone(applicant_data.get('phone'))
 
-        # Story 5.1: Validate ID broj for fizicko lice (replaces JMBG validation)
-        if applicant_data.get('entity_type') == EntityType.FIZICKO:
-            validate_id_broj(applicant_data.get('jmbg'))  # Field name kept for backward compatibility
+        # Z3 (2026-07-24): Broj lične karte / ID broj no longer collected for fizička lica.
 
         # Story 5.1: Validate registracioni_broj for pravno lice (replaces maticni_broj validation)
         if applicant_data.get('entity_type') == EntityType.PRAVNO:
@@ -262,7 +259,7 @@ def process_submission(submission_data):
             address=applicant_data.get('address'),
             email=applicant_data.get('email'),
             phone=applicant_data.get('phone'),
-            jmbg=applicant_data.get('jmbg'),
+            # Z3: jmbg (Broj lične karte / ID broj) no longer collected; column stays nullable.
             maticni_broj=applicant_data.get('maticni_broj')
         )
 
@@ -498,8 +495,7 @@ class PDFGenerationService:
                 ['Email:', applicant.email or 'N/A'],
                 ['Telefon:', applicant.phone or 'N/A'],
             ]
-            if applicant.jmbg:
-                applicant_data.append(['JMBG:', applicant.jmbg])
+            # Z3: Broj lične karte / ID broj no longer shown on the confirmation PDF.
         else:  # pravno
             applicant_data = [
                 ['Tip:', 'Pravno lice'],

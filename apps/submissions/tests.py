@@ -602,10 +602,10 @@ class COAFormTemplateTests(TestCase):
     def test_form_fields_rendered(self):
         """Test all form fields (fizičko, pravno, common) are present in HTML"""
         response = self.client.get('/projekat/')
-        # Fizičko fields
+        # Fizičko fields (Z3: id_jmbg removed)
         self.assertContains(response, 'id_ime')
         self.assertContains(response, 'id_prezime')
-        self.assertContains(response, 'id_jmbg')
+        self.assertNotContains(response, 'id_jmbg')
         # Pravno fields
         self.assertContains(response, 'id_naziv_organizacije')
         self.assertContains(response, 'id_maticni_broj')

@@ -241,10 +241,8 @@ function collectFormData() {
     entity_type: document.getElementById('id_entity_type')?.value || 'fizicko',
     fizicko: {
       ime: document.getElementById('id_ime')?.value || '',
-      prezime: document.getElementById('id_prezime')?.value || '',
-      // COA uses id_jmbg, COB uses id_id_broj (Story 5.1 - both now have ID broj)
-      jmbg: document.getElementById('id_jmbg')?.value || '',
-      id_broj: document.getElementById('id_id_broj')?.value || ''
+      prezime: document.getElementById('id_prezime')?.value || ''
+      // Z3 (2026-07-24): Broj lične karte / ID broj no longer collected.
     },
     pravno: {
       naziv_organizacije: document.getElementById('id_naziv_organizacije')?.value || '',
@@ -545,9 +543,7 @@ function loadDraft() {
     if (draftData.fizicko) {
       restoreFieldValue('id_ime', draftData.fizicko.ime);
       restoreFieldValue('id_prezime', draftData.fizicko.prezime);
-      restoreFieldValue('id_jmbg', draftData.fizicko.jmbg);
-      // Story 5.1: COB uses id_id_broj
-      restoreFieldValue('id_id_broj', draftData.fizicko.id_broj);
+      // Z3 (2026-07-24): Broj lične karte / ID broj no longer collected/restored.
     }
 
     // Restore pravno lice fields
@@ -807,8 +803,8 @@ function triggerCharacterCountersAfterDraftLoad() {
  * IMPORTANT: Only validates VISIBLE fields (Task 2.6: Don't validate hidden fields)
  */
 function triggerValidationAfterDraftLoad() {
-  // Story 5.1: Added id_id_broj and id_registracioni_broj for COB
-  const fieldsToValidate = ['id_email', 'id_telefon', 'id_jmbg', 'id_maticni_broj', 'id_id_broj', 'id_registracioni_broj'];
+  // Z3 (2026-07-24): id_jmbg / id_id_broj removed. Registracioni broj kept for pravna lica.
+  const fieldsToValidate = ['id_email', 'id_telefon', 'id_maticni_broj', 'id_registracioni_broj'];
 
   fieldsToValidate.forEach(fieldId => {
     const field = document.getElementById(fieldId);
@@ -1135,7 +1131,8 @@ function handleStartFresh(modal, previousFocus) {
 
   // Clear all validation errors manually (Task 5.5)
   // CRITICAL: clearAllValidations() DOES NOT EXIST - manually clear each field
-  ['id_email', 'id_telefon', 'id_jmbg', 'id_maticni_broj'].forEach(fieldId => {
+  // Z3 (2026-07-24): id_jmbg removed.
+  ['id_email', 'id_telefon', 'id_maticni_broj'].forEach(fieldId => {
     const field = document.getElementById(fieldId);
     if (field && typeof clearValidationError === 'function') {
       clearValidationError(field);

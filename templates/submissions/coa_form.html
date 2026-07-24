@@ -76,17 +76,7 @@
             <div id="id_prezime_error" class="error-message" aria-live="polite">{{ form.last_name.errors.0 }}</div>
           {% endif %}
         </div>
-
-        <!-- Story 5.1: Changed from JMBG to ID broj -->
-        <div class="form-group">
-          <label for="{{ form.jmbg.id_for_label }}">{{ form.jmbg.label }} *</label>
-          <input type="text" name="jmbg" id="id_jmbg" maxlength="9" placeholder="ID123456" aria-invalid="false" aria-describedby="id_jmbg_error id_jmbg_help" value="{{ form.jmbg.value|default:'' }}">
-          <small id="id_jmbg_help" class="help-text">{{ form.jmbg.help_text }}</small>
-          <div id="id_jmbg_error" class="validation-error" aria-live="polite" style="display: none;"></div>
-          {% if form.jmbg.errors %}
-            <div class="error-message" aria-live="polite">{{ form.jmbg.errors.0 }}</div>
-          {% endif %}
-        </div>
+        {# Z3 (2026-07-24): Broj lične karte / ID broj removed from the form. #}
       </div>
 
       <!-- Pravno lice fields -->

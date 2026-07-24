@@ -726,7 +726,8 @@ def submit_cob(request):
             )
 
             # 3. Create Applicant record
-            # Story 5.1: Added ID broj (jmbg field) and Registracioni broj (maticni_broj field)
+            # Z3 (2026-07-24): Broj lične karte / ID broj no longer collected (jmbg stays null).
+            # Registracioni broj (maticni_broj field) kept for pravna lica.
             applicant = Applicant.objects.create(
                 application=application,
                 entity_type=applicant_data.get('entity_type'),
@@ -736,8 +737,6 @@ def submit_cob(request):
                 address=applicant_data.get('address'),
                 email=applicant_data.get('email'),
                 phone=applicant_data.get('phone'),
-                # Story 5.1: ID broj stored in jmbg field (format: IDxxxxxx)
-                jmbg=applicant_data.get('id_broj', ''),
                 # Story 5.1: Registracioni broj stored in maticni_broj field (alphanumeric)
                 maticni_broj=applicant_data.get('registracioni_broj', ''),
             )

@@ -305,8 +305,8 @@ function validateSectionI() {
       { id: 'id_prezime', label: 'Prezime' },
       { id: 'id_adresa', label: 'Adresa' },
       { id: 'id_email', label: 'Email' },
-      { id: 'id_telefon', label: 'Telefon' },
-      { id: 'id_jmbg', label: 'JMBG' }
+      { id: 'id_telefon', label: 'Telefon' }
+      // Z3 (2026-07-24): Broj lične karte / ID broj no longer required.
     ];
 
     requiredFields.forEach(fieldDef => {

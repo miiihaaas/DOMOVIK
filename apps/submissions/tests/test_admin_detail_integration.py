@@ -85,8 +85,9 @@ class AdminDetailViewIntegrationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Pravna Organizacija')
-        self.assertContains(response, '12345678')  # Matični broj
-        self.assertContains(response, 'Matični broj')  # Label
+        self.assertContains(response, '12345678')  # Registracioni broj value
+        # Z3 (2026-07-24): label renamed "Matični broj" -> "Registracioni broj"
+        self.assertContains(response, 'Registracioni broj')  # Label
 
     def test_cob_fizicko_detail_view_does_not_show_jmbg(self):
         """Test COB fizičko lice does NOT show JMBG field (not required for COB)."""
@@ -167,20 +168,20 @@ class AdminDetailViewIntegrationTests(TestCase):
         response = self.client.get(f'/admin/submissions/application/{self.coa_pravno_app.id}/change/')
 
         self.assertEqual(response.status_code, 200)
-        # ISSUE 2 FIX: Budget is IntegerField, formatted without decimals
-        self.assertContains(response, '500,000 RSD')  # Integer format, no .00
+        # Z5 (2026-07-24): currency shown as EUR (was mislabeled RSD)
+        self.assertContains(response, '500,000 EUR')  # Integer format, no .00
 
-    def test_cob_detail_view_does_not_show_budget(self):
-        """Test COB detail view does NOT show budget field (COB doesn't have budget)."""
+    def test_cob_detail_view_shows_budget(self):
+        """Z5 (2026-07-24): COB detail view now shows Totalni budžet (Story 5.3 field)."""
         self.client.login(username='testadmin', password='TestAdmin123!')
         response = self.client.get(f'/admin/submissions/application/{self.cob_fizicko_app.id}/change/')
 
         self.assertEqual(response.status_code, 200)
-        # Budget field should NOT appear for COB applications
-        self.assertNotContains(response, 'Totalni budžet')
+        # COB initiatives carry a budget (naziv tima + dates + budget are now displayed)
+        self.assertContains(response, 'Totalni budžet')
 
-    def test_dynamic_fieldsets_coa_fizicko_shows_jmbg(self):
-        """Test COA fizičko lice dynamic fieldsets include JMBG."""
+    def test_dynamic_fieldsets_coa_fizicko_hides_jmbg(self):
+        """Z3 (2026-07-24): COA fizičko lice detail view no longer shows Broj lične karte / ID broj."""
         # Create COA fizičko lice application
         coa_fizicko_app = Application.objects.create(
             reference_number='COA-2025-003',
@@ -216,9 +217,9 @@ class AdminDetailViewIntegrationTests(TestCase):
         response = self.client.get(f'/admin/submissions/application/{coa_fizicko_app.id}/change/')
 
         self.assertEqual(response.status_code, 200)
-        # JMBG should appear for COA fizičko lice
-        self.assertContains(response, '9876543210987')
-        self.assertContains(response, 'JMBG')
+        # Z3: Broj lične karte / ID broj (jmbg) no longer displayed
+        self.assertNotContains(response, '9876543210987')
+        self.assertNotContains(response, 'JMBG')
 
     def test_dynamic_fieldsets_cob_pravno_does_not_show_maticni_broj(self):
         """Test COB pravno lice dynamic fieldsets do NOT include matični broj."""

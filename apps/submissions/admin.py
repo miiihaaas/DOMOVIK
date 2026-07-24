@@ -239,12 +239,14 @@ class ApplicationAdmin(admin.ModelAdmin):
         'get_entity_type_serbian',
         'get_applicant_first_name',
         'get_applicant_last_name',
-        'get_applicant_jmbg',
+        # Z3: get_applicant_jmbg removed from display
         'get_applicant_organization_name',
         'get_applicant_maticni_broj',
         'get_applicant_address',
         'get_applicant_email',
         'get_applicant_phone',
+        # Opšti podaci (Z5)
+        'get_created_at',
         # Project data section (COA)
         'get_project_naslov',
         'get_project_kratak_opis',
@@ -254,14 +256,20 @@ class ApplicationAdmin(admin.ModelAdmin):
         'get_project_ciljne_grupe',
         'get_project_aktivnosti',
         'get_project_rezultati',
+        'get_project_datum_startovanja',   # Z5
+        'get_project_datum_zavrsetka',     # Z5
         'get_project_totalni_budzet',
         # Initiative data section (COB)
+        'get_initiative_naziv_tima',       # Z5
         'get_initiative_naslov',
         'get_initiative_kratak_opis',
         'get_initiative_problem',
         'get_initiative_cilj_inicijative',
         'get_initiative_planirani_koraci',
         'get_initiative_ocekivani_uticaj',
+        'get_initiative_datum_startovanja',  # Z5
+        'get_initiative_datum_zavrsetka',    # Z5
+        'get_initiative_totalni_budzet',     # Z5
         # Story 4.4: Download all documents button
         'get_download_all_button',
     )
@@ -462,31 +470,29 @@ class ApplicationAdmin(admin.ModelAdmin):
             return super().get_fieldsets(request, obj)
 
         # Section 1: Opšti podaci (always shown)
-        # NOTE: Story mentioned updated_at but Application model doesn't have it (only created_at + submitted_at)
+        # Z5 (2026-07-24): added creation timestamp.
         opsti_podaci_fields = [
             'reference_number',
             'application_type',
             'status',
             'submitted_at',
+            'get_created_at',
         ]
 
         # Section 2: Podaci o podnosiocu (dynamic based on entity_type)
         podnosilac_fields = ['get_entity_type_serbian']
 
         if obj.applicant.entity_type == 'fizicko':
-            # Fizičko lice
+            # Fizičko lice (Z3: Broj lične karte / ID broj no longer shown)
             podnosilac_fields.extend([
                 'get_applicant_first_name',
                 'get_applicant_last_name',
             ])
-            if obj.application_type == 'COA':
-                # Only COA fizičko lice has JMBG
-                podnosilac_fields.append('get_applicant_jmbg')
         else:
             # Pravno lice
             podnosilac_fields.append('get_applicant_organization_name')
             if obj.application_type == 'COA':
-                # Only COA pravno lice has matični broj
+                # Only COA pravno lice has registracioni broj
                 podnosilac_fields.append('get_applicant_maticni_broj')
 
         # Common contact fields (always shown)
@@ -498,7 +504,7 @@ class ApplicationAdmin(admin.ModelAdmin):
 
         # Section 3: Podaci o projektu/inicijativi (dynamic based on application_type)
         if obj.application_type == 'COA':
-            # COA: Project data
+            # COA: Project data (Z5: added timeline dates)
             projekt_fields = [
                 'get_project_naslov',
                 'get_project_kratak_opis',
@@ -508,18 +514,24 @@ class ApplicationAdmin(admin.ModelAdmin):
                 'get_project_ciljne_grupe',
                 'get_project_aktivnosti',
                 'get_project_rezultati',
+                'get_project_datum_startovanja',
+                'get_project_datum_zavrsetka',
                 'get_project_totalni_budzet',
             ]
             projekt_section_title = '📝 Podaci o projektu'
         else:
-            # COB: Initiative data
+            # COB: Initiative data (Z5: added naziv tima, timeline dates, budget)
             projekt_fields = [
+                'get_initiative_naziv_tima',
                 'get_initiative_naslov',
                 'get_initiative_kratak_opis',
                 'get_initiative_problem',
                 'get_initiative_cilj_inicijative',
                 'get_initiative_planirani_koraci',
                 'get_initiative_ocekivani_uticaj',
+                'get_initiative_datum_startovanja',
+                'get_initiative_datum_zavrsetka',
+                'get_initiative_totalni_budzet',
             ]
             projekt_section_title = '💡 Podaci o inicijativi'
 
@@ -641,9 +653,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         return obj.applicant.last_name or 'N/A'
     get_applicant_last_name.short_description = 'Prezime'
 
-    def get_applicant_jmbg(self, obj):
-        return obj.applicant.jmbg or 'N/A'
-    get_applicant_jmbg.short_description = 'JMBG'
+    # Z3 (2026-07-24): get_applicant_jmbg removed (Broj lične karte / ID broj no longer collected).
 
     def get_applicant_organization_name(self, obj):
         return obj.applicant.organization_name or 'N/A'
@@ -651,7 +661,7 @@ class ApplicationAdmin(admin.ModelAdmin):
 
     def get_applicant_maticni_broj(self, obj):
         return obj.applicant.maticni_broj or 'N/A'
-    get_applicant_maticni_broj.short_description = 'Matični broj'
+    get_applicant_maticni_broj.short_description = 'Registracioni broj'
 
     def get_applicant_address(self, obj):
         return obj.applicant.address
@@ -723,12 +733,33 @@ class ApplicationAdmin(admin.ModelAdmin):
     def get_project_totalni_budzet(self, obj):
         if hasattr(obj, 'project_data'):
             budget = obj.project_data.total_budget
-            # ISSUE 2 FIX: total_budget is IntegerField, format as integer with thousand separators
-            # Format as currency: 100,000 RSD (no decimals for IntegerField)
-            formatted_budget = f"{budget:,} RSD"
+            # Z5 (2026-07-24): currency is EUR across the platform (was mislabeled RSD).
+            formatted_budget = f"{budget:,} EUR"
             return format_html('<strong>{}</strong>', escape(formatted_budget))
         return 'N/A'
     get_project_totalni_budzet.short_description = 'Totalni budžet'
+
+    @staticmethod
+    def _fmt_date(value):
+        """Z5: format a date as dd.mm.YYYY, or 'N/A'."""
+        return value.strftime('%d.%m.%Y') if value else 'N/A'
+
+    def get_project_datum_startovanja(self, obj):
+        if hasattr(obj, 'project_data'):
+            return self._fmt_date(obj.project_data.datum_startovanja)
+        return 'N/A'
+    get_project_datum_startovanja.short_description = 'Datum startovanja'
+
+    def get_project_datum_zavrsetka(self, obj):
+        if hasattr(obj, 'project_data'):
+            return self._fmt_date(obj.project_data.datum_zavrsetka)
+        return 'N/A'
+    get_project_datum_zavrsetka.short_description = 'Datum završetka'
+
+    def get_created_at(self, obj):
+        """Z5: creation timestamp for the Opšti podaci section."""
+        return obj.created_at.strftime('%d.%m.%Y %H:%M') if obj.created_at else 'N/A'
+    get_created_at.short_description = 'Datum kreiranja'
 
     # SECTION: Initiative data display methods (COB only) (Story 4.3)
 
@@ -768,6 +799,32 @@ class ApplicationAdmin(admin.ModelAdmin):
         return 'N/A'
     get_initiative_ocekivani_uticaj.short_description = 'Očekivani uticaj na zajednicu'
 
+    # Z5 (2026-07-24): expose Story 5.3 COB fields that existed in the DB but weren't shown.
+
+    def get_initiative_naziv_tima(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return obj.initiative_data.naziv_tima or 'N/A'
+        return 'N/A'
+    get_initiative_naziv_tima.short_description = 'Naziv tima'
+
+    def get_initiative_datum_startovanja(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return self._fmt_date(obj.initiative_data.datum_startovanja)
+        return 'N/A'
+    get_initiative_datum_startovanja.short_description = 'Datum startovanja'
+
+    def get_initiative_datum_zavrsetka(self, obj):
+        if hasattr(obj, 'initiative_data'):
+            return self._fmt_date(obj.initiative_data.datum_zavrsetka)
+        return 'N/A'
+    get_initiative_datum_zavrsetka.short_description = 'Datum završetka'
+
+    def get_initiative_totalni_budzet(self, obj):
+        if hasattr(obj, 'initiative_data') and obj.initiative_data.totalni_budzet is not None:
+            return format_html('<strong>{} EUR</strong>', escape(f"{obj.initiative_data.totalni_budzet:,.2f}"))
+        return 'N/A'
+    get_initiative_totalni_budzet.short_description = 'Totalni budžet'
+
 
 @admin.register(Applicant)
 class ApplicantAdmin(admin.ModelAdmin):
@@ -789,13 +846,13 @@ class ApplicantAdmin(admin.ModelAdmin):
         'last_name',
         'organization_name',
         'email',
-        'jmbg',
         'maticni_broj',
     )
 
     # ISSUE 12 FIX: Standardized to static readonly_fields (simpler, matches story spec)
+    # Z3 (2026-07-24): 'jmbg' removed from display/search (no longer collected).
     readonly_fields = [
-        'application', 'entity_type', 'first_name', 'last_name', 'jmbg',
+        'application', 'entity_type', 'first_name', 'last_name',
         'organization_name', 'maticni_broj', 'address', 'email', 'phone'
     ]
 
@@ -837,9 +894,11 @@ class ProjectDataAdmin(admin.ModelAdmin):
     search_fields = ['title', 'short_description']
 
     # ISSUE 12 FIX: Standardized to static readonly_fields
+    # Z5 (2026-07-24): added Story 5.2 timeline dates (were editable because they were missing here).
     readonly_fields = [
         'application', 'title', 'short_description', 'problem', 'main_goal',
-        'specific_goals', 'target_groups', 'activities', 'results', 'total_budget'
+        'specific_goals', 'target_groups', 'activities', 'results',
+        'datum_startovanja', 'datum_zavrsetka', 'total_budget'
     ]
 
     def get_reference_number(self, obj):
@@ -867,9 +926,11 @@ class InitiativeDataAdmin(admin.ModelAdmin):
     search_fields = ['naslov', 'kratak_opis']
 
     # ISSUE 12 FIX: Standardized to static readonly_fields
+    # Z5 (2026-07-24): added Story 5.3 fields (were editable because they were missing here).
     readonly_fields = [
-        'application', 'naslov', 'kratak_opis', 'problem',
+        'application', 'naziv_tima', 'naslov', 'kratak_opis', 'problem',
         'cilj_inicijative', 'planirani_koraci', 'ocekivani_uticaj',
+        'datum_startovanja', 'datum_zavrsetka', 'totalni_budzet',
         'created_at', 'updated_at'
     ]
 

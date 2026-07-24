@@ -333,11 +333,7 @@ class SubmissionHandler {
     if (entityType === 'fizicko') {
       submissionData.applicant.first_name = document.getElementById('id_ime')?.value || '';
       submissionData.applicant.last_name = document.getElementById('id_prezime')?.value || '';
-
-      // JMBG only for COA (Story 3.5: COB has NO JMBG)
-      if (applicationType === 'COA') {
-        submissionData.applicant.jmbg = document.getElementById('id_jmbg')?.value || '';
-      }
+      // Z3 (2026-07-24): Broj lične karte / ID broj no longer collected.
     } else if (entityType === 'pravno') {
       submissionData.applicant.organization_name = document.getElementById('id_naziv_organizacije')?.value || '';
 

@@ -313,7 +313,8 @@ function handleMaticniBrojValidation(event) {
  * Story 5.1: Added id_id_broj and id_registracioni_broj for COB form
  */
 function clearAllValidationErrors() {
-  const fields = ['id_email', 'id_telefon', 'id_jmbg', 'id_maticni_broj', 'id_id_broj', 'id_registracioni_broj'];
+  // Z3 (2026-07-24): id_jmbg / id_id_broj removed.
+  const fields = ['id_email', 'id_telefon', 'id_maticni_broj', 'id_registracioni_broj'];
 
   fields.forEach(fieldId => {
     const field = document.getElementById(fieldId);
@@ -345,15 +346,7 @@ function revalidateVisibleFields() {
   const entityType = document.getElementById('id_entity_type')?.value || 'fizicko';
 
   if (entityType === 'fizicko') {
-    // COA uses id_jmbg, COB uses id_id_broj
-    const jmbgField = document.getElementById('id_jmbg');
-    const idBrojField = document.getElementById('id_id_broj');
-    if (jmbgField && jmbgField.value) {
-      handleJMBGValidation({ target: jmbgField });
-    }
-    if (idBrojField && idBrojField.value) {
-      handleJMBGValidation({ target: idBrojField });
-    }
+    // Z3 (2026-07-24): Broj lične karte / ID broj no longer collected/validated.
   } else if (entityType === 'pravno') {
     // COA uses id_maticni_broj, COB uses id_registracioni_broj
     const maticniBrojField = document.getElementById('id_maticni_broj');
@@ -375,11 +368,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Get form field elements - COA form
   const emailField = document.getElementById('id_email');
   const telefonField = document.getElementById('id_telefon');
-  const jmbgField = document.getElementById('id_jmbg');
   const maticniBrojField = document.getElementById('id_maticni_broj');
 
-  // Story 5.1: Get COB form fields
-  const idBrojField = document.getElementById('id_id_broj');
+  // Story 5.1: Get COB form fields (Z3: id_id_broj removed)
   const regBrojField = document.getElementById('id_registracioni_broj');
 
   // Attach event listeners to email field
@@ -394,17 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
     telefonField.addEventListener('blur', handlePhoneValidation);
   }
 
-  // Attach event listeners to ID broj field (COA: id_jmbg)
-  if (jmbgField) {
-    jmbgField.addEventListener('input', debounce(handleJMBGValidation, 100));
-    jmbgField.addEventListener('blur', handleJMBGValidation);
-  }
-
-  // Story 5.1: Attach event listeners to ID broj field (COB: id_id_broj)
-  if (idBrojField) {
-    idBrojField.addEventListener('input', debounce(handleJMBGValidation, 100));
-    idBrojField.addEventListener('blur', handleJMBGValidation);
-  }
+  // Z3 (2026-07-24): Broj lične karte / ID broj removed — no listeners attached.
 
   // Attach event listeners to registracioni broj field (COA: id_maticni_broj)
   if (maticniBrojField) {

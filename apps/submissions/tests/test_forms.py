@@ -153,10 +153,10 @@ class COBApplicantFormTests(TestCase):
         form = COBApplicantForm()
         self.assertNotIn('maticni_broj', form.fields)
 
-    def test_has_id_broj_field(self):
-        """Test COB form HAS id_broj field (Story 5.1)."""
+    def test_no_id_broj_field(self):
+        """Z3 (2026-07-24): COB form no longer has id_broj (Broj lične karte) field."""
         form = COBApplicantForm()
-        self.assertIn('id_broj', form.fields)
+        self.assertNotIn('id_broj', form.fields)
 
     def test_has_registracioni_broj_field(self):
         """Test COB form HAS registracioni_broj field (Story 5.1)."""
