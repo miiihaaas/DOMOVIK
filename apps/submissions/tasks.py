@@ -34,6 +34,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
 from apps.submissions.models import Application, DraftMetadata, InitiativeData, AdminLog
+from apps.submissions.constants import DRAFT_RETENTION_DAYS
 
 logger = logging.getLogger(__name__)
 
@@ -366,7 +367,7 @@ def purge_expired_drafts():
     Returns:
         int: number of drafts deleted.
     """
-    expiry_date = timezone.now() - timedelta(days=7)
+    expiry_date = timezone.now() - timedelta(days=DRAFT_RETENTION_DAYS)
     logger.info(f"Deleting drafts older than {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}")
 
     expired_drafts = DraftMetadata.objects.filter(created_at__lt=expiry_date)
@@ -391,6 +392,126 @@ def purge_expired_drafts():
         f"(GDPR 7-day retention)"
     )
     return deleted_count
+
+
+def purge_orphan_uploads(dry_run=False):
+    """
+    Delete uploaded files that never became part of a submitted application (Z8).
+
+    Two kinds of leftovers accumulate in MEDIA_ROOT/uploads/, both of them personal
+    data that nothing in the app will ever surface again:
+
+    1. UploadedFile rows with application=NULL - somebody attached documents to a
+       form and then abandoned it. purge_expired_drafts() only clears DraftMetadata,
+       so before Z8 these rows and their files stayed forever.
+    2. Files on disk with no UploadedFile row at all - an upload that was stored and
+       then failed later in the request, or a row deleted without its file.
+
+    Anything younger than DRAFT_RETENTION_DAYS is kept, so a form being filled in
+    right now is never touched. Files still referenced by ANY row (including rows
+    linked to a real application) are never touched.
+
+    Args:
+        dry_run: report what would be deleted without deleting anything.
+
+    Returns:
+        tuple[int, int]: (orphan rows deleted, stray disk files deleted).
+    """
+    from pathlib import Path
+    from django.core.files.storage import default_storage
+    from apps.submissions.models import FileMetadata, UploadedFile
+
+    cutoff = timezone.now() - timedelta(days=DRAFT_RETENTION_DAYS)
+
+    # A submitted application's documents are described by TWO models: FileMetadata
+    # (what the admin screens list) and UploadedFile (the FileField that stores it).
+    # services.resolve_file_on_disk() can locate a file from FileMetadata alone, by
+    # stored_filename, even when no matching UploadedFile row exists - that fallback is
+    # why Z1 was needed. So stored_filename is treated as a hard protection list here:
+    # if any FileMetadata claims a name, that file is never deleted, whatever the
+    # UploadedFile side looks like. Deleting one of these would destroy a document
+    # belonging to a real submission.
+    protected_names = {
+        name for name in FileMetadata.objects.values_list('stored_filename', flat=True) if name
+    }
+    prefix = 'dry-run: ' if dry_run else ''
+    logger.info(
+        f"{prefix}Purging orphan uploads older than {cutoff.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
+    # --- 1. Orphan DB rows (abandoned drafts) -------------------------------
+    orphans = UploadedFile.objects.filter(application__isnull=True, upload_date__lt=cutoff)
+    rows_deleted = 0
+
+    for record in orphans:
+        if record.stored_filename in protected_names:
+            logger.warning(
+                f"Keeping orphan upload id={record.pk}: stored_filename "
+                f"{record.stored_filename!r} is claimed by a FileMetadata row, so a "
+                f"submitted application still depends on this file."
+            )
+            continue
+
+        name = record.file_path.name if record.file_path else None
+        logger.info(
+            f"{prefix}Orphan upload id={record.pk} "
+            f"file={record.original_filename} uploaded={record.upload_date.date()}"
+        )
+        if not dry_run:
+            # Storage first: if this raises we keep the row and retry tomorrow,
+            # which is better than losing the only pointer to the file.
+            if name and default_storage.exists(name):
+                default_storage.delete(name)
+            record.delete()
+        rows_deleted += 1
+
+    # --- 2. Stray files with no row at all ----------------------------------
+    uploads_root = (Path(settings.MEDIA_ROOT) / 'uploads').resolve()
+    stray_deleted = 0
+
+    if uploads_root.is_dir():
+        # Every path any row points at, including rows already soft-deleted and rows
+        # belonging to submitted applications. Recomputed after step 1 so the rows we
+        # just removed are not in the keep-set.
+        referenced = {
+            name for name in UploadedFile.objects.values_list('file_path', flat=True) if name
+        }
+        cutoff_ts = cutoff.timestamp()
+        media_root = Path(settings.MEDIA_ROOT).resolve()
+
+        for path in uploads_root.rglob('*'):
+            if not path.is_file():
+                continue
+            # Defensive: never step outside MEDIA_ROOT via a symlink.
+            resolved = path.resolve()
+            if not resolved.is_relative_to(media_root):
+                logger.warning(f"Skipping path outside MEDIA_ROOT: {path}")
+                continue
+            if str(path.relative_to(media_root)) in referenced:
+                continue
+            if path.name in protected_names:
+                logger.warning(
+                    f"Keeping {path.name!r}: no UploadedFile row points at it, but a "
+                    f"FileMetadata row claims the name (submitted application)."
+                )
+                continue
+            if resolved.stat().st_mtime >= cutoff_ts:
+                continue  # too fresh - an upload may still be in flight
+
+            logger.info(f"{prefix}Stray file with no DB record: {path.name}")
+            if not dry_run:
+                resolved.unlink()
+            stray_deleted += 1
+
+    if rows_deleted or stray_deleted:
+        logger.info(
+            f"{prefix}Purged {rows_deleted} orphan upload record(s) and "
+            f"{stray_deleted} stray file(s) (GDPR {DRAFT_RETENTION_DAYS}-day retention)"
+        )
+    else:
+        logger.info("No orphan uploads found. Nothing to purge.")
+
+    return rows_deleted, stray_deleted
 
 
 def purge_old_admin_logs():

@@ -81,8 +81,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 import sys
 
+TESTING = 'test' in sys.argv
+
 # Use SQLite for tests, MySQL for development/production
-if 'test' in sys.argv:
+if TESTING:
     # SQLite for unit tests (no MySQL test db permission needed)
     DATABASES = {
         'default': {
@@ -159,11 +161,30 @@ SESSION_COOKIE_HTTPONLY = True  # JavaScript cannot access session cookie
 # Frontend code (draft-manager.js) reads from meta tag first, falls back to cookie
 CSRF_COOKIE_HTTPONLY = True  # SECURITY: Prevents JavaScript from accessing CSRF cookie (XSS protection)
 
+# Z7 (2026-07-25): Django runs behind nginx, which terminates TLS and forwards the
+# original scheme in X-Forwarded-Proto. Without this, request.is_secure() is always
+# False, SECURE_SSL_REDIRECT loops forever and Secure cookies are never accepted.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # HTTPS enforcement for production
-if not DEBUG:
+if TESTING:
+    # Z7: the Django test client speaks plain HTTP. With HTTPS enforced, every request
+    # would answer 301 before reaching a view, and Secure cookies would never be sent
+    # back, so the whole suite fails for reasons that say nothing about production.
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_HSTS_SECONDS = 0
+elif not DEBUG:
     SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
     SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
     CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
+
+    # Z7: HSTS - browser refuses plain HTTP to this host for a year after first visit.
+    # Rolled out at full length because certbot already serves every hostname over TLS.
+    # NOTE: no `preload` - that submission is irreversible for months, decide separately.
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
 else:
     # Development: Allow HTTP for local testing
     SECURE_SSL_REDIRECT = False

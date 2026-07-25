@@ -4,6 +4,11 @@ Constants for submissions app.
 Story 2.11: Application types and statuses
 """
 
+# GDPR retention window for anything belonging to an unfinished application:
+# draft metadata, and (Z8) uploaded files never linked to a submitted application.
+# Must stay in sync with MAX_AGE in static/js/draft-manager.js.
+DRAFT_RETENTION_DAYS = 7
+
 
 class ApplicationType:
     """Application type constants."""
