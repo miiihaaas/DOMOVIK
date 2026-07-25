@@ -1,0 +1,20 @@
+[Unit]
+Description=Gunicorn daemon for Domovik
+After=network.target
+
+[Service]
+User=mihailo
+Group=www-data
+WorkingDirectory=/var/www/domovik
+EnvironmentFile=/var/www/domovik/.env
+ExecStart=/var/www/domovik/venv/bin/gunicorn \
+    --bind unix:/var/www/domovik/gunicorn.sock \
+    --workers 3 \
+    --timeout 120 \
+    config.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
