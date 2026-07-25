@@ -4,6 +4,12 @@ Constants for submissions app.
 Story 2.11: Application types and statuses
 """
 
+# Version of the Politika privatnosti / Uslovi korišćenja an applicant accepts when
+# submitting. Stored on every application (Z11) so it stays clear WHICH text was agreed
+# to. BUMP THIS whenever templates/static_pages/*.html change in substance, and keep it
+# equal to the "Poslednja izmena" line shown on those pages.
+POLICY_VERSION = '2025-12'
+
 # GDPR retention window for anything belonging to an unfinished application:
 # draft metadata, and (Z8) uploaded files never linked to a submitted application.
 # Must stay in sync with MAX_AGE in static/js/draft-manager.js.

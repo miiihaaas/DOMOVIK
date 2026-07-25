@@ -31,7 +31,14 @@ from apps.submissions.forms import (
 )
 from apps.submissions.models import UploadedFile, Application, Applicant, InitiativeData, DraftMetadata, FileMetadata, ClanTima
 from apps.submissions.validators import generate_unique_filename
-from apps.submissions.services import process_submission, PDFGenerationService, resolve_file_on_disk
+from apps.submissions.services import (
+    process_submission,
+    PDFGenerationService,
+    resolve_file_on_disk,
+    consent_is_complete,
+    consent_fields,
+    client_ip,
+)
 from apps.submissions.tasks import (
     send_confirmation_email_now,
     send_admin_notification_now,
@@ -371,6 +378,22 @@ def submit_application(request):
                 'error': 'Podaci o projektu nisu pronađeni.'
             }, status=400)
 
+        # Z11: consent is checked here, not only in the browser. The COA path used to
+        # trust the frontend entirely (submit_cob already validated), so a request that
+        # skipped the form could be stored with no consent at all. Same rule and the
+        # same message as COB.
+        if not consent_is_complete(submission_data.get('consent')):
+            submission_logger.warning(
+                f"COA submission missing consent checkboxes, ip={client_ip(request)}"
+            )
+            return JsonResponse({
+                'success': False,
+                'error': 'Sve saglasnosti (privatnost, uslovi, tačnost) su obavezne.'
+            }, status=400)
+
+        # Recorded alongside the consent; never trusted for authorization.
+        submission_data['consent_ip'] = client_ip(request)
+
         # Duplicate submission prevention: Check for same email + title in last 5 minutes
         applicant_email = submission_data.get('applicant', {}).get('email')
         project_title = submission_data.get('project', {}).get('title') if application_type == 'COA' else None
@@ -633,8 +656,9 @@ def submit_cob(request):
 
         # Validate consent (GDPR required - all 3 checkboxes must be checked)
         # FIX: Field names match frontend (privacy, terms, accuracy) not saglasnost_gdpr
-        if not consent_data.get('privacy') or not consent_data.get('terms') or not consent_data.get('accuracy'):
-            submission_logger.warning(f"COB submission missing consent checkboxes, ip={request.META.get('REMOTE_ADDR')}")
+        # Z11: shared helper so COA and COB apply the identical rule.
+        if not consent_is_complete(consent_data):
+            submission_logger.warning(f"COB submission missing consent checkboxes, ip={client_ip(request)}")
             return JsonResponse({
                 'success': False,
                 'error': 'Sve saglasnosti (privatnost, uslovi, tačnost) su obavezne.'
@@ -718,11 +742,13 @@ def submit_cob(request):
                 }, status=500)
 
             # 2. Create Application record (type="COB")
+            # Z11: store the consent validated above, so it can be demonstrated later.
             application = Application.objects.create(
                 reference_number=reference_number,
                 application_type='COB',
                 status='submitted',
-                submitted_at=timezone.now()
+                submitted_at=timezone.now(),
+                **consent_fields(consent_data, client_ip(request))
             )
 
             # 3. Create Applicant record

@@ -5,8 +5,10 @@
  * Spacing: 8px base grid
  */
 
-/* ===== GOOGLE FONTS ===== */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Libre+Franklin:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* ===== FONTS =====
+ * Z12 (2026-07-25): served from our own server, see static/css/fonts.css (linked in
+ * base.html before this file). The Google Fonts @import that used to sit here sent
+ * every visitor's IP to Google. Regenerate with scripts/fetch_fonts.py. */
 
 /* ===== CSS CUSTOM PROPERTIES (Design Tokens) ===== */
 :root {

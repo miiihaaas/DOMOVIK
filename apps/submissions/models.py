@@ -73,6 +73,7 @@ class Application(models.Model):
         status: Current application status
         created_at: Timestamp when application was created
         submitted_at: Timestamp when application was submitted (null until submitted)
+        consent_*: Proof of the three consent checkboxes (Z11), see below
     """
 
     reference_number = models.CharField(
@@ -108,6 +109,48 @@ class Application(models.Model):
         blank=True,
         db_index=True,
         verbose_name='Podneseno'
+    )
+
+    # Z11 (2026-07-25): proof of consent (GDPR Art. 7(1) / ZZPL čl. 15 - the controller
+    # must be able to DEMONSTRATE that consent was given). The three checkboxes were
+    # validated at submit time and then thrown away, so there was nothing to show if an
+    # applicant ever disputed it. Recorded now, together with when it happened and which
+    # version of the policy the applicant actually agreed to - the text will change, and
+    # "they accepted the policy" means nothing without knowing which one.
+    # Applications submitted before Z11 keep False/NULL: that is the honest record, the
+    # consent existed but was never captured.
+    consent_privacy = models.BooleanField(
+        default=False,
+        verbose_name='Saglasnost - Politika privatnosti'
+    )
+
+    consent_terms = models.BooleanField(
+        default=False,
+        verbose_name='Saglasnost - Uslovi korišćenja'
+    )
+
+    consent_accuracy = models.BooleanField(
+        default=False,
+        verbose_name='Saglasnost - Tačnost podataka'
+    )
+
+    consent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Vreme davanja saglasnosti'
+    )
+
+    consent_policy_version = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name='Verzija politike',
+        help_text='Verzija Politike privatnosti / Uslova korišćenja prihvaćena pri slanju'
+    )
+
+    consent_ip = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name='IP adresa pri davanju saglasnosti'
     )
 
     class Meta:

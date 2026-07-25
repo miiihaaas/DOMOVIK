@@ -11,7 +11,8 @@ Story 4.3: Enhanced detail view with dynamic fieldsets, status editing, FileMeta
 Code Review Story 4.3: All display methods wrapped with ObjectDoesNotExist handling
 """
 from django.contrib import admin
-from django.utils.html import format_html, escape
+from django.utils.html import format_html, format_html_join, escape
+from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from datetime import timedelta
 from apps.submissions.models import (
@@ -272,6 +273,8 @@ class ApplicationAdmin(admin.ModelAdmin):
         'get_initiative_totalni_budzet',     # Z5
         # Story 4.4: Download all documents button
         'get_download_all_button',
+        # Z11: consent record (GDPR Art. 7(1) proof)
+        'get_consent_record',
     )
     # Note: status is NOT in readonly_fields → editable dropdown
 
@@ -459,6 +462,41 @@ class ApplicationAdmin(admin.ModelAdmin):
         )
     get_download_all_button.short_description = 'Bulk Download'
 
+    def get_consent_record(self, obj):
+        """
+        Z11: show the stored proof of consent (GDPR Art. 7(1)).
+
+        Applications submitted before Z11 have nothing recorded. That is shown plainly
+        rather than hidden or rendered as "not consented" - the applicant did tick the
+        boxes, the platform simply did not keep the record.
+        """
+        if not obj.consent_at:
+            return format_html(
+                '<span style="color:#92400E;">⚠️ Saglasnosti nisu zabeležene — prijava je '
+                'podneta pre uvođenja evidencije (25.07.2026). Sve tri saglasnosti su bile '
+                'obavezne i tada, ali se nisu čuvale u bazi.</span>'
+            )
+
+        rows = [
+            ('Politika privatnosti', obj.consent_privacy),
+            ('Uslovi korišćenja', obj.consent_terms),
+            ('Tačnost podataka', obj.consent_accuracy),
+        ]
+        items = format_html_join(
+            '', '<li>{} {}</li>',
+            (('✅' if given else '❌', label) for label, given in rows)
+        )
+
+        return format_html(
+            '<ul style="margin:0 0 8px 0; padding-left:18px; list-style:none;">{}</ul>'
+            '<div style="color:#6B7280; font-size:12px;">Vreme: {}<br>Verzija politike: {}<br>IP adresa: {}</div>',
+            items,
+            timezone.localtime(obj.consent_at).strftime('%d.%m.%Y. %H:%M:%S'),
+            obj.consent_policy_version or '—',
+            obj.consent_ip or '—',
+        )
+    get_consent_record.short_description = 'Evidencija saglasnosti'
+
     def get_fieldsets(self, request, obj=None):
         """
         Story 4.3: Dynamic fieldsets based on application type (COA/COB) and entity type (fizičko/pravno).
@@ -556,6 +594,15 @@ class ApplicationAdmin(admin.ModelAdmin):
                     'description': 'Download-ujte sve upload-ovane dokumente odjednom.',
                 })
             )
+
+        # Z11: consent proof, shown on every application - including the older ones
+        # where it is missing, because that absence is itself what an admin needs to see.
+        fieldsets.append(
+            ('✅ Saglasnosti', {
+                'fields': ('get_consent_record',),
+                'description': 'Dokaz o datim saglasnostima (GDPR čl. 7 - obaveza dokazivanja pristanka).',
+            })
+        )
 
         return tuple(fieldsets)
 

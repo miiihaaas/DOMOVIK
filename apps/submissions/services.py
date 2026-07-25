@@ -25,11 +25,76 @@ from apps.submissions.validators import (
     validate_phone,
     validate_registracioni_broj
 )
-from apps.submissions.constants import ApplicationType, ApplicationStatus, EntityType, FILE_CATEGORY_FOLDERS
+from apps.submissions.constants import (
+    ApplicationType,
+    ApplicationStatus,
+    EntityType,
+    FILE_CATEGORY_FOLDERS,
+    POLICY_VERSION,
+)
 import os
 import logging
 
 logger = logging.getLogger('domovik.submissions')
+
+
+# ============================================================================
+# Consent (Z11, 2026-07-25)
+# ============================================================================
+# The three checkboxes the applicant ticks in Section III. Shared by the COA and COB
+# paths so they cannot drift apart again - before Z11 only COB checked them on the
+# server, which meant a hand-crafted COA request could submit with none of them.
+
+CONSENT_KEYS = ('privacy', 'terms', 'accuracy')
+
+
+def consent_is_complete(consent_data):
+    """True only if all three consent checkboxes were sent as truthy."""
+    if not isinstance(consent_data, dict):
+        return False
+    return all(bool(consent_data.get(key)) for key in CONSENT_KEYS)
+
+
+def client_ip(request):
+    """
+    Best-effort client IP for the consent record, or None.
+
+    nginx passes the real address in X-Forwarded-For (gunicorn sits on a unix socket,
+    so REMOTE_ADDR is empty - same reason RATELIMIT_IP_META_KEY is set). The header is
+    a comma-separated chain and the leftmost entry is the client. It is client-supplied
+    and therefore spoofable: good enough as a supporting detail on a consent record,
+    never as an access control input.
+    """
+    from django.core.validators import validate_ipv46_address
+
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    candidate = forwarded.split(',')[0].strip() if forwarded else request.META.get('REMOTE_ADDR', '')
+    if not candidate:
+        return None
+    try:
+        validate_ipv46_address(candidate)
+    except ValidationError:
+        logger.warning(f"Discarding malformed client IP: {candidate[:60]!r}")
+        return None
+    return candidate
+
+
+def consent_fields(consent_data, ip_address=None):
+    """
+    Build the Application consent columns (GDPR Art. 7(1) - demonstrable consent).
+
+    Returns a dict meant to be splatted into Application.objects.create(). Records the
+    policy version in force, so a later rewrite of the policy text cannot retroactively
+    change what an applicant is recorded as having agreed to.
+    """
+    return {
+        'consent_privacy': bool(consent_data.get('privacy')),
+        'consent_terms': bool(consent_data.get('terms')),
+        'consent_accuracy': bool(consent_data.get('accuracy')),
+        'consent_at': timezone.now(),
+        'consent_policy_version': POLICY_VERSION,
+        'consent_ip': ip_address,
+    }
 
 
 def resolve_file_on_disk(file_metadata):
@@ -242,11 +307,17 @@ def process_submission(submission_data):
         reference_number = ReferenceNumberService.generate_reference_number(application_type)
 
         # Step 2: Create Application record
+        # Z11: consent columns come from the caller, which already rejected the request
+        # if any checkbox was missing (see submit_application / submit_cob).
         application = Application.objects.create(
             reference_number=reference_number,
             application_type=application_type,
             status=ApplicationStatus.SUBMITTED,
-            submitted_at=timezone.now()
+            submitted_at=timezone.now(),
+            **consent_fields(
+                submission_data.get('consent', {}),
+                submission_data.get('consent_ip'),
+            )
         )
 
         # Step 3: Create Applicant record and link to Application

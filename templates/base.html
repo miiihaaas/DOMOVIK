@@ -9,11 +9,10 @@
     <!-- Extra meta tags (CSRF, etc.) -->
     {% block extra_meta %}{% endblock %}
 
-    <!-- Google Fonts preconnect -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Z12: fonts are self-hosted; nothing is requested from Google. -->
+    <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
 
-    <!-- Base CSS (includes @import for Google Fonts) -->
+    <!-- Base CSS -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
     <!-- Page-specific CSS -->
