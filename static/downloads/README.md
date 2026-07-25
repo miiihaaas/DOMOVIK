@@ -1,75 +1,63 @@
-# Excel Šabloni - DOMOVIK
+# Obrazac budžeta — DOMOVIK
 
-## Struktura Budžet Projekta Šablona
+**Fajl:** `budzet-obrazac.xlsx`
+**Izvor:** klijentov dokument `docs/Budzet_obrazac.xlsx` (Z6, 2026-07-25)
 
-**Fajl:** `budzet-projekta-sablon.xlsx`
+Jedan obrazac se koristi za **oba** tipa prijave — Projekat (COA) i Inicijativa (COB).
+Preuzima se sa početne strane (`templates/landing/home.html`) i iz Sekcije III obe forme.
 
-### Sheet 1: Budžet Projekta
+> ⚠️ Ovaj fajl **nije generisan kodom**. To je dokument koji je dostavio klijent.
+> Ranije skripte `scripts/create_budget_template.py` i `scripts/verify_excel_template.py`
+> su obrisane upravo zato što bi pregazile ovaj fajl pri pokretanju.
 
-**Struktura tabele:**
+## Struktura
 
-| Red | Kategorija Troškova | Opis | Jedinična Cena (EUR) | Količina | Ukupno (EUR) |
-|-----|---------------------|------|----------------------|----------|--------------|
-| 1   | **Header**          |      |                      |          |              |
-| 2   | Plate i naknade     | (primer) | (korisnik unosi) | (korisnik unosi) | =C2*D2 |
-| 3   | Materijalni troškovi | (primer) | (korisnik unosi) | (korisnik unosi) | =C3*D3 |
-| 4   | Usluge              | (primer) | (korisnik unosi) | (korisnik unosi) | =C4*D4 |
-| 5-8 | (prazno za unos)    |      |                      |          | =C*D formule |
-| **9** | **UKUPNO**        |      |                      |          | **=SUM(E2:E8)** |
+Jedan sheet: **`Budžet šablon`**
 
-### Ključne Karakteristike
+| Red | Sadržaj |
+|-----|---------|
+| 7 | `Naziv tima:` (unos ide u `B7`) |
+| 12 | Zaglavlje: Troškovi / Jedinica / Količina / Jedinična cena (EUR) / Ukupan budžet (EUR) / Opis troškova |
+| 13–18 | 1. Putni troškovi (A) — stavke 14–17, međuzbir `E18 = SUM(E14:E17)` |
+| 19–24 | 2. Materijali, oprema i promotivni proizvodi (B) — stavke 20–23, međuzbir `E24` |
+| 25–31 | 3. Organizacija aktivnosti i događaja (C) — stavke 26–30, međuzbir `E31` |
+| 32–38 | 4. Spoljne usluge i ostali troškovi (D) — stavke 33–37, međuzbir `E38` |
+| 39 | Ukupni troškovi `E39 = E18+E24+E31+E38` |
+| 41–42 | Napomene o okvirnim cenama |
 
-- **Data redovi:** 2-8 (7 redova za budget entries)
-- **UKUPNO red:** 9
-- **SUM formula:** `=SUM(E2:E8)` (sumira sve data redove)
-- **Zaštićene ćelije:** Kolona E (redovi 2-9) - korisnik ne može da obriše formule
-- **Format:** .xlsx (Excel 2007+)
+Svaki red sa stavkom ima `E{red} = C{red}*D{red}`. Prva stavka u svakoj kategoriji je
+popunjen primer (prevoz, majice, osveženje, honorar moderatora).
 
-### Sheet 2: Uputstvo
+## Zaštita ćelija
 
-Sadrži instrukcije za korisnike kako da popune budžet šablon.
+Sheet je zaštićen (**bez lozinke**), tako da:
 
-## Kreiranje/Modifikacija Šablona
+- **kolona E je zaključana** — korisnik ne može obrisati formule;
+- **kolone A, B, C, D i F u redovima sa stavkama su otključane**, kao i `B7`;
+- formatiranje ćelija/redova/kolona je dozvoljeno, izmena strukture nije.
 
-### Opcija 1: Ručno (Preporučeno za brze izmene)
+Ako je potrebno **dodati redove**, sheet se skida sa zaštite kroz Excel:
+*Review → Unprotect Sheet* (ne traži lozinku).
 
-1. Otvori `budzet-projekta-sablon.xlsx` u Microsoft Excel ili LibreOffice Calc
-2. Napravi izmene direktno u fajlu
-3. Sačuvaj kao .xlsx format
-4. Pokreni testove: `python manage.py test apps.landing.tests.ExcelTemplateDownloadTests`
+## Izmena obrasca
 
-### Opcija 2: Programatski (Za automatsku verifikaciju)
+1. Zameni `docs/Budzet_obrazac.xlsx` novom verzijom od klijenta.
+2. Ponovo primeni zaštitu ćelija:
+   ```bash
+   venv/bin/python scripts/protect_budget_template.py
+   ```
+   Skripta čita `docs/Budzet_obrazac.xlsx` i upisuje `static/downloads/budzet-obrazac.xlsx`.
+   Radi direktno nad XML-om u .xlsx arhivi — **ne koristi openpyxl za ponovni upis**, jer
+   briše ugrađeni logo (`xl/media/image1.jpeg`), print podešavanja i `customXml` delove.
+   Ako klijent promeni raspored redova, ažuriraj konstante na vrhu skripte.
+3. Pokreni testove:
+   ```bash
+   venv/bin/python manage.py test apps.landing.tests.ExcelTemplateDownloadTests --keepdb
+   ```
+   Oni proveravaju sheet, zaglavlje, sve formule, zaštitu i prisustvo logotipa.
+4. `venv/bin/python manage.py collectstatic --noinput` i restart gunicorn-a.
 
-Koristi `scripts/verify_excel_template.py` skript:
+## Napomena o sadržaju
 
-```bash
-python scripts/verify_excel_template.py
-```
-
-**Šta skript radi:**
-- Učitava postojeći Excel fajl (NE kreira novi od nule)
-- Verifikuje strukturu (kolone, kategorije, formule)
-- Ispravlja greške ako ih pronađe
-- Dodaje zaštitu formula
-- Verifikuje Uputstvo sheet
-
-**NAPOMENA:** Skript **NE kreira novi fajl** ako ga nema. Mora postojati bazni Excel fajl.
-
-## Testiranje
-
-Pokreni unit testove za Excel šablon:
-
-```bash
-# Svi Excel testovi
-python manage.py test apps.landing.tests.ExcelTemplateDownloadTests
-
-# Specifičan test (npr. SUM formula)
-python manage.py test apps.landing.tests.ExcelTemplateDownloadTests.test_excel_template_has_sum_formula
-```
-
-## Verzija i Kreiranje
-
-- **Kreiran:** Story 1.1 (2025-12-23)
-- **Verifikovan/Unapređen:** Story 1.2 (2025-12-24)
-- **Trenutna verzija:** 1.0
-- **File size:** 7398 bytes
+Prazne stavke u obrascu su nazvane `1.2 ???????`, `2.3 ??????` itd. — tako ih je
+dostavio klijent (nije greška enkodiranja). Ostavljeno namerno, po dogovoru.

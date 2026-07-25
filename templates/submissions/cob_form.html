@@ -252,6 +252,12 @@
         <div class="file-upload-section" id="budzet-inicijative-upload-section">
           <h3 class="file-upload-section__title">Budžet inicijative *</h3>
 
+          {# Z6 (2026-07-25): isti obrazac kao za projekte, dostupan i iz forme. #}
+          <a href="{% static 'downloads/budzet-obrazac.xlsx' %}" class="file-upload-section__template" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Preuzmi obrazac budžeta (Excel)
+          </a>
+
           <div class="upload-zone" id="budzet-inicijative-upload-zone" data-category="BUDZET_INICIJATIVE">
             <input type="file" id="budzet-inicijative-file-input" accept=".xls,.xlsx" style="display:none;" aria-label="Odaberi Excel fajl za budžet inicijative">
             <button type="button" class="upload-btn" id="budzet-inicijative-upload-btn">

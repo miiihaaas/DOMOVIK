@@ -1,3 +1,5 @@
+import re
+
 from django.test import TestCase, Client
 from django.urls import reverse
 
@@ -51,18 +53,19 @@ class LandingPageViewTests(TestCase):
         self.assertContains(response, 'Možete prekinuti i vratiti se kasnije')
 
     def test_landing_page_contains_excel_template_download(self):
-        """Test AC3: Excel template download section exists"""
+        """Test AC3: Excel template download section exists (Z6: client-supplied obrazac)"""
         response = self.client.get(self.url)
         self.assertContains(response, 'Preuzmite šablone')
-        self.assertContains(response, 'Budžet Projekta')
-        self.assertContains(response, 'Preuzmi Excel šablon')
+        self.assertContains(response, 'Obrazac budžeta')
+        self.assertContains(response, 'Preuzmi obrazac')
         # Check download link
-        self.assertContains(response, 'budzet-projekta-sablon.xlsx')
+        self.assertContains(response, 'budzet-obrazac.xlsx')
 
     def test_landing_page_contains_download_guidance(self):
         """Test AC3: Visual guidance for download process"""
         response = self.client.get(self.url)
-        self.assertContains(response, '1. Preuzmi → 2. Popuni → 3. Upload')
+        for step in ('1. Preuzmi', '2. Popuni', '3. Upload'):
+            self.assertContains(response, step)
 
     def test_landing_page_contains_coa_banner(self):
         """Test AC4: COA (Projekat) banner exists with correct link"""
@@ -213,211 +216,202 @@ class LandingPageAccessibilityTests(TestCase):
 
 class ExcelTemplateDownloadTests(TestCase):
     """
-    Unit tests for Excel Template Downloads (Story 1.2)
-    Tests AC1-AC5: Download functionality, template structure, visual guidance
+    Unit tests for the budget template download (Story 1.2, rewritten for Z6).
+
+    Z6 (2026-07-25): the generated template was replaced by the client's own
+    `Budzet_obrazac.xlsx`, served as `downloads/budzet-obrazac.xlsx` and shared by
+    both application types. These tests assert the structure of THAT file, so a
+    future re-upload that loses the formulas or the sheet protection fails loudly.
     """
+
+    TEMPLATE_NAME = 'budzet-obrazac.xlsx'
+    SHEET_NAME = 'Budžet šablon'
+    # Rows the applicant fills in; column E holds the =C*D formula and stays locked.
+    DATA_ROWS = (
+        tuple(range(14, 18)) + tuple(range(20, 24))
+        + tuple(range(26, 31)) + tuple(range(33, 38))
+    )
+    SUBTOTAL_CELLS = {
+        'E18': '=SUM(E14:E17)',
+        'E24': '=SUM(E20:E23)',
+        'E31': '=SUM(E26:E30)',
+        'E38': '=SUM(E33:E37)',
+    }
+    TOTAL_CELL = 'E39'
+    TOTAL_FORMULA = '=E18+E24+E31+E38'
 
     def setUp(self):
         """Set up test client for each test"""
         self.client = Client()
         self.url = reverse('landing_home')
 
+    def _template_path(self):
+        from django.conf import settings
+        return settings.BASE_DIR / 'static' / 'downloads' / self.TEMPLATE_NAME
+
+    def _workbook(self):
+        from openpyxl import load_workbook
+        return load_workbook(str(self._template_path()))
+
     def test_landing_page_contains_excel_download_link(self):
-        """Test AC1: Landing page has Excel template download link"""
+        """Test AC1: Landing page has the budget template download link"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Preuzmi Excel šablon')
-        self.assertContains(response, 'downloads/budzet-projekta-sablon.xlsx')
+        self.assertContains(response, 'Preuzmi obrazac')
+        self.assertContains(response, 'downloads/' + self.TEMPLATE_NAME)
 
     def test_excel_download_link_points_to_static_file(self):
-        """Test AC1: Download link points to correct static file path"""
+        """Test AC1: Download link points to the static file and forces a download"""
         response = self.client.get(self.url)
         content = response.content.decode('utf-8')
 
-        # Verify the download link uses static template tag
-        self.assertIn('downloads/budzet-projekta-sablon.xlsx', content)
+        self.assertIn('downloads/' + self.TEMPLATE_NAME, content)
 
-        # Verify link has download attribute (forces download vs open)
-        import re
         download_link = re.search(
-            r'<a[^>]*href="[^"]*budzet-projekta-sablon\.xlsx"[^>]*>',
+            r'<a[^>]*href="[^"]*budzet-obrazac\.xlsx"[^>]*>',
             content
         )
         self.assertIsNotNone(download_link, "Download link not found in HTML")
         self.assertIn('download', download_link.group(), "Download attribute missing from link")
 
+    def test_both_application_forms_link_to_template(self):
+        """Z6: the obrazac is reachable from inside both forms, not only the landing page"""
+        for route in ('submissions:coa_form', 'submissions:cob_form'):
+            with self.subTest(route=route):
+                response = self.client.get(reverse(route))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'downloads/' + self.TEMPLATE_NAME)
+                self.assertContains(response, 'Preuzmi obrazac budžeta')
+
     def test_excel_template_file_exists(self):
-        """Test AC1,5: Excel template file exists in static folder"""
-        from django.conf import settings
-        from pathlib import Path
-
-        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
-
-        self.assertTrue(
-            file_path.exists(),
-            f"Excel template not found at {file_path}"
-        )
-
-        # Verify file is not empty
-        file_size = file_path.stat().st_size
-        self.assertGreater(
-            file_size,
-            0,
-            "Excel template file is empty"
-        )
+        """Test AC1,5: Template file exists in the static folder and is not empty"""
+        file_path = self._template_path()
+        self.assertTrue(file_path.exists(), f"Budget template not found at {file_path}")
+        self.assertGreater(file_path.stat().st_size, 0, "Budget template file is empty")
 
     def test_excel_template_is_xlsx_format(self):
-        """Test AC5: Excel template is .xlsx format (Excel 2007+)"""
-        from django.conf import settings
-        from pathlib import Path
-
-        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
-
-        # Verify file extension
-        self.assertTrue(
-            str(file_path).endswith('.xlsx'),
-            "Excel template must be .xlsx format (Excel 2007+)"
-        )
-
-        # Verify file can be opened with openpyxl (validates .xlsx format)
+        """Test AC5: Template is a valid .xlsx workbook (Excel 2007+)"""
+        file_path = self._template_path()
+        self.assertTrue(str(file_path).endswith('.xlsx'), "Template must be .xlsx")
         try:
-            from openpyxl import load_workbook
-            wb = load_workbook(str(file_path))
-            self.assertIsNotNone(wb, "Failed to load Excel workbook")
+            self.assertIsNotNone(self._workbook(), "Failed to load Excel workbook")
         except Exception as e:
-            self.fail(f"Excel template is not a valid .xlsx file: {e}")
+            self.fail(f"Budget template is not a valid .xlsx file: {e}")
 
     def test_excel_template_structure(self):
-        """Test AC2,4: Excel template has correct structure with required sheets"""
-        from django.conf import settings
-        from openpyxl import load_workbook
+        """Test AC2,4: Template has the expected sheet and column headers"""
+        wb = self._workbook()
+        self.assertIn(self.SHEET_NAME, wb.sheetnames, f"Sheet {self.SHEET_NAME!r} not found")
 
-        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
-
-        wb = load_workbook(str(file_path))
-
-        # Test AC2: Verify main budget sheet exists
-        self.assertIn(
-            'Budžet Projekta',
-            wb.sheetnames,
-            "Main budget sheet 'Budžet Projekta' not found"
-        )
-
-        # Test AC4: Verify instructions sheet exists
-        instructions_sheet_exists = (
-            'Uputstva' in wb.sheetnames or
-            'Uputstvo' in wb.sheetnames
-        )
-        self.assertTrue(
-            instructions_sheet_exists,
-            "Instructions sheet ('Uputstva' or 'Uputstvo') not found"
-        )
-
-        # Verify budget sheet has expected columns
-        ws_budget = wb['Budžet Projekta']
+        ws = wb[self.SHEET_NAME]
         expected_headers = [
-            'Kategorija Troškova',
-            'Opis',
-            'Jedinična Cena (EUR)',
+            'Troškovi',
+            'Jedinica',
             'Količina',
-            'Ukupno (EUR)'
+            'Jedinična cena (EUR)',
+            'Ukupan budžet (EUR)',
+            'Opis troškova',
         ]
-
-        actual_headers = [
-            ws_budget.cell(1, col).value
-            for col in range(1, 6)
-        ]
-
+        actual_headers = [ws.cell(12, col).value for col in range(1, 7)]
         self.assertEqual(
             actual_headers,
             expected_headers,
-            f"Column headers don't match. Expected: {expected_headers}, Got: {actual_headers}"
+            f"Header row 12 doesn't match. Expected: {expected_headers}, Got: {actual_headers}"
         )
 
-    def test_excel_template_has_sum_formula(self):
-        """Test AC2: Excel template has SUM formula in UKUPNO row"""
-        from django.conf import settings
-        from openpyxl import load_workbook
+        # The four expense categories must still be there
+        for row, prefix in ((13, '1.'), (19, '2.'), (25, '3.'), (32, '4.')):
+            self.assertTrue(
+                str(ws.cell(row, 1).value or '').startswith(prefix),
+                f"Category heading {prefix} missing from row {row}"
+            )
 
-        file_path = settings.BASE_DIR / 'static' / 'downloads' / 'budzet-projekta-sablon.xlsx'
+    def test_excel_template_has_sum_formulas(self):
+        """Test AC2: Subtotals and the grand total are live formulas, not pasted numbers"""
+        ws = self._workbook()[self.SHEET_NAME]
 
-        wb = load_workbook(str(file_path))
-        ws_budget = wb['Budžet Projekta']
+        for ref, formula in self.SUBTOTAL_CELLS.items():
+            self.assertEqual(
+                ws[ref].value, formula,
+                f"Subtotal {ref} should be {formula}, got: {ws[ref].value}"
+            )
 
-        # Find UKUPNO row (should be row 9 based on template specs)
-        ukupno_row = None
-        for row_idx in range(1, 15):  # Check first 15 rows
-            cell_value = ws_budget.cell(row_idx, 1).value
-            if cell_value and 'UKUPNO' in str(cell_value).upper():
-                ukupno_row = row_idx
-                break
-
-        self.assertIsNotNone(ukupno_row, "UKUPNO row not found in Excel template")
-        self.assertEqual(ukupno_row, 9, "UKUPNO should be in row 9")
-
-        # Verify SUM formula exists in Ukupno column (column E)
-        sum_cell = ws_budget.cell(ukupno_row, 5)
-        sum_value = sum_cell.value
-
-        self.assertIsNotNone(sum_value, "UKUPNO cell is empty (no SUM formula)")
-        self.assertTrue(
-            str(sum_value).startswith('=SUM'),
-            f"UKUPNO cell should contain SUM formula, got: {sum_value}"
-        )
-
-        # Verify the formula sums E2:E8 (not E2:E10)
         self.assertEqual(
-            sum_value,
-            '=SUM(E2:E8)',
-            f"SUM formula should be =SUM(E2:E8), got: {sum_value}"
+            ws[self.TOTAL_CELL].value, self.TOTAL_FORMULA,
+            f"Grand total {self.TOTAL_CELL} should be {self.TOTAL_FORMULA}, "
+            f"got: {ws[self.TOTAL_CELL].value}"
         )
+
+        # Every data row multiplies quantity by unit price
+        for row in self.DATA_ROWS:
+            self.assertEqual(
+                ws.cell(row, 5).value, f'=C{row}*D{row}',
+                f"Row {row} lost its =C*D formula"
+            )
+
+    def test_excel_template_formula_cells_are_protected(self):
+        """Z6: sheet protection is on, formulas locked, input cells still editable"""
+        ws = self._workbook()[self.SHEET_NAME]
+
+        self.assertTrue(ws.protection.sheet, "Sheet protection is not enabled")
+
+        locked_refs = list(self.SUBTOTAL_CELLS) + [self.TOTAL_CELL]
+        locked_refs += [f'E{row}' for row in self.DATA_ROWS]
+        for ref in locked_refs:
+            self.assertTrue(
+                ws[ref].protection.locked,
+                f"Formula cell {ref} must stay locked"
+            )
+
+        for row in self.DATA_ROWS:
+            for col in ('A', 'B', 'C', 'D', 'F'):
+                self.assertFalse(
+                    ws[f'{col}{row}'].protection.locked,
+                    f"Input cell {col}{row} must be editable while the sheet is protected"
+                )
+
+        self.assertFalse(ws['B7'].protection.locked, "'Naziv tima' input must be editable")
+
+    def test_excel_template_keeps_embedded_logo(self):
+        """Z6: adding protection must not strip the client's branding"""
+        ws = self._workbook()[self.SHEET_NAME]
+        self.assertEqual(len(ws._images), 1, "Embedded logo missing from the template")
 
     def test_visual_guidance_text_present(self):
         """Test AC3: Visual guidance '1. Preuzmi → 2. Popuni → 3. Upload' is displayed"""
         response = self.client.get(self.url)
-        self.assertContains(response, '1. Preuzmi')
-        self.assertContains(response, '2. Popuni')
-        self.assertContains(response, '3. Upload')
-
-        # Verify the complete guidance text
-        self.assertContains(response, '1. Preuzmi → 2. Popuni → 3. Upload')
+        for step in ('1. Preuzmi', '2. Popuni', '3. Upload'):
+            self.assertContains(response, step)
 
     def test_visual_guidance_has_correct_css_class(self):
-        """Test AC3: Visual guidance uses landing__download-guidance class"""
+        """Test AC3: Visual guidance uses the downloads__steps class"""
         response = self.client.get(self.url)
         content = response.content.decode('utf-8')
 
-        # Check for the specific CSS class
-        import re
         guidance_element = re.search(
-            r'<p[^>]*class="[^"]*landing__download-guidance[^"]*"[^>]*>',
+            r'<p[^>]*class="[^"]*downloads__steps[^"]*"[^>]*>',
             content
         )
-
         self.assertIsNotNone(
             guidance_element,
-            "Visual guidance element with class 'landing__download-guidance' not found"
+            "Visual guidance element with class 'downloads__steps' not found"
         )
 
     def test_visual_guidance_in_same_section_as_download_link(self):
-        """Test AC3: Visual guidance is in the same card/section as download link"""
+        """Test AC3: Visual guidance sits in the same card as the download link"""
         response = self.client.get(self.url)
         content = response.content.decode('utf-8')
 
-        # Find the download card section
-        import re
         download_card = re.search(
-            r'<div class="landing__download-card">.*?</div>',
+            r'<div class="downloads__card reveal">.*?</section>',
             content,
             re.DOTALL
         )
-
         self.assertIsNotNone(download_card, "Download card section not found")
 
-        # Verify both visual guidance AND download link are in the same section
         card_content = download_card.group()
         self.assertIn('1. Preuzmi', card_content, "Visual guidance not in download card")
-        self.assertIn('budzet-projekta-sablon.xlsx', card_content, "Download link not in same card")
+        self.assertIn(self.TEMPLATE_NAME, card_content, "Download link not in same card")
 
 
 class ApplicationTypeSelectionTests(TestCase):
